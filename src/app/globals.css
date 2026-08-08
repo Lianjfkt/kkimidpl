@@ -1,26 +1,158 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Apple Design Tokens & Colors */
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f5f5f7;
+  --color-bg-dark: #000000;
+  --color-bg-dark-secondary: #1d1d1f;
+
+  /* Text colors */
+  --color-text-primary: #1d1d1f;
+  --color-text-secondary: #6e6e73;
+  --color-text-on-dark: #f5f5f7;
+  --color-text-on-dark-secondary: #a1a1a6;
+
+  /* Accent - Karate theme (dark red) */
+  --color-accent-karate: #a30000;
+  --color-accent-karate-hover: #c40000;
+  
+  /* Status Colors */
+  --color-status-success: #1d803a;
+  --color-status-warning: #b76e00;
+  --color-status-error: #a30000;
+  --color-status-info: #0071e3;
+
+  /* Glass/surfaces and hairlines */
+  --color-glass: rgba(255, 255, 255, 0.72);
+  --color-glass-dark: rgba(29, 29, 31, 0.72);
+  --color-border-hairline: rgba(0, 0, 0, 0.08);
+  --color-border-hairline-dark: rgba(255, 255, 255, 0.12);
+
+  /* Layout Spacing */
+  --space-xs: 8px;
+  --space-sm: 16px;
+  --space-md: 32px;
+  --space-lg: 64px;
+  --space-xl: 120px;
+
+  --radius-card: 18px;
+  --radius-button: 980px;
+
+  /* Easing curves */
+  --ease-apple: cubic-bezier(0.28, 0.11, 0.32, 1);
+  --ease-out-quick: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --duration-fast: 200ms;
+  --duration-base: 400ms;
+  --duration-slow: 700ms;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text-primary);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Core layouts and standard styles */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+}
+
+/* Custom classes matching the Apple aesthetics guidelines */
+.apple-card {
+  background: var(--color-bg);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-border-hairline);
+  padding: 24px;
+  transition: transform var(--duration-base) var(--ease-apple),
+              box-shadow var(--duration-base) var(--ease-apple);
+}
+
+.apple-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
+}
+
+.apple-btn {
+  background: var(--color-accent-karate);
+  color: #ffffff;
+  border-radius: var(--radius-button);
+  font-weight: 500;
+  padding: 10px 20px;
+  transition: background-color var(--duration-fast) var(--ease-out-quick),
+              transform var(--duration-fast) var(--ease-out-quick);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.apple-btn:hover {
+  background: var(--color-accent-karate-hover);
+  transform: scale(1.02);
+}
+
+.apple-btn:active {
+  transform: scale(0.98);
+}
+
+.apple-btn-secondary {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-button);
+  font-weight: 500;
+  padding: 10px 20px;
+  transition: background-color var(--duration-fast) var(--ease-out-quick),
+              border-color var(--duration-fast) var(--ease-out-quick);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.apple-btn-secondary:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.glass-nav {
+  background: var(--color-glass);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--color-border-hairline);
+}
+
+.hero-headline {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.body-text {
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
