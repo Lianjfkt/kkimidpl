@@ -165,12 +165,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      console.log('[QuickLogin] Trying:', roleEmail);
       const response = await signIn(roleEmail, rolePass) as any;
+      console.log('[QuickLogin] Response:', JSON.stringify(response));
+
       if (response && response.error) {
-        setError(response.error.message);
+        const msg = response.error.message || response.error.toString();
+        console.error('[QuickLogin] Error:', msg);
+        setError(`Login gagal: ${msg}`);
         setLoading(false);
       } else {
         const role = response.role;
+        console.log('[QuickLogin] Role:', role);
         if (role === 'owner') {
           window.location.href = '/owner';
         } else if (role === 'pelatih') {
@@ -178,11 +184,13 @@ export default function LoginPage() {
         } else if (role === 'ortu') {
           window.location.href = '/ortu';
         } else {
-          window.location.href = '/owner'; // fallback
+          console.warn('[QuickLogin] Role null, redirecting to /owner as fallback');
+          window.location.href = '/owner';
         }
       }
-    } catch (err) {
-      setError('Terjadi kesalahan saat masuk. Silakan coba lagi.');
+    } catch (err: any) {
+      console.error('[QuickLogin] Exception:', err);
+      setError(`Terjadi kesalahan: ${err?.message || err}`);
       setLoading(false);
     }
   };
