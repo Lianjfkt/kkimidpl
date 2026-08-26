@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Student } from '@/lib/mockData';
@@ -189,6 +190,13 @@ export default function OwnerStudents() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-right space-x-2">
+                      <Link
+                        href={`/owner/students/${student.id}`}
+                        className="text-xs font-semibold hover:underline"
+                        style={{ color: 'var(--md-sys-color-primary)' }}
+                      >
+                        Detail
+                      </Link>
                       <button
                         onClick={() => openEditModal(student)}
                         className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"

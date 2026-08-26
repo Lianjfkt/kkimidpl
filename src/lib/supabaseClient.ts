@@ -1,6 +1,27 @@
+import { createClient } from '@supabase/supabase-js';
 import * as mock from './mockData';
 
-// Helper to initialize and retrieve local storage database tables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+const isSupabaseConfigured = 
+  supabaseUrl && 
+  supabaseAnonKey && 
+  !supabaseUrl.includes('your-project-id') && 
+  !supabaseUrl.includes('YOUR_SUPABASE_PROJECT_URL_HERE');
+
+let realSupabase: any = null;
+if (isSupabaseConfigured) {
+  try {
+    realSupabase = createClient(supabaseUrl, supabaseAnonKey);
+    console.log('Supabase client successfully initialized with URL:', supabaseUrl);
+  } catch (err) {
+    console.error('Failed to initialize real Supabase client:', err);
+  }
+} else {
+  console.log('Supabase credentials not configured or using placeholders. Falling back to local storage mock database.');
+}
+
 const getLocalStorageDb = () => {
   if (typeof window === 'undefined') {
     return {
@@ -8,24 +29,35 @@ const getLocalStorageDb = () => {
       students: mock.initialStudents,
       coaches: mock.initialCoaches,
       classes: mock.initialClasses,
-      attendance_students: [] as mock.StudentAttendance[],
+      attendance_students: mock.initialAttendanceStudents,
       attendance_coaches: [] as mock.CoachAttendance[],
       fees: mock.initialFees,
       finance_transactions: mock.initialFinanceTransactions,
-      belt_exams: [] as mock.BeltExam[],
-      exam_participants: [] as mock.ExamParticipant[],
-      tournaments: [] as mock.Tournament[],
-      tournament_participants: [] as mock.TournamentParticipant[],
+      belt_exams: mock.initialBeltExams,
+      exam_participants: mock.initialExamParticipants,
+      tournaments: mock.initialTournaments,
+      tournament_participants: mock.initialTournamentParticipants,
       registrations: mock.initialRegistrations,
       notifications: mock.initialNotifications,
+      class_students: mock.initialClassStudents,
+      curriculum_materials: mock.initialCurriculumMaterials,
     };
   }
 
   const keys = [
     'profiles', 'students', 'coaches', 'classes', 'attendance_students',
     'attendance_coaches', 'fees', 'finance_transactions', 'belt_exams',
-    'exam_participants', 'tournaments', 'tournament_participants', 'registrations', 'notifications'
+    'exam_participants', 'tournaments', 'tournament_participants', 'registrations', 'notifications',
+    'class_students', 'curriculum_materials'
   ];
+
+  // Only reseed if version key is missing (run once per browser)
+  if (localStorage.getItem('db_reseeded_v6') !== 'true') {
+    console.log('First-time initialization: seeding database...');
+    keys.forEach(key => localStorage.removeItem(`db_${key}`));
+    localStorage.setItem('db_reseeded_v6', 'true');
+    // Do NOT clear mock_auth_session here — preserve any active session
+  }
 
   const db: any = {};
   keys.forEach(key => {
@@ -39,10 +71,17 @@ const getLocalStorageDb = () => {
       if (key === 'students') initialVal = mock.initialStudents;
       if (key === 'coaches') initialVal = mock.initialCoaches;
       if (key === 'classes') initialVal = mock.initialClasses;
+      if (key === 'attendance_students') initialVal = mock.initialAttendanceStudents;
       if (key === 'fees') initialVal = mock.initialFees;
       if (key === 'finance_transactions') initialVal = mock.initialFinanceTransactions;
+      if (key === 'belt_exams') initialVal = mock.initialBeltExams;
+      if (key === 'exam_participants') initialVal = mock.initialExamParticipants;
+      if (key === 'tournaments') initialVal = mock.initialTournaments;
+      if (key === 'tournament_participants') initialVal = mock.initialTournamentParticipants;
       if (key === 'registrations') initialVal = mock.initialRegistrations;
       if (key === 'notifications') initialVal = mock.initialNotifications;
+      if (key === 'class_students') initialVal = mock.initialClassStudents;
+      if (key === 'curriculum_materials') initialVal = mock.initialCurriculumMaterials;
 
       localStorage.setItem(`db_${key}`, JSON.stringify(initialVal));
       db[key] = initialVal;
@@ -129,7 +168,7 @@ class QueryBuilder {
 
     const itemsToInsert = Array.isArray(newData) ? newData : [newData];
     const insertedItems = itemsToInsert.map(item => ({
-      id: item.id || crypto.randomUUID(),
+      id: item.id || generateUUID(),
       created_at: new Date().toISOString(),
       ...item
     }));
@@ -180,13 +219,44 @@ class QueryBuilder {
   }
 }
 
-export const supabase = {
+const generateUUID = () => {
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
+async function sha256(message: string): Promise<string> {
+  if (typeof window === 'undefined') return '';
+  
+  if (!window.crypto || !window.crypto.subtle) {
+    if (message === 'owner123') return '4015f83ee3f975f9376533068867fb1297e651663dad02e0c37a95a88694fb57';
+    let hash = 0;
+    for (let i = 0; i < message.length; i++) {
+      const char = message.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash |= 0;
+    }
+    return 'mock-hash-' + Math.abs(hash).toString(16);
+  }
+
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+const mockSupabase = {
   auth: {
     signUp: async ({ email, password, options }: any) => {
       // Simulate registration
       const db = getLocalStorageDb();
       const profiles = db.profiles || [];
-      const userId = `user-${crypto.randomUUID()}`;
+      const userId = `user-${generateUUID()}`;
 
       const newProfile = {
         id: userId,
@@ -212,25 +282,61 @@ export const supabase = {
     },
 
     signInWithPassword: async ({ email, password }: any) => {
-      // First check mock users
-      const mockUsers = JSON.parse(localStorage.getItem('mock_auth_users') || '[]');
-      let matchedUser = mockUsers.find((u: any) => u.email === email && u.password === password);
+      const cleanEmail = (email || '').toLowerCase().trim();
+      const cleanPass = (password || '').trim();
 
-      // Or fallback to default accounts
+      let matchedUser: { id: string; email: string } | null = null;
+
+      // 1. Owner
+      if (['owner', 'admin', 'owner@dojo.com'].includes(cleanEmail)) {
+        if (cleanPass === 'owner123') {
+          matchedUser = { id: 'user-owner-id', email: 'owner@dojo.com' };
+        } else {
+          // also try password_hash match from profiles
+          const pwdHash = await sha256(cleanPass);
+          const db = getLocalStorageDb();
+          const ownerProfile = (db.profiles || []).find((p: any) => p.role === 'owner');
+          if (ownerProfile && ownerProfile.password_hash === pwdHash) {
+            matchedUser = { id: ownerProfile.id, email: 'owner@dojo.com' };
+          }
+        }
+      }
+
+      // 2. Pelatih
+      if (!matchedUser && cleanEmail === 'pelatih@dojo.com' && cleanPass === 'pelatih123') {
+        matchedUser = { id: 'user-coach-id', email: 'pelatih@dojo.com' };
+      }
+
+      // 3. Ortu demo
+      if (!matchedUser && cleanEmail === 'ortu@dojo.com' && cleanPass === 'ortu123') {
+        matchedUser = { id: 'user-parent-id', email: 'ortu@dojo.com' };
+      }
+
+      // 4. Ortu by phone number in profiles
       if (!matchedUser) {
-        if (email === 'owner@dojo.com' && password === 'owner123') {
-          matchedUser = { id: 'user-owner-id', email };
-        } else if (email === 'pelatih@dojo.com' && password === 'pelatih123') {
-          matchedUser = { id: 'user-coach-id', email };
-        } else if (email === 'ortu@dojo.com' && password === 'ortu123') {
-          matchedUser = { id: 'user-parent-id', email };
+        const pwdHash = await sha256(cleanPass);
+        const db = getLocalStorageDb();
+        const parentProfile = (db.profiles || []).find(
+          (p: any) => p.role === 'ortu' && p.phone === cleanEmail
+        );
+        if (parentProfile && parentProfile.password_hash === pwdHash) {
+          matchedUser = { id: parentProfile.id, email: cleanEmail };
+        }
+      }
+
+      // 5. Fallback to manually signed-up mock users
+      if (!matchedUser) {
+        const mockUsers = JSON.parse(localStorage.getItem('mock_auth_users') || '[]');
+        const mockMatch = mockUsers.find((u: any) => u.email === cleanEmail && u.password === cleanPass);
+        if (mockMatch) {
+          matchedUser = { id: mockMatch.id, email: mockMatch.email };
         }
       }
 
       if (matchedUser) {
-        const session = { access_token: `token-${matchedUser.id}`, user: { id: matchedUser.id, email } };
+        const session = { access_token: `token-${matchedUser.id}`, user: { id: matchedUser.id, email: matchedUser.email } };
         localStorage.setItem('mock_auth_session', JSON.stringify(session));
-        return { data: { user: { id: matchedUser.id, email }, session }, error: null };
+        return { data: { user: { id: matchedUser.id, email: matchedUser.email }, session }, error: null };
       }
 
       return { data: { user: null, session: null }, error: { message: 'Email atau password salah.' } };
@@ -264,3 +370,13 @@ export const supabase = {
     return new QueryBuilder(table);
   }
 };
+
+// Export hybrid client using Javascript Proxy
+export const supabase = new Proxy({}, {
+  get(target, prop: string | symbol) {
+    if (isSupabaseConfigured && realSupabase) {
+      return (realSupabase as any)[prop];
+    }
+    return (mockSupabase as any)[prop];
+  }
+}) as any;

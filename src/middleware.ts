@@ -43,19 +43,7 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // If they visit the homepage, redirect to dashboard
-    if (path === '/') {
-      url.pathname = `/${role}`;
-      return NextResponse.redirect(url);
-    }
-  } else {
-    // If visiting homepage without login, redirect to login
-    if (path === '/') {
-      url.pathname = '/login';
-      return NextResponse.redirect(url);
-    }
   }
-
   return NextResponse.next();
 }
 

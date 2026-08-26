@@ -1,214 +1,575 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Student, Registration, Fee, FinanceTransaction } from '@/lib/mockData';
+import { Student, Registration, Fee, StudentAttendance, BeltExam, Tournament, ClassSession } from '@/lib/mockData';
+
+const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)' }} onClick={onClose}>
+      <div className="w-full max-w-md rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in"
+        style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
+        onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-xl font-bold mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const BELT_COLORS: Record<string, string> = {
+  'Putih': '#e5e7eb', 'Kuning': '#fde68a', 'Orange': '#fb923c', 'Hijau': '#4ade80',
+  'Biru': '#60a5fa', 'Biru Muda': '#93c5fd', 'Coklat': '#a16207', 'Coklat Muda': '#ca8a04',
+  'Hitam': '#111827', 'Dan I': '#7c3aed', 'Dan II': '#6d28d9',
+};
+
+const beltColor = (belt: string) => BELT_COLORS[belt] || '#6b7280';
+
+function StatCard({ label, value, sub, color, icon }: {
+  label: string; value: string; sub?: string;
+  color?: string; icon: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col gap-3"
+      style={{ background: color || 'var(--md-sys-color-surface-container-low)' }}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium opacity-70" style={{ color: 'var(--md-sys-color-on-surface)' }}>{label}</span>
+        <div className="w-9 h-9 rounded-[var(--md-sys-shape-corner-medium)] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.12)' }}>
+          {icon}
+        </div>
+      </div>
+      <div>
+        <p className="text-2xl font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{value}</p>
+        {sub && <p className="text-xs mt-0.5 opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>{sub}</p>}
+      </div>
+    </div>
+  );
+}
 
 export default function OwnerDashboard() {
   const [students, setStudents] = useState<Student[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [fees, setFees] = useState<Fee[]>([]);
-  const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
+  const [attendance, setAttendance] = useState<StudentAttendance[]>([]);
+  const [upcomingExams, setUpcomingExams] = useState<BeltExam[]>([]);
+  const [pastExams, setPastExams] = useState<BeltExam[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [classes, setClasses] = useState<ClassSession[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Stats calculation
-  const activeStudentsCount = students.filter(s => s.status === 'active').length;
-  const pendingRegistrationsCount = registrations.filter(r => r.status === 'menunggu').length;
-
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-
-  // Get total income and expense this month
-  const getMonthlyFinance = () => {
-    let income = 0;
-    let expense = 0;
-    transactions.forEach(tx => {
-      const txDate = new Date(tx.transaction_date);
-      if (txDate.getMonth() + 1 === currentMonth && txDate.getFullYear() === currentYear) {
-        if (tx.type === 'pemasukan') {
-          income += Number(tx.amount);
-        } else {
-          expense += Number(tx.amount);
-        }
-      }
-    });
-    return { income, expense };
-  };
-
-  const { income: monthlyIncome, expense: monthlyExpense } = getMonthlyFinance();
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  const today = now.toISOString().split('T')[0];
 
   const loadData = async () => {
     setLoading(true);
-    const { data: studentsData } = await supabase.from('students').select('*');
-    const { data: registrationsData } = await supabase.from('registrations').select('*');
-    const { data: feesData } = await supabase.from('fees').select('*');
-    const { data: transactionsData } = await supabase.from('finance_transactions').select('*');
-
-    if (studentsData) setStudents(studentsData);
-    if (registrationsData) setRegistrations(registrationsData);
-    if (feesData) setFees(feesData);
-    if (transactionsData) setTransactions(transactionsData);
+    const [studRes, regRes, feeRes, attRes, examRes, tournRes, classRes] = await Promise.all([
+      supabase.from('students').select('*'),
+      supabase.from('registrations').select('*'),
+      supabase.from('fees').select('*'),
+      supabase.from('attendance_students').select('*'),
+      supabase.from('belt_exams').select('*'),
+      supabase.from('tournaments').select('*'),
+      supabase.from('classes').select('*'),
+    ]);
+    if (studRes.data) setStudents(studRes.data);
+    if (regRes.data) setRegistrations(regRes.data);
+    if (feeRes.data) setFees(feeRes.data);
+    if (attRes.data) setAttendance(attRes.data);
+    if (examRes.data) {
+      setUpcomingExams((examRes.data as BeltExam[]).filter(e => e.exam_date >= today));
+      setPastExams((examRes.data as BeltExam[]).filter(e => e.exam_date < today));
+    }
+    if (tournRes.data) setTournaments(tournRes.data as Tournament[]);
+    if (classRes.data) setClasses(classRes.data as ClassSession[]);
     setLoading(false);
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const handleApproveRegistration = async (reg: Registration) => {
-    // 1. Update registration status
-    await supabase.from('registrations').eq('id', reg.id).update({ status: 'disetujui' });
+  const [rejectingReg, setRejectingReg] = useState<Registration | null>(null);
 
-    // 2. Create student record
-    const newStudent: Omit<Student, 'id'> = {
-      full_name: reg.full_name,
-      dob: reg.dob,
-      gender: 'Laki-laki', // Default fallback
-      address: reg.address,
-      parent_id: 'user-parent-id', // Simulated parent account linking
-      phone: reg.parent_phone,
-      photo_url: '',
-      join_date: new Date().toISOString().split('T')[0],
-      current_belt: 'Putih (Geup 10)',
-      status: 'active',
-    };
-    await supabase.from('students').insert(newStudent);
+  const handleRejectRegistration = async (reg: Registration) => {
+    setRejectingReg(reg);
+  };
 
-    // 3. Create success notification
-    await supabase.from('notifications').insert({
-      user_id: 'user-owner-id',
-      title: 'Pendaftaran Disetujui',
-      message: `Calon siswa ${reg.full_name} berhasil terdaftar sebagai siswa aktif.`,
-      type: 'umum',
-      is_read: false,
-    });
-
+  const confirmRejectRegistration = async () => {
+    if (!rejectingReg) return;
+    await supabase.from('registrations').eq('id', rejectingReg.id).update({ status: 'ditolak' });
+    setRejectingReg(null);
     loadData();
   };
 
-  const handleRejectRegistration = async (regId: string) => {
-    await supabase.from('registrations').eq('id', regId).update({ status: 'ditolak' });
-    loadData();
-  };
+  // ─── Derived stats ─────────────────────────────────────────────────────────
+  const activeStudents = students.filter(s => s.status === 'active');
+  const pendingRegs = registrations.filter(r => r.status === 'menunggu');
+
+  // Iuran bulan ini
+  const thisMonthFees = fees.filter(f => f.period_month === currentMonth && f.period_year === currentYear);
+  const thisMonthLunas = thisMonthFees.filter(f => f.status === 'lunas').length;
+  const thisMonthBelum = thisMonthFees.filter(f => f.status !== 'lunas').length;
+  const thisMonthIncome = fees.filter(f => f.status === 'lunas' && f.period_month === currentMonth && f.period_year === currentYear).reduce((s, f) => s + Number(f.amount), 0);
+  // Total iuran belum lunas (seluruh periode)
+  const totalUnpaid = fees.filter(f => f.status !== 'lunas').reduce((s, f) => s + Number(f.amount), 0);
+
+  // Absensi bulan ini
+  const thisMonthAtt = attendance.filter(a => {
+    const d = new Date(a.session_date);
+    return d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear;
+  });
+  const attendanceRate = thisMonthAtt.length > 0
+    ? Math.round((thisMonthAtt.filter(a => a.status === 'hadir').length / thisMonthAtt.length) * 100)
+    : 0;
+
+  // Distribusi sabuk
+  const beltDist = activeStudents.reduce<Record<string, number>>((acc, s) => {
+    const b = s.current_belt || 'Putih';
+    acc[b] = (acc[b] || 0) + 1;
+    return acc;
+  }, {});
+  const beltEntries = Object.entries(beltDist).sort((a, b) => b[1] - a[1]);
+
+  // Iuran 6 bulan terakhir
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(currentYear, currentMonth - 1 - (5 - i));
+    return { month: d.getMonth() + 1, year: d.getFullYear(), label: months[d.getMonth()].slice(0, 3) };
+  });
+  const feeChart = last6Months.map(m => ({
+    ...m,
+    lunas: fees.filter(f => f.period_month === m.month && f.period_year === m.year && f.status === 'lunas').reduce((s, f) => s + Number(f.amount), 0),
+  }));
+  const feeChartMax = Math.max(...feeChart.map(m => m.lunas), 1);
+
+  // Siswa terbaru
+  const recentStudents = [...students].sort((a, b) => new Date(b.join_date).getTime() - new Date(a.join_date).getTime()).slice(0, 5);
+
+  // Iuran belum lunas
+  const unpaidFees = fees.filter(f => f.status !== 'lunas').slice(0, 8);
+
+  const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
   return (
     <Navigation>
       <div className="space-y-6">
-        <div>
-          <h2 className="hero-headline text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">
-            Halo, Owner
-          </h2>
-          <p className="body-text mt-1">
-            Ringkasan status operasional dojo KKI DPL saat ini.
-          </p>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+              Ringkasan Dojo
+            </h2>
+            <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              {months[currentMonth - 1]} {currentYear} · KKI DPL Manager
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/owner/students" className="m3-btn-tonal px-4 py-2 text-sm font-medium">
+              + Tambah Siswa
+            </Link>
+            <Link href="/owner/finance" className="m3-btn-filled px-4 py-2 text-sm font-medium">
+              Keuangan
+            </Link>
+          </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="apple-card">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Siswa Aktif</span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-3xl font-extrabold tracking-tight">{loading ? '...' : activeStudentsCount}</span>
-              <span className="text-xs font-medium text-emerald-600">Siswa</span>
-            </div>
-          </div>
+        {/* KPI Cards Row 1 */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Siswa Aktif"
+            value={loading ? '—' : String(activeStudents.length)}
+            sub="terdaftar & aktif berlatih"
+            color="var(--md-sys-color-primary-container)"
+            icon={<svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-on-primary-container)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" /></svg>}
+          />
+          <StatCard
+            label="Kehadiran Bulan Ini"
+            value={loading ? '—' : `${attendanceRate}%`}
+            sub={`${thisMonthAtt.filter(a => a.status === 'hadir').length} dari ${thisMonthAtt.length} sesi`}
+            color="var(--md-sys-color-tertiary-container)"
+            icon={<svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          />
+          <StatCard
+            label="Pemasukan Bulan Ini"
+            value={loading ? '—' : `Rp ${thisMonthIncome.toLocaleString('id-ID')}`}
+            sub={`${thisMonthLunas} siswa lunas`}
+            icon={<svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75"><path strokeLinecap="round" strokeLinejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" /></svg>}
+          />
+          <StatCard
+            label="Tunggakan Iuran"
+            value={loading ? '—' : `Rp ${totalUnpaid.toLocaleString('id-ID')}`}
+            sub={`${fees.filter(f => f.status !== 'lunas').length} tagihan belum lunas`}
+            color={totalUnpaid > 0 ? 'var(--md-sys-color-error-container)' : undefined}
+            icon={<svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-error)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          />
+        </div>
 
-          <div className="apple-card">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Persetujuan Pendaftaran</span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-3xl font-extrabold tracking-tight">{loading ? '...' : pendingRegistrationsCount}</span>
-              {pendingRegistrationsCount > 0 && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-[var(--color-status-error)]">
-                  Butuh Approval
-                </span>
+        {/* Main content: 2 columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Left: Grafik iuran 6 bulan + Jadwal kelas */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Iuran chart */}
+            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-6"
+              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  Pemasukan Iuran 6 Bulan Terakhir
+                </h3>
+                <Link href="/owner/finance" className="text-xs font-medium" style={{ color: 'var(--md-sys-color-primary)' }}>
+                  Lihat Detail →
+                </Link>
+              </div>
+              {loading ? (
+                <div className="h-32 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />
+              ) : (
+                <>
+                  <div className="flex items-end gap-2 h-32">
+                    {feeChart.map((m, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        <p className="text-[9px] font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          {m.lunas > 0 ? `${(m.lunas / 1000).toFixed(0)}k` : ''}
+                        </p>
+                        <div className="w-full rounded-t-[var(--md-sys-shape-corner-extra-small)] transition-all duration-700"
+                          style={{
+                            height: `${(m.lunas / feeChartMax) * 100}%`,
+                            minHeight: m.lunas > 0 ? '6px' : '2px',
+                            background: m.month === currentMonth && m.year === currentYear
+                              ? 'var(--md-sys-color-primary)'
+                              : 'var(--md-sys-color-tertiary)'
+                          }} />
+                        <span className="text-[10px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{m.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs mt-3" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    Total terkumpul: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>Rp {fees.filter(f => f.status === 'lunas').reduce((s, f) => s + Number(f.amount), 0).toLocaleString('id-ID')}</strong>
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Status iuran bulan ini */}
+            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-6"
+              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  Status Iuran — {months[currentMonth - 1]} {currentYear}
+                </h3>
+                <Link href="/owner/finance" className="m3-btn-outlined px-3 py-1.5 text-xs font-medium">Kelola</Link>
+              </div>
+              {loading ? (
+                <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 animate-pulse rounded-[var(--md-sys-shape-corner-medium)]" style={{ background: 'var(--md-sys-color-surface-container)' }} />)}</div>
+              ) : thisMonthFees.length === 0 ? (
+                <p className="text-sm py-4 text-center" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Belum ada tagihan untuk bulan ini. <Link href="/owner/finance" className="underline" style={{ color: 'var(--md-sys-color-primary)' }}>Generate sekarang</Link>
+                </p>
+              ) : (
+                <>
+                  {/* Progress bar */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      <span>{thisMonthLunas} Lunas</span>
+                      <span>{thisMonthBelum} Belum Lunas</span>
+                    </div>
+                    <div className="h-2 rounded-full" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                      <div className="h-2 rounded-full transition-all duration-700"
+                        style={{ width: `${Math.round((thisMonthLunas / (thisMonthLunas + thisMonthBelum)) * 100)}%`, background: 'var(--md-sys-color-tertiary)' }} />
+                    </div>
+                  </div>
+                  {/* Unpaid list */}
+                  {unpaidFees.length > 0 ? (
+                    <div className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                      {unpaidFees.map(fee => {
+                        const s = students.find(s => s.id === fee.student_id);
+                        return (
+                          <div key={fee.id} className="py-2.5 flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>{s?.full_name || '—'}</p>
+                              <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                                {months[(fee.period_month || 1) - 1]} {fee.period_year} · Rp {Number(fee.amount).toLocaleString('id-ID')}
+                              </p>
+                            </div>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                              style={{ background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }}>
+                              Belum Lunas
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 py-2">
+                      <svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-tertiary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <p className="text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>Semua iuran bulan ini sudah lunas!</p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
 
-          <div className="apple-card">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Pemasukan Bulan Ini</span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-2xl font-extrabold tracking-tight">
-                {loading ? '...' : `Rp ${monthlyIncome.toLocaleString('id-ID')}`}
-              </span>
-            </div>
-          </div>
+          {/* Right column */}
+          <div className="space-y-6">
 
-          <div className="apple-card">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Pengeluaran Bulan Ini</span>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-2xl font-extrabold tracking-tight text-red-600">
-                {loading ? '...' : `Rp ${monthlyExpense.toLocaleString('id-ID')}`}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Panel and Approvals Section */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* List of registrations awaiting approval */}
-          <div className="lg:col-span-2 apple-card">
-            <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4">
-              Persetujuan Pendaftaran Baru
-            </h3>
-            
-            {loading ? (
-              <p className="text-sm text-[var(--color-text-secondary)] py-4">Memuat data...</p>
-            ) : registrations.filter(r => r.status === 'menunggu').length === 0 ? (
-              <p className="text-sm text-[var(--color-text-secondary)] py-4">Tidak ada pendaftaran baru yang menunggu persetujuan.</p>
-            ) : (
-              <div className="divide-y divide-[var(--color-border-hairline)]">
-                {registrations
-                  .filter(r => r.status === 'menunggu')
-                  .map((reg) => (
-                    <div key={reg.id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div>
-                        <h4 className="font-bold text-sm text-[var(--color-text-primary)]">{reg.full_name}</h4>
-                        <p className="text-xs text-[var(--color-text-secondary)] mt-1">
-                          Ortu: {reg.parent_name} ({reg.parent_phone}) | TTL: {reg.dob}
-                        </p>
-                        <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">Alamat: {reg.address}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleApproveRegistration(reg)}
-                          className="px-3 py-1.5 rounded-full bg-[var(--color-accent-karate)] hover:bg-[var(--color-accent-karate-hover)] text-white text-xs font-semibold transition-all cursor-pointer"
-                        >
-                          Setujui
-                        </button>
-                        <button
-                          onClick={() => handleRejectRegistration(reg.id)}
-                          className="px-3 py-1.5 rounded-full border border-[var(--color-border-hairline)] hover:bg-black/5 text-[var(--color-text-secondary)] text-xs font-semibold transition-all cursor-pointer"
-                        >
-                          Tolak
-                        </button>
+            {/* Distribusi Sabuk */}
+            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
+              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+              <h3 className="font-semibold text-base mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Distribusi Sabuk
+              </h3>
+              {loading ? (
+                <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-6 animate-pulse rounded" style={{ background: 'var(--md-sys-color-surface-container)' }} />)}</div>
+              ) : (
+                <div className="space-y-2">
+                  {beltEntries.map(([belt, count]) => (
+                    <div key={belt} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full flex-shrink-0 border border-white/20" style={{ background: beltColor(belt) }} />
+                      <div className="flex-1 flex items-center justify-between gap-2">
+                        <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface)' }}>{belt}</span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-16 h-1.5 rounded-full" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                            <div className="h-1.5 rounded-full" style={{ width: `${(count / activeStudents.length) * 100}%`, background: beltColor(belt) }} />
+                          </div>
+                          <span className="text-xs font-semibold w-3" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{count}</span>
+                        </div>
                       </div>
                     </div>
                   ))}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
 
-          {/* Quick links & dojo stats */}
-          <div className="apple-card space-y-4">
-            <h3 className="text-lg font-bold text-[var(--color-text-primary)]">
-              Menu Cepat
-            </h3>
-            <div className="grid grid-cols-1 gap-2">
-              <a href="/owner/students" className="apple-btn-secondary py-3 text-sm font-semibold justify-start pl-4">
-                📁 Kelola Data Siswa
-              </a>
-              <a href="/owner/classes" className="apple-btn-secondary py-3 text-sm font-semibold justify-start pl-4">
-                🗓️ Jadwal Latihan Dojo
-              </a>
-              <a href="/owner/finance" className="apple-btn-secondary py-3 text-sm font-semibold justify-start pl-4">
-                💰 Tagih & Input Keuangan
-              </a>
+            {/* Jadwal Kelas */}
+            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
+              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+              <h3 className="font-semibold text-base mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Jadwal Latihan
+              </h3>
+              <div className="space-y-3">
+                {classes.map(cls => (
+                  <div key={cls.id} className="flex items-start gap-3 p-3 rounded-[var(--md-sys-shape-corner-large)]"
+                    style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                    <div className="w-9 h-9 rounded-[var(--md-sys-shape-corner-medium)] flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                      style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                      {dayNames[cls.day_of_week]?.slice(0, 3)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>{cls.name}</p>
+                      <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        {cls.time_start} – {cls.time_end}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Menu Cepat */}
+            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
+              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+              <h3 className="font-semibold text-base mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>Menu Cepat</h3>
+              <div className="space-y-1">
+                {[
+                  { href: '/owner/students', label: 'Kelola Siswa' },
+                  { href: '/owner/attendance', label: 'Input Absensi' },
+                  { href: '/owner/finance', label: 'Tagih Iuran Bulanan' },
+                  { href: '/owner/exams', label: 'Ujian Kenaikan Sabuk' },
+                  { href: '/owner/tournaments', label: 'Turnamen' },
+                  { href: '/owner/import', label: 'Import Data Siswa' },
+                ].map(({ href, label }) => (
+                  <Link key={href} href={href}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-[var(--md-sys-shape-corner-large)] transition-colors"
+                    style={{ color: 'var(--md-sys-color-on-surface)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--md-sys-color-surface-container)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <span className="text-sm">{label}</span>
+                    <svg className="w-4 h-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Siswa Terbaru */}
+        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
+          style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+          <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Siswa Terdaftar Terbaru</h3>
+            <Link href="/owner/students" className="text-xs font-medium" style={{ color: 'var(--md-sys-color-primary)' }}>
+              Lihat Semua ({activeStudents.length}) →
+            </Link>
+          </div>
+          {loading ? (
+            <div className="p-6 space-y-3">{[1,2,3].map(i => <div key={i} className="h-12 animate-pulse rounded-[var(--md-sys-shape-corner-medium)]" style={{ background: 'var(--md-sys-color-surface-container)' }} />)}</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                    {['Nama Siswa', 'Tgl Lahir', 'Sabuk', 'Spesialis', 'Wali', 'Bergabung'].map((h, i) => (
+                      <th key={h} className="px-5 py-3 text-xs font-semibold uppercase tracking-wider"
+                        style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentStudents.map((s, idx) => (
+                    <tr key={s.id} style={{ borderBottom: idx < recentStudents.length - 1 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                            style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                            {s.full_name.charAt(0)}
+                          </div>
+                          <span className="text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>{s.full_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        {s.dob ? new Date(s.dob).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full border border-white/20 flex-shrink-0" style={{ background: beltColor(s.current_belt) }} />
+                          <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface)' }}>{s.current_belt}</span>
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{(s as any).specialization || '—'}</td>
+                      <td className="px-5 py-3 text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{(s as any).parent_name || s.phone || '—'}</td>
+                      <td className="px-5 py-3 text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        {s.join_date ? new Date(s.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Events: Ujian & Turnamen */}
+        {!loading && (upcomingExams.length > 0 || pastExams.length > 0 || tournaments.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Ujian Sabuk */}
+            {(upcomingExams.length > 0 || pastExams.length > 0) && (
+              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
+                style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Ujian Kenaikan Sabuk</h3>
+                  <Link href="/owner/exams" className="text-xs font-medium" style={{ color: 'var(--md-sys-color-primary)' }}>Semua →</Link>
+                </div>
+                <div className="space-y-3">
+                  {[...upcomingExams, ...pastExams].slice(0, 3).map(exam => (
+                    <div key={exam.id} className="flex items-center gap-3 p-3 rounded-[var(--md-sys-shape-corner-large)]"
+                      style={{ background: 'var(--md-sys-color-tertiary-container)' }}>
+                      <div className="w-10 h-10 rounded-[var(--md-sys-shape-corner-medium)] flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(0,0,0,0.1)' }}>
+                        <svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }}>{exam.location}</p>
+                        <p className="text-xs" style={{ color: 'var(--md-sys-color-on-tertiary-container)', opacity: 0.75 }}>
+                          {new Date(exam.exam_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0"
+                        style={{ background: 'rgba(0,0,0,0.15)', color: 'var(--md-sys-color-on-tertiary-container)' }}>
+                        {exam.status === 'selesai' ? 'Selesai' : 'Terjadwal'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Turnamen */}
+            {tournaments.length > 0 && (
+              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
+                style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Turnamen / Kejuaraan</h3>
+                  <Link href="/owner/tournaments" className="text-xs font-medium" style={{ color: 'var(--md-sys-color-primary)' }}>Semua →</Link>
+                </div>
+                <div className="space-y-3">
+                  {tournaments.slice(0, 3).map(t => (
+                    <div key={t.id} className="flex items-center gap-3 p-3 rounded-[var(--md-sys-shape-corner-large)]"
+                      style={{ background: 'var(--md-sys-color-primary-container)' }}>
+                      <div className="w-10 h-10 rounded-[var(--md-sys-shape-corner-medium)] flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(0,0,0,0.1)' }}>
+                        <svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-on-primary-container)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate" style={{ color: 'var(--md-sys-color-on-primary-container)' }}>{t.name}</p>
+                        <p className="text-xs" style={{ color: 'var(--md-sys-color-on-primary-container)', opacity: 0.75 }}>
+                          {new Date(t.tournament_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} · {t.location}
+                        </p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize flex-shrink-0"
+                        style={{ background: 'rgba(0,0,0,0.15)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                        {t.level}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Pendaftaran menunggu */}
+        {!loading && pendingRegs.length > 0 && (
+          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-6"
+            style={{ background: 'var(--md-sys-color-error-container)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-error-container)' }}>
+                  {pendingRegs.length} Pendaftaran Menunggu Persetujuan
+                </h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-error-container)', opacity: 0.75 }}>Segera tinjau dan proses pendaftaran calon siswa baru</p>
+              </div>
+              <Link href="/owner/registrations" className="m3-btn-filled px-4 py-2 text-sm font-medium">Tinjau</Link>
+            </div>
+            <div className="space-y-2">
+              {pendingRegs.slice(0, 3).map(reg => (
+                <div key={reg.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-[var(--md-sys-shape-corner-large)]"
+                  style={{ background: 'rgba(0,0,0,0.1)' }}>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-error-container)' }}>{reg.full_name}</p>
+                    <p className="text-xs" style={{ color: 'var(--md-sys-color-on-error-container)', opacity: 0.75 }}>Ortu: {reg.parent_name} · {reg.parent_phone}</p>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <Link href={`/owner/registrations?approve=${reg.id}`} className="m3-btn-tonal px-3 py-1 text-xs font-semibold">Setujui</Link>
+                    <button onClick={() => handleRejectRegistration(reg)} className="m3-btn-text px-3 py-1 text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-error-container)' }}>Tolak</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      <M3Dialog open={rejectingReg !== null} onClose={() => setRejectingReg(null)} title="Konfirmasi Penolakan">
+        <p className="text-sm mb-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+          Apakah Anda yakin ingin menolak pendaftaran calon siswa <strong>{rejectingReg?.full_name}</strong>? Tindakan ini tidak dapat dibatalkan.
+        </p>
+        <div className="flex justify-end space-x-2">
+          <button type="button" onClick={() => setRejectingReg(null)} className="m3-btn-text text-sm px-4 py-2">Batal</button>
+          <button type="button" onClick={confirmRejectRegistration} className="m3-btn-filled text-sm px-4 py-2" style={{ background: 'var(--md-sys-color-error)' }}>Tolak Pendaftaran</button>
+        </div>
+      </M3Dialog>
     </Navigation>
   );
 }

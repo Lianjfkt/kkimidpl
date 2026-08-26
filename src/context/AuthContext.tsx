@@ -34,29 +34,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
+        .select('*')
         .eq('id', userId)
         .single();
       if (!error && data) {
         setProfile(data);
         setCookie('user_role', data.role);
+        return data.role;
+      } else if (error) {
+        console.error('fetchProfile error:', error.message);
       }
     } catch (err) {
       console.error('Failed to fetch profile', err);
     }
+    return null;
   };
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session?.user) {
-        setUser(data.session.user);
-        await fetchProfile(data.session.user.id);
-      } else {
-        setUser(null);
-        setProfile(null);
-        deleteCookie('user_role');
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session?.user) {
+          setUser(data.session.user);
+          await fetchProfile(data.session.user.id);
+        } else {
+          setUser(null);
+          setProfile(null);
+          deleteCookie('user_role');
+        }
+      } catch (err) {
+        console.error('Failed to initialize auth', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initializeAuth();
@@ -68,15 +78,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     if (error) {
       setLoading(false);
-      return { error };
+      return { error, role: null };
     }
 
+    let role = null;
     if (data?.user) {
       setUser(data.user);
-      await fetchProfile(data.user.id);
+      role = await fetchProfile(data.user.id);
     }
     setLoading(false);
-    return { error: null };
+    return { error: null, role };
   };
 
   const signOut = async () => {

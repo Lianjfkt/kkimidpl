@@ -5,6 +5,26 @@ import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Coach } from '@/lib/mockData';
 
+function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+      <div
+        className="w-full max-w-lg rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in"
+        style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-xl font-semibold mb-5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const inputClass = 'm3-textfield-outlined text-sm';
+const labelClass = 'block text-xs font-medium mb-1.5';
+const fieldWrap = 'flex flex-col';
+
 export default function OwnerCoaches() {
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +78,7 @@ export default function OwnerCoaches() {
       belt_level: beltLevel,
       join_date: joinDate,
       honor_rate: Number(honorRate),
-      profile_id: editingCoach ? editingCoach.profile_id : 'user-coach-id' // Seed linkage
+      profile_id: editingCoach ? editingCoach.profile_id : 'user-coach-id'
     };
 
     if (editingCoach) {
@@ -83,157 +103,180 @@ export default function OwnerCoaches() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="hero-headline text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">
+            <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
               Manajemen Pelatih
             </h2>
-            <p className="body-text mt-1">
+            <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
               Daftar pelatih (Sempai/Sensai) dan tarif honor per sesi latihan.
             </p>
           </div>
           <button
             onClick={openAddModal}
-            className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer"
+            className="m3-btn-filled px-5 py-2.5 text-sm font-semibold cursor-pointer"
           >
-            ＋ Tambah Pelatih Baru
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Tambah Pelatih
           </button>
         </div>
 
-        {/* Coaches Table */}
-        <div className="apple-card overflow-x-auto p-0">
-          {loading ? (
-            <p className="p-6 text-sm text-[var(--color-text-secondary)]">Memuat data pelatih...</p>
-          ) : coaches.length === 0 ? (
-            <p className="p-6 text-sm text-[var(--color-text-secondary)] text-center">Tidak ditemukan data pelatih.</p>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[var(--color-border-hairline)] bg-gray-50/50">
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Nama Lengkap</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Tingkat Sabuk (Dan)</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">No. Telepon</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Mulai Bergabung</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">Tarif Honor Sesi</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-border-hairline)]">
-                {coaches.map((coach) => (
-                  <tr key={coach.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-bold text-[var(--color-text-primary)]">{coach.full_name}</td>
-                    <td className="px-6 py-4 text-sm text-[var(--color-text-secondary)]">{coach.belt_level}</td>
-                    <td className="px-6 py-4 text-sm text-[var(--color-text-secondary)]">{coach.phone}</td>
-                    <td className="px-6 py-4 text-sm text-[var(--color-text-secondary)]">{coach.join_date}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-[var(--color-text-primary)]">
+        {/* Coaches Cards / Grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-44 rounded-[var(--md-sys-shape-corner-extra-large)] animate-pulse"
+                style={{ background: 'var(--md-sys-color-surface-container)' }} />
+            ))}
+          </div>
+        ) : coaches.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 rounded-[var(--md-sys-shape-corner-extra-large)]"
+            style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Tidak ditemukan data pelatih.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {coaches.map((coach) => (
+              <div
+                key={coach.id}
+                className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col gap-4 transition-colors"
+                style={{ background: 'var(--md-sys-color-surface-container-low)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--md-sys-color-surface-container)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--md-sys-color-surface-container-low)')}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-[var(--md-sys-shape-corner-full)] flex items-center justify-center text-lg font-bold flex-shrink-0"
+                    style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                    🥋
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>{coach.full_name}</h4>
+                    <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      Sabuk: <span className="font-semibold" style={{ color: 'var(--md-sys-color-primary)' }}>{coach.belt_level}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-3" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+                  <div>
+                    <span className="block text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Telepon</span>
+                    <span className="font-medium text-xs truncate block" style={{ color: 'var(--md-sys-color-on-surface)' }}>{coach.phone}</span>
+                  </div>
+                  <div>
+                    <span className="block text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Honor per Sesi</span>
+                    <span className="font-semibold text-xs" style={{ color: 'var(--md-sys-color-tertiary)' }}>
                       Rp {Number(coach.honor_rate).toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-right space-x-2">
-                      <button
-                        onClick={() => openEditModal(coach)}
-                        className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(coach.id)}
-                        className="text-xs font-semibold text-red-600 hover:underline cursor-pointer"
-                      >
-                        Hapus
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Modal Form */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 animate-fade-in">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl relative">
-              <h3 className="text-xl font-bold text-[var(--color-text-primary)]">
-                {editingCoach ? 'Edit Data Pelatih' : 'Tambah Pelatih Baru'}
-              </h3>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Nama Lengkap</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--color-border-hairline)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-karate)]"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                  />
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">No. Telepon</label>
-                  <input
-                    type="tel"
-                    required
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--color-border-hairline)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-karate)]"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Tingkat Sabuk (Dan)</label>
-                  <select
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--color-border-hairline)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-karate)]"
-                    value={beltLevel}
-                    onChange={(e) => setBeltLevel(e.target.value)}
-                  >
-                    <option value="Dan I">Dan I</option>
-                    <option value="Dan II">Dan II</option>
-                    <option value="Dan III">Dan III</option>
-                    <option value="Dan IV">Dan IV</option>
-                    <option value="Dan V">Dan V</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Mulai Bergabung</label>
-                  <input
-                    type="date"
-                    required
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--color-border-hairline)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-karate)]"
-                    value={joinDate}
-                    onChange={(e) => setJoinDate(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Tarif Honor Sesi (Rp)</label>
-                  <input
-                    type="number"
-                    required
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--color-border-hairline)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-karate)]"
-                    value={honorRate}
-                    onChange={(e) => setHonorRate(Number(e.target.value))}
-                  />
-                </div>
-
-                <div className="pt-4 border-t border-[var(--color-border-hairline)] flex justify-end space-x-2">
+                <div className="flex justify-end gap-1 pt-2">
                   <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="apple-btn-secondary py-2 text-xs font-semibold cursor-pointer"
+                    onClick={() => openEditModal(coach)}
+                    className="m3-btn-text py-1.5 px-3 text-xs font-semibold"
                   >
-                    Batal
+                    Edit
                   </button>
                   <button
-                    type="submit"
-                    className="apple-btn py-2 text-xs font-semibold cursor-pointer"
+                    onClick={() => handleDelete(coach.id)}
+                    className="m3-btn-text py-1.5 px-3 text-xs font-semibold"
+                    style={{ color: 'var(--md-sys-color-error)' }}
                   >
-                    Simpan
+                    Hapus
                   </button>
                 </div>
-              </form>
-            </div>
+              </div>
+            ))}
           </div>
         )}
+
+        {/* Modal Form */}
+        <M3Dialog
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title={editingCoach ? 'Edit Data Pelatih' : 'Tambah Pelatih Baru'}
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className={fieldWrap}>
+              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama Lengkap *</label>
+              <input
+                type="text"
+                required
+                className={inputClass}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+            </div>
+
+            <div className={fieldWrap}>
+              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>No. Telepon *</label>
+              <input
+                type="tel"
+                required
+                className={inputClass}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tingkat Sabuk (Dan)</label>
+                <select
+                  className={inputClass}
+                  value={beltLevel}
+                  onChange={(e) => setBeltLevel(e.target.value)}
+                >
+                  <option value="Dan I">Dan I</option>
+                  <option value="Dan II">Dan II</option>
+                  <option value="Dan III">Dan III</option>
+                  <option value="Dan IV">Dan IV</option>
+                  <option value="Dan V">Dan V</option>
+                </select>
+              </div>
+
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Mulai Bergabung</label>
+                <input
+                  type="date"
+                  required
+                  className={inputClass}
+                  value={joinDate}
+                  onChange={(e) => setJoinDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className={fieldWrap}>
+              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tarif Honor Sesi (Rp) *</label>
+              <input
+                type="number"
+                required
+                className={inputClass}
+                value={honorRate}
+                onChange={(e) => setHonorRate(Number(e.target.value))}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="m3-btn-text px-5 py-2.5 text-sm"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="m3-btn-filled px-5 py-2.5 text-sm"
+              >
+                Simpan
+              </button>
+            </div>
+          </form>
+        </M3Dialog>
       </div>
     </Navigation>
   );
