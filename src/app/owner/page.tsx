@@ -215,44 +215,91 @@ export default function OwnerDashboard() {
           {/* Left: Grafik iuran 6 bulan + Jadwal kelas */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Iuran chart */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-6"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
-                  Pemasukan Iuran 6 Bulan Terakhir
-                </h3>
-                <Link href="/owner/finance" className="text-xs font-medium" style={{ color: 'var(--md-sys-color-primary)' }}>
-                  Lihat Detail →
-                </Link>
+            {/* 2 Chart Column */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Iuran chart */}
+              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
+                style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                    Pemasukan Iuran (6 Bln Terakhir)
+                  </h3>
+                </div>
+                {loading ? (
+                  <div className="h-32 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                ) : (
+                  <>
+                    <div className="flex items-end gap-2 h-28">
+                      {feeChart.map((m, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                          <p className="text-[8px] font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                            {m.lunas > 0 ? `${(m.lunas / 1000).toFixed(0)}k` : ''}
+                          </p>
+                          <div className="w-full rounded-t-[var(--md-sys-shape-corner-extra-small)] transition-all duration-700"
+                            style={{
+                              height: `${(m.lunas / feeChartMax) * 100}%`,
+                              minHeight: m.lunas > 0 ? '6px' : '2px',
+                              background: m.month === currentMonth && m.year === currentYear
+                                ? 'var(--md-sys-color-primary)'
+                                : 'var(--md-sys-color-tertiary)'
+                            }} />
+                          <span className="text-[9px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{m.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] mt-2" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      Terkumpul: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>Rp {fees.filter(f => f.status === 'lunas').reduce((s, f) => s + Number(f.amount), 0).toLocaleString('id-ID')}</strong>
+                    </p>
+                  </>
+                )}
               </div>
-              {loading ? (
-                <div className="h-32 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />
-              ) : (
-                <>
-                  <div className="flex items-end gap-2 h-32">
-                    {feeChart.map((m, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                        <p className="text-[9px] font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                          {m.lunas > 0 ? `${(m.lunas / 1000).toFixed(0)}k` : ''}
-                        </p>
-                        <div className="w-full rounded-t-[var(--md-sys-shape-corner-extra-small)] transition-all duration-700"
-                          style={{
-                            height: `${(m.lunas / feeChartMax) * 100}%`,
-                            minHeight: m.lunas > 0 ? '6px' : '2px',
-                            background: m.month === currentMonth && m.year === currentYear
-                              ? 'var(--md-sys-color-primary)'
-                              : 'var(--md-sys-color-tertiary)'
-                          }} />
-                        <span className="text-[10px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{m.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs mt-3" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                    Total terkumpul: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>Rp {fees.filter(f => f.status === 'lunas').reduce((s, f) => s + Number(f.amount), 0).toLocaleString('id-ID')}</strong>
-                  </p>
-                </>
-              )}
+
+              {/* Tren Pendaftaran Siswa Baru */}
+              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
+                style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                    Pendaftaran Siswa Baru (6 Bln Terakhir)
+                  </h3>
+                </div>
+                {loading ? (
+                  <div className="h-32 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                ) : (
+                  <>
+                    <div className="flex items-end gap-2 h-28">
+                      {last6Months.map((m, i) => {
+                        const count = students.filter(s => {
+                          const d = new Date(s.join_date);
+                          return d.getMonth() + 1 === m.month && d.getFullYear() === m.year;
+                        }).length;
+                        const maxCount = Math.max(...last6Months.map(lm => students.filter(s => {
+                          const d = new Date(s.join_date);
+                          return d.getMonth() + 1 === lm.month && d.getFullYear() === lm.year;
+                        }).length), 1);
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                            <p className="text-[8px] font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                              {count > 0 ? `${count} org` : ''}
+                            </p>
+                            <div className="w-full rounded-t-[var(--md-sys-shape-corner-extra-small)] transition-all duration-700"
+                              style={{
+                                height: `${(count / maxCount) * 100}%`,
+                                minHeight: count > 0 ? '6px' : '2px',
+                                background: m.month === currentMonth && m.year === currentYear
+                                  ? 'var(--md-sys-color-secondary)'
+                                  : 'var(--md-sys-color-outline-variant)'
+                              }} />
+                            <span className="text-[9px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{m.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] mt-2" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      Total siswa aktif saat ini: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>{activeStudents.length} siswa</strong>
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Status iuran bulan ini */}

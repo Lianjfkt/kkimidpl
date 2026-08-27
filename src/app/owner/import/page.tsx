@@ -305,6 +305,17 @@ export default function ImportPage() {
           errors.push(`Baris ${i + 2}: Iuran "${studentName}" — gagal disimpan: ${error.message}`);
         } else {
           success++;
+          // Sinkronisasi otomatis ke jurnal kas (finance_transactions) jika lunas
+          if (rawStatus === 'lunas') {
+            await supabase.from('finance_transactions').insert({
+              type: 'pemasukan',
+              category: 'iuran',
+              amount: amount,
+              transaction_date: paidDate || new Date().toISOString().split('T')[0],
+              description: `Iuran Bulan ${periodMonth}/${periodYear} - ${studentName}`,
+              created_by: markedBy,
+            });
+          }
         }
       }
     }
