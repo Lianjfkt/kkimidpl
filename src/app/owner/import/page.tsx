@@ -5,8 +5,10 @@ import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import * as XLSX from 'xlsx';
 
-// ─── Column mapping definition ──────────────────────────────────────────────
-const FIELD_MAP = [
+type ImportType = 'students' | 'attendance' | 'fees';
+
+// ─── Column mapping definitions per import type ──────────────────────────────
+const FIELD_MAP_STUDENTS = [
   { key: 'full_name',     label: 'Nama Lengkap',       required: true },
   { key: 'nik',           label: 'NIK',                 required: false },
   { key: 'birth_place',   label: 'Tempat Lahir',        required: false },
@@ -19,6 +21,23 @@ const FIELD_MAP = [
   { key: 'height',        label: 'Tinggi Badan',        required: false },
   { key: 'join_date',     label: 'Tanggal Bergabung',   required: false, hint: 'Format: YYYY-MM-DD' },
   { key: 'parent_name',   label: 'Nama Orang Tua',      required: false },
+];
+
+const FIELD_MAP_ATTENDANCE = [
+  { key: 'session_date',  label: 'Tanggal',            required: true,  hint: 'Format: YYYY-MM-DD' },
+  { key: 'student_name',  label: 'Nama Siswa',         required: true },
+  { key: 'status',        label: 'Status Kehadiran',   required: true,  hint: 'Hadir / Izin / Sakit / Alfa' },
+];
+
+const FIELD_MAP_FEES = [
+  { key: 'student_name',  label: 'Nama Siswa',         required: true },
+  { key: 'period_month',  label: 'Bulan (Angka 1-12)', required: true },
+  { key: 'period_year',   label: 'Tahun',              required: true },
+  { key: 'amount',        label: 'Jumlah Iuran',       required: true },
+  { key: 'status',        label: 'Status Pembayaran',  required: true,  hint: 'lunas / belum_lunas / sebagian' },
+  { key: 'paid_date',     label: 'Tanggal Bayar',      required: false, hint: 'Format: YYYY-MM-DD' },
+  { key: 'payment_method',label: 'Metode Pembayaran',  required: false, hint: 'tunai / transfer / qris' },
+  { key: 'notes',         label: 'Catatan',            required: false },
 ];
 
 type ParsedRow = Record<string, string>;
@@ -43,19 +62,9 @@ function normalizeDate(val: unknown): string {
   return str;
 }
 
-// ─── Template download ───────────────────────────────────────────────────────
-function downloadTemplate() {
-  const headers = ['Nama Lengkap', 'NIK', 'Tempat Lahir', 'Tanggal Lahir (YYYY-MM-DD)', 'Jenis Kelamin', 'Alamat', 'Nomor Telepon', 'Sabuk Saat Ini', 'Berat Badan', 'Tinggi Badan', 'Tanggal Bergabung (YYYY-MM-DD)', 'Nama Orang Tua'];
-  const example = ['Ahmad Fauzi', '1871131810140002', 'BANDAR LAMPUNG', '2014-05-10', 'Laki-laki', 'Jl. Merdeka No. 5', '08123456789', 'Putih', '30', '135', '2025-01-15', 'Budi Fauzi'];
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
-  ws['!cols'] = headers.map(() => ({ wch: 24 }));
-  XLSX.utils.book_append_sheet(wb, ws, 'Data Siswa');
-  XLSX.writeFile(wb, 'template-import-siswa-dojo.xlsx');
-}
-
-export default function ImportStudentsPage() {
+export default function ImportPage() {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [importType, setImportType] = useState<ImportType>('students');
   const [status, setStatus] = useState<ImportStatus>('idle');
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [colMapping, setColMapping] = useState<Record<string, string>>({});
@@ -63,6 +72,39 @@ export default function ImportStudentsPage() {
   const [fileName, setFileName] = useState('');
   const [importResult, setImportResult] = useState<{ success: number; skipped: number; errors: string[] }>({ success: 0, skipped: 0, errors: [] });
   const [dragOver, setDragOver] = useState(false);
+
+  const getFieldMap = () => {
+    if (importType === 'attendance') return FIELD_MAP_ATTENDANCE;
+    if (importType === 'fees') return FIELD_MAP_FEES;
+    return FIELD_MAP_STUDENTS;
+  };
+
+  // ── Template download ───────────────────────────────────────────────────────
+  const downloadTemplate = () => {
+    let headers: string[] = [];
+    let example: string[] = [];
+    let name = '';
+
+    if (importType === 'students') {
+      headers = ['Nama Lengkap', 'NIK', 'Tempat Lahir', 'Tanggal Lahir (YYYY-MM-DD)', 'Jenis Kelamin', 'Alamat', 'Nomor Telepon', 'Sabuk Saat Ini', 'Berat Badan', 'Tinggi Badan', 'Tanggal Bergabung (YYYY-MM-DD)', 'Nama Orang Tua'];
+      example = ['Ahmad Fauzi', '1871131810140002', 'BANDAR LAMPUNG', '2014-05-10', 'Laki-laki', 'Jl. Merdeka No. 5', '08123456789', 'Putih', '30', '135', '2025-01-15', 'Budi Fauzi'];
+      name = 'template-import-siswa-dojo.xlsx';
+    } else if (importType === 'attendance') {
+      headers = ['Tanggal', 'Nama Siswa', 'Status Kehadiran'];
+      example = ['2026-05-09', 'ALVARO FERNANDES', 'Izin'];
+      name = 'template-import-absensi-siswa.xlsx';
+    } else {
+      headers = ['Nama Siswa', 'Bulan (Angka 1-12)', 'Tahun', 'Jumlah Iuran', 'Status Pembayaran', 'Tanggal Bayar', 'Metode Pembayaran', 'Catatan'];
+      example = ['ALVARO FERNANDES', '5', '2026', '150000', 'lunas', '2026-05-10', 'transfer', 'Iuran bulan Mei'];
+      name = 'template-import-iuran-siswa.xlsx';
+    }
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+    ws['!cols'] = headers.map(() => ({ wch: 24 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+    XLSX.writeFile(wb, name);
+  };
 
   // ── Parse file ──────────────────────────────────────────────────────────────
   const parseFile = useCallback((file: File) => {
@@ -74,7 +116,11 @@ export default function ImportStudentsPage() {
         const data = new Uint8Array(e.target!.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: 'array', cellDates: false });
         
-        const sheetName = wb.SheetNames.includes('Siswa') ? 'Siswa' : wb.SheetNames[0];
+        let sheetName = wb.SheetNames[0];
+        if (importType === 'students' && wb.SheetNames.includes('Siswa')) sheetName = 'Siswa';
+        if (importType === 'attendance' && (wb.SheetNames.includes('Absensi') || wb.SheetNames.includes('Data Absensi'))) sheetName = wb.SheetNames.find(n => n.includes('Absen')) || wb.SheetNames[0];
+        if (importType === 'fees' && wb.SheetNames.includes('Iuran')) sheetName = 'Iuran';
+
         const ws = wb.Sheets[sheetName];
         const jsonRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: '' });
         if (jsonRows.length === 0) { alert('Sheet kosong atau tidak ada data.'); setStatus('idle'); return; }
@@ -88,11 +134,12 @@ export default function ImportStudentsPage() {
         }));
 
         const autoMap: Record<string, string> = {};
-        FIELD_MAP.forEach(f => {
+        const activeFieldMap = getFieldMap();
+        activeFieldMap.forEach(f => {
           const match = headers.find(h => {
-            const hClean = h.toLowerCase().replace(/_/g, ' ');
-            const fClean = f.label.toLowerCase();
-            const fKeyClean = f.key.toLowerCase().replace(/_/g, ' ');
+            const hClean = h.toLowerCase().replace(/_/g, ' ').trim();
+            const fClean = f.label.toLowerCase().trim();
+            const fKeyClean = f.key.toLowerCase().replace(/_/g, ' ').trim();
             return hClean === fClean || hClean === fKeyClean || hClean.includes(fKeyClean) || hClean.includes(fClean.split(' ')[0]);
           });
           if (match) autoMap[f.key] = match;
@@ -100,12 +147,12 @@ export default function ImportStudentsPage() {
         setColMapping(autoMap);
         setStatus('preview');
       } catch (err) {
-        alert('Gagal membaca file. Pastikan format file adalah Excel (.xlsx/.xls) atau CSV.');
+        alert('Gagal membaca file. Pastikan format file adalah Excel (.xlsx/.xls) or CSV.');
         setStatus('idle');
       }
     };
     reader.readAsArrayBuffer(file);
-  }, []);
+  }, [importType]);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -119,51 +166,146 @@ export default function ImportStudentsPage() {
     if (file) parseFile(file);
   };
 
-  // ── Validate & resolve a row ────────────────────────────────────────────────
-  const resolveRow = (row: ParsedRow) => {
-    const get = (key: string) => (colMapping[key] ? row[colMapping[key]] || '' : '');
-    return {
-      full_name: get('full_name').trim(),
-      nik: get('nik').trim(),
-      birth_place: get('birth_place').trim(),
-      dob: normalizeDate(get('dob')),
-      gender: get('gender').trim() || 'Laki-laki',
-      address: get('address').trim(),
-      phone: get('phone').trim(),
-      current_belt: get('current_belt').trim() || 'Putih',
-      weight: get('weight').trim(),
-      height: get('height').trim(),
-      join_date: normalizeDate(get('join_date')) || new Date().toISOString().split('T')[0],
-      parent_id: '',
-      photo_url: '',
-      status: 'active' as const,
-      _parent_name: get('parent_name').trim(),
-    };
-  };
-
-  // ── Import rows ─────────────────────────────────────────────────────────────
+  // ── Import processes ────────────────────────────────────────────────────────
   const handleImport = async () => {
     setStatus('importing');
     let success = 0, skipped = 0;
     const errors: string[] = [];
 
+    // Ambil profile pelatih/owner saat ini untuk absensi marked_by
+    const { data: { user } } = await supabase.auth.getUser();
+    const markedBy = user?.id || null;
+
+    // Cache students name to ID mapping to avoid constant queries
+    const { data: studentList } = await supabase.from('students').select('id, full_name');
+    const studentMap = new Map<string, string>();
+    studentList?.forEach((s: { id: string; full_name: string }) => {
+      studentMap.set(s.full_name.toLowerCase().trim(), s.id);
+    });
+
     for (let i = 0; i < rows.length; i++) {
-      const resolved = resolveRow(rows[i]);
-      if (!resolved.full_name) { skipped++; continue; }
+      const row = rows[i];
+      const get = (key: string) => (colMapping[key] ? row[colMapping[key]] || '' : '');
 
-      const { data: existing } = await supabase.from('students').eq('full_name', resolved.full_name).select('id');
-      if (existing && existing.length > 0) {
-        skipped++;
-        errors.push(`Baris ${i + 2}: "${resolved.full_name}" sudah ada — dilewati.`);
-        continue;
-      }
+      if (importType === 'students') {
+        const full_name = get('full_name').trim();
+        if (!full_name) { skipped++; continue; }
 
-      const { _parent_name, ...studentData } = resolved;
-      const { error } = await (supabase.from('students').insert({ ...studentData, id: `student-import-${crypto.randomUUID().slice(0, 8)}` }) as unknown as Promise<{ error: unknown }>);
-      if (error) {
-        errors.push(`Baris ${i + 2}: "${resolved.full_name}" — gagal disimpan.`);
-      } else {
-        success++;
+        if (studentMap.has(full_name.toLowerCase())) {
+          skipped++;
+          errors.push(`Baris ${i + 2}: "${full_name}" sudah ada — dilewati.`);
+          continue;
+        }
+
+        const studentData = {
+          full_name,
+          nik: get('nik').trim() || null,
+          birth_place: get('birth_place').trim() || null,
+          dob: normalizeDate(get('dob')),
+          gender: get('gender').trim() || 'Laki-laki',
+          address: get('address').trim() || null,
+          phone: get('phone').trim() || null,
+          current_belt: get('current_belt').trim() || 'Putih',
+          weight: get('weight').trim() ? Number(get('weight')) : null,
+          height: get('height').trim() ? Number(get('height')) : null,
+          join_date: normalizeDate(get('join_date')) || new Date().toISOString().split('T')[0],
+          status: 'active' as const,
+        };
+
+        const { error } = await supabase.from('students').insert(studentData);
+        if (error) {
+          errors.push(`Baris ${i + 2}: "${full_name}" — gagal disimpan: ${error.message}`);
+        } else {
+          success++;
+          // Update local cache
+          studentMap.set(full_name.toLowerCase(), 'imported');
+        }
+      } 
+      
+      else if (importType === 'attendance') {
+        const studentName = get('student_name').trim();
+        const rawDate = get('session_date');
+        const sessionDate = normalizeDate(rawDate);
+        let rawStatus = get('status').trim().toLowerCase();
+
+        if (!studentName || !sessionDate || !rawStatus) {
+          skipped++;
+          errors.push(`Baris ${i + 2}: Data tidak lengkap (Tanggal, Nama Siswa, dan Status Kehadiran wajib diisi).`);
+          continue;
+        }
+
+        // Map status
+        if (rawStatus === 'hadir' || rawStatus === 'h') rawStatus = 'hadir';
+        else if (rawStatus === 'izin' || rawStatus === 'i') rawStatus = 'izin';
+        else if (rawStatus === 'sakit' || rawStatus === 's') rawStatus = 'sakit';
+        else rawStatus = 'alpha';
+
+        const studentId = studentMap.get(studentName.toLowerCase());
+        if (!studentId) {
+          errors.push(`Baris ${i + 2}: Siswa "${studentName}" tidak ditemukan.`);
+          continue;
+        }
+
+        const { error } = await supabase.from('attendance_students').insert({
+          student_id: studentId,
+          session_date: sessionDate,
+          status: rawStatus,
+          marked_by: markedBy,
+        });
+
+        if (error) {
+          errors.push(`Baris ${i + 2}: Absensi "${studentName}" — gagal disimpan: ${error.message}`);
+        } else {
+          success++;
+        }
+      } 
+      
+      else if (importType === 'fees') {
+        const studentName = get('student_name').trim();
+        const periodMonth = Number(get('period_month'));
+        const periodYear = Number(get('period_year'));
+        const amount = Number(get('amount'));
+        let rawStatus = get('status').trim().toLowerCase();
+
+        if (!studentName || isNaN(periodMonth) || isNaN(periodYear) || isNaN(amount)) {
+          skipped++;
+          errors.push(`Baris ${i + 2}: Data tidak lengkap (Nama, Bulan, Tahun, dan Jumlah wajib diisi).`);
+          continue;
+        }
+
+        if (rawStatus.includes('lunas') && !rawStatus.includes('belum')) rawStatus = 'lunas';
+        else if (rawStatus.includes('sebagian')) rawStatus = 'sebagian';
+        else rawStatus = 'belum_lunas';
+
+        const studentId = studentMap.get(studentName.toLowerCase());
+        if (!studentId) {
+          errors.push(`Baris ${i + 2}: Siswa "${studentName}" tidak ditemukan.`);
+          continue;
+        }
+
+        const paidDateVal = get('paid_date');
+        const paidDate = paidDateVal ? normalizeDate(paidDateVal) : null;
+        let paymentMethod = get('payment_method').trim().toLowerCase();
+        if (paymentMethod !== 'tunai' && paymentMethod !== 'transfer' && paymentMethod !== 'qris') {
+          paymentMethod = 'tunai';
+        }
+
+        const { error } = await supabase.from('fees').insert({
+          student_id: studentId,
+          period_month: periodMonth,
+          period_year: periodYear,
+          amount: amount,
+          status: rawStatus,
+          paid_date: paidDate,
+          payment_method: paymentMethod,
+          notes: get('notes').trim() || null,
+        });
+
+        if (error) {
+          errors.push(`Baris ${i + 2}: Iuran "${studentName}" — gagal disimpan: ${error.message}`);
+        } else {
+          success++;
+        }
       }
     }
 
@@ -181,6 +323,7 @@ export default function ImportStudentsPage() {
   };
 
   const previewRows = rows.slice(0, 5);
+  const activeFieldMap = getFieldMap();
 
   return (
     <Navigation>
@@ -189,10 +332,10 @@ export default function ImportStudentsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
-              Import Data Siswa
+              Import Data Dojo
             </h2>
             <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-              Upload file Excel (.xlsx) atau CSV dari database lama Anda.
+              Upload file Excel (.xlsx) atau CSV untuk mengimpor Data Siswa, Absensi, atau Iuran.
             </p>
           </div>
           <button
@@ -202,6 +345,36 @@ export default function ImportStudentsPage() {
             📋 Unduh Template Excel
           </button>
         </div>
+
+        {/* Tipe Import Selector */}
+        {status === 'idle' && (
+          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-fit">
+            <button
+              onClick={() => setImportType('students')}
+              className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${
+                importType === 'students' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              👤 Data Siswa
+            </button>
+            <button
+              onClick={() => setImportType('attendance')}
+              className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${
+                importType === 'attendance' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              📅 Absensi Siswa
+            </button>
+            <button
+              onClick={() => setImportType('fees')}
+              className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${
+                importType === 'fees' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              💰 Iuran Bulanan
+            </button>
+          </div>
+        )}
 
         {/* Step indicator */}
         <div className="flex items-center gap-2">
@@ -258,13 +431,28 @@ export default function ImportStudentsPage() {
         {status === 'idle' && (
           <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 space-y-3"
             style={{ background: 'var(--md-sys-color-secondary-container)', color: 'var(--md-sys-color-on-secondary-container)' }}>
-            <h3 className="text-sm font-bold">💡 Panduan Import</h3>
+            <h3 className="text-sm font-bold">💡 Panduan Import ({importType === 'students' ? 'Siswa' : importType === 'attendance' ? 'Absensi' : 'Iuran'})</h3>
             <ul className="text-xs space-y-1.5 list-disc list-inside opacity-90">
               <li>Unduh template Excel di atas untuk format yang sudah siap dipakai</li>
               <li>File boleh memiliki nama kolom berbeda — Anda bisa petakan di langkah berikutnya</li>
-              <li>Kolom wajib: <strong>Nama Lengkap</strong> dan <strong>Tanggal Lahir</strong></li>
-              <li>Siswa dengan nama yang sama akan dilewati (tidak di-duplicate)</li>
-              <li>Format tanggal: YYYY-MM-DD, DD/MM/YYYY, atau DD-MM-YYYY semua didukung</li>
+              {importType === 'students' && (
+                <>
+                  <li>Kolom wajib: <strong>Nama Lengkap</strong> dan <strong>Tanggal Lahir</strong></li>
+                  <li>Siswa dengan nama yang sama akan dilewati (tidak di-duplicate)</li>
+                </>
+              )}
+              {importType === 'attendance' && (
+                <>
+                  <li>Kolom wajib: <strong>Tanggal</strong>, <strong>Nama Siswa</strong>, dan <strong>Status Kehadiran</strong></li>
+                  <li>Status Kehadiran valid: Hadir, Izin, Sakit, Alfa</li>
+                </>
+              )}
+              {importType === 'fees' && (
+                <>
+                  <li>Kolom wajib: <strong>Nama Siswa</strong>, <strong>Bulan (1-12)</strong>, <strong>Tahun</strong>, <strong>Jumlah</strong>, dan <strong>Status</strong></li>
+                  <li>Status valid: lunas, belum_lunas, sebagian</li>
+                </>
+              )}
             </ul>
           </div>
         )}
@@ -287,7 +475,7 @@ export default function ImportStudentsPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {FIELD_MAP.map(field => (
+                {activeFieldMap.map(field => (
                   <div key={field.key} className="flex flex-col">
                     <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       {field.label}
@@ -320,21 +508,19 @@ export default function ImportStudentsPage() {
                   <thead>
                     <tr style={{ background: 'var(--md-sys-color-surface-container)' }}>
                       <th className="px-4 py-2.5 font-bold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>#</th>
-                      {FIELD_MAP.filter(f => colMapping[f.key]).map(f => (
+                      {activeFieldMap.filter(f => colMapping[f.key]).map(f => (
                         <th key={f.key} className="px-4 py-2.5 font-bold whitespace-nowrap" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{f.label}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
                     {previewRows.map((row, i) => {
-                      const resolved = resolveRow(row);
-                      const missing = !resolved.full_name;
                       return (
-                        <tr key={i} style={missing ? { background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' } : {}}>
+                        <tr key={i}>
                           <td className="px-4 py-2.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{i + 2}</td>
-                          {FIELD_MAP.filter(f => colMapping[f.key]).map(f => (
+                          {activeFieldMap.filter(f => colMapping[f.key]).map(f => (
                             <td key={f.key} className="px-4 py-2.5 whitespace-nowrap max-w-[160px] truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>
-                              {f.key === 'dob' || f.key === 'join_date'
+                              {f.key === 'dob' || f.key === 'join_date' || f.key === 'session_date' || f.key === 'paid_date'
                                 ? normalizeDate(row[colMapping[f.key]] || '')
                                 : row[colMapping[f.key]] || <span className="text-gray-400 italic">kosong</span>}
                             </td>
@@ -358,10 +544,10 @@ export default function ImportStudentsPage() {
               </button>
               <button
                 onClick={handleImport}
-                disabled={!colMapping['full_name']}
+                disabled={!colMapping[importType === 'students' ? 'full_name' : importType === 'attendance' ? 'student_name' : 'student_name']}
                 className="m3-btn-filled px-6 py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                🚀 Import {rows.length} Siswa
+                🚀 Import {rows.length} Baris
               </button>
             </div>
           </>
@@ -399,7 +585,7 @@ export default function ImportStudentsPage() {
               </div>
 
               {importResult.errors.length > 0 && (
-                <div className="rounded-xl p-4 space-y-1" style={{ background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }}>
+                <div className="rounded-xl p-4 space-y-1 max-h-60 overflow-y-auto" style={{ background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }}>
                   <p className="text-xs font-bold">Detail Error:</p>
                   {importResult.errors.map((err, i) => (
                     <p key={i} className="text-xs">{err}</p>
@@ -422,3 +608,4 @@ export default function ImportStudentsPage() {
     </Navigation>
   );
 }
+
