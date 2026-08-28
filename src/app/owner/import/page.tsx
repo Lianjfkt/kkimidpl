@@ -87,8 +87,8 @@ export default function ImportPage() {
     let name = '';
 
     if (importType === 'students') {
-      headers = ['Nama Lengkap', 'NIK', 'Tempat Lahir', 'Tanggal Lahir (YYYY-MM-DD)', 'Jenis Kelamin', 'Alamat', 'Nomor Telepon', 'Sabuk Saat Ini', 'Berat Badan', 'Tinggi Badan', 'Tanggal Bergabung (YYYY-MM-DD)', 'Nama Orang Tua'];
-      example = ['Ahmad Fauzi', '1871131810140002', 'BANDAR LAMPUNG', '2014-05-10', 'Laki-laki', 'Jl. Merdeka No. 5', '08123456789', 'Putih', '30', '135', '2025-01-15', 'Budi Fauzi'];
+      headers = ['Nama Lengkap', 'NIK', 'Tempat Lahir', 'Tanggal Lahir (YYYY-MM-DD)', 'Jenis Kelamin', 'Alamat', 'Nomor Telepon', 'Sabuk Saat Ini', 'Berat Badan', 'Tinggi Badan', 'Tanggal Bergabung (YYYY-MM-DD)', 'Nama Orang Tua', 'Pekerjaan Orang Tua'];
+      example = ['Ahmad Fauzi', '1871131810140002', 'BANDAR LAMPUNG', '2014-05-10', 'Laki-laki', 'Jl. Merdeka No. 5', '08123456789', 'Putih', '30', '135', '2025-01-15', 'Budi Fauzi', 'WIRASWASTA'];
       name = 'template-import-siswa-dojo.xlsx';
     } else if (importType === 'attendance') {
       headers = ['Tanggal', 'Nama Siswa', 'Status Kehadiran'];
@@ -210,6 +210,8 @@ export default function ImportPage() {
           weight: get('weight').trim() ? Number(get('weight')) : null,
           height: get('height').trim() ? Number(get('height')) : null,
           join_date: normalizeDate(get('join_date')) || new Date().toISOString().split('T')[0],
+          parent_name: get('parent_name').trim() || null,
+          parent_job: get('parent_job').trim() || null,
           status: 'active' as const,
         };
 
@@ -450,6 +452,7 @@ export default function ImportPage() {
               {importType === 'students' && (
                 <>
                   <li>Kolom wajib: <strong>Nama Lengkap</strong> dan <strong>Tanggal Lahir</strong></li>
+                  <li>Kolom opsional: NIK, Tempat Lahir, Gender, Sabuk, Berat, Tinggi, Bergabung, <strong>Nama Orang Tua</strong>, <strong>Pekerjaan Orang Tua</strong></li>
                   <li>Siswa dengan nama yang sama akan dilewati (tidak di-duplicate)</li>
                 </>
               )}
