@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Registration, Student, Notification, Profile } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthContext';
 import Navigation from '@/components/Navigation';
@@ -103,26 +103,34 @@ function RegistrationsContent() {
         setApproving(false);
         return;
       }
+      const generatedProfileId = isSupabaseConfigured ? crypto.randomUUID() : `user-ortu-${crypto.randomUUID().slice(0, 8)}`;
       const newProfile: Partial<Profile> = {
-        id: `user-ortu-${crypto.randomUUID().slice(0, 8)}`,
+        id: generatedProfileId,
         full_name: newParentName.trim(),
         role: 'ortu',
         phone: newParentPhone.trim(),
         avatar_url: '',
         created_at: new Date().toISOString(),
       };
-      await supabase.from('profiles').insert(newProfile);
-      parentId = newProfile.id!;
+      
+      const { error: profileError } = await supabase.from('profiles').insert(newProfile);
+      if (profileError) {
+        console.warn('Failed to insert parent profile. This is expected on Supabase if the user does not exist in auth.users:', profileError.message);
+        // On real Supabase, continue but set parentId to null to avoid foreign key errors on student insertion
+        parentId = '';
+      } else {
+        parentId = newProfile.id!;
+      }
       fetchParentProfiles();
     }
 
     const newStudent: Partial<Student> = {
-      id: `student-${crypto.randomUUID().slice(0, 8)}`,
+      id: isSupabaseConfigured ? crypto.randomUUID() : `student-${crypto.randomUUID().slice(0, 8)}`,
       full_name: approveTarget.full_name,
       dob: approveTarget.dob,
       gender: '-',
       address: approveTarget.address,
-      parent_id: parentId,
+      parent_id: parentId && parentId !== 'user-parent-id' ? parentId : undefined,
       phone: approveTarget.parent_phone,
       parent_name: approveTarget.parent_name,
       parent_job: approveTarget.parent_job,
@@ -131,7 +139,12 @@ function RegistrationsContent() {
       current_belt: approveTarget.current_belt || 'Putih',
       status: 'active',
     };
-    await supabase.from('students').insert(newStudent);
+    const { error: studentError } = await supabase.from('students').insert(newStudent);
+    if (studentError) {
+      alert('Gagal menyetujui pendaftaran (Gagal membuat data siswa): ' + studentError.message);
+      setApproving(false);
+      return;
+    }
 
     await supabase.from('registrations').eq('id', approveTarget.id).update({
       status: 'disetujui',
@@ -140,7 +153,7 @@ function RegistrationsContent() {
 
     const notif: Partial<Notification> = {
       id: `notif-approve-${approveTarget.id}`,
-      user_id: parentId,
+      user_id: parentId || 'user-owner-id', // Fallback to owner if no parentId
       title: 'Pendaftaran Disetujui',
       message: `Pendaftaran ${approveTarget.full_name} telah disetujui dan ditambahkan sebagai siswa baru. Sabuk saat ini: ${approveTarget.current_belt || 'Putih'}.`,
       type: 'umum',

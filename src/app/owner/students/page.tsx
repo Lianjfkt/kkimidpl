@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Student } from '@/lib/mockData';
 
 export default function OwnerStudents() {
@@ -69,7 +69,7 @@ export default function OwnerStudents() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const studentData = {
+    const studentData: any = {
       full_name: fullName,
       dob,
       gender,
@@ -79,17 +79,35 @@ export default function OwnerStudents() {
       parent_job: parentJob,
       current_belt: currentBelt,
       status,
-      parent_id: editingStudent ? editingStudent.parent_id : 'user-parent-id',
       photo_url: editingStudent ? editingStudent.photo_url : '',
       join_date: editingStudent ? editingStudent.join_date : new Date().toISOString().split('T')[0]
     };
 
+    // If using real Supabase, avoid passing invalid UUID string for parent_id
+    if (editingStudent) {
+      if (editingStudent.parent_id && editingStudent.parent_id !== 'user-parent-id') {
+        studentData.parent_id = editingStudent.parent_id;
+      }
+    } else {
+      if (!isSupabaseConfigured) {
+        studentData.parent_id = 'user-parent-id';
+      }
+    }
+
+    let error = null;
     if (editingStudent) {
       // Update
-      await supabase.from('students').eq('id', editingStudent.id).update(studentData);
+      const res = await supabase.from('students').eq('id', editingStudent.id).update(studentData);
+      error = res.error;
     } else {
       // Create
-      await supabase.from('students').insert(studentData);
+      const res = await supabase.from('students').insert(studentData);
+      error = res.error;
+    }
+
+    if (error) {
+      alert('Gagal menyimpan data siswa: ' + error.message);
+      return;
     }
 
     setIsModalOpen(false);
