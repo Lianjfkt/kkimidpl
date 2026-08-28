@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { ClassSession, Coach } from '@/lib/mockData';
 
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
@@ -79,12 +79,34 @@ export default function OwnerClasses() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const classData = { name, day_of_week: Number(dayOfWeek), time_start: timeStart, time_end: timeEnd, coach_id: coachId, category };
+
+    // Check if coachId is a valid UUID, if not set to null (or if empty)
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(coachId);
+    const cleanedCoachId = isValidUUID ? coachId : null;
+
+    const classData = { 
+      name, 
+      day_of_week: Number(dayOfWeek), 
+      time_start: timeStart, 
+      time_end: timeEnd, 
+      coach_id: cleanedCoachId, 
+      category 
+    };
+
+    let error = null;
     if (editingClass) {
-      await supabase.from('classes').eq('id', editingClass.id).update(classData);
+      const res = await supabase.from('classes').eq('id', editingClass.id).update(classData);
+      error = res.error;
     } else {
-      await supabase.from('classes').insert(classData);
+      const res = await supabase.from('classes').insert(classData);
+      error = res.error;
     }
+
+    if (error) {
+      alert('Gagal menyimpan jadwal kelas: ' + error.message);
+      return;
+    }
+
     setIsModalOpen(false);
     loadData();
   };

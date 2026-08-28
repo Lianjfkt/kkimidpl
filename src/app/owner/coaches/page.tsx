@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Coach } from '@/lib/mockData';
 
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
@@ -72,19 +72,37 @@ export default function OwnerCoaches() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const coachData = {
+    const coachData: any = {
       full_name: fullName,
       phone,
       belt_level: beltLevel,
       join_date: joinDate,
-      honor_rate: Number(honorRate),
-      profile_id: editingCoach ? editingCoach.profile_id : 'user-coach-id'
+      honor_rate: Number(honorRate)
     };
 
+    // If using real Supabase, avoid passing invalid UUID string for profile_id
     if (editingCoach) {
-      await supabase.from('coaches').eq('id', editingCoach.id).update(coachData);
+      if (editingCoach.profile_id && editingCoach.profile_id !== 'user-coach-id') {
+        coachData.profile_id = editingCoach.profile_id;
+      }
     } else {
-      await supabase.from('coaches').insert(coachData);
+      if (!isSupabaseConfigured) {
+        coachData.profile_id = 'user-coach-id';
+      }
+    }
+
+    let error = null;
+    if (editingCoach) {
+      const res = await supabase.from('coaches').eq('id', editingCoach.id).update(coachData);
+      error = res.error;
+    } else {
+      const res = await supabase.from('coaches').insert(coachData);
+      error = res.error;
+    }
+
+    if (error) {
+      alert('Gagal menyimpan data pelatih: ' + error.message);
+      return;
     }
 
     setIsModalOpen(false);
