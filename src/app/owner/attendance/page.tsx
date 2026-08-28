@@ -26,7 +26,6 @@ export default function OwnerAttendanceRecap() {
     if (studRes.data) setStudents(studRes.data);
     if (clsRes.data) {
       setClasses(clsRes.data);
-      if (clsRes.data.length > 0) setClassFilter(clsRes.data[0].id);
     }
     if (attRes.data) setAttendance(attRes.data);
     setLoading(false);
