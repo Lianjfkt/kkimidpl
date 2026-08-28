@@ -595,7 +595,7 @@ export default function OwnerDashboard() {
                   style={{ background: 'rgba(0,0,0,0.1)' }}>
                   <div>
                     <p className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-error-container)' }}>{reg.full_name}</p>
-                    <p className="text-xs" style={{ color: 'var(--md-sys-color-on-error-container)', opacity: 0.75 }}>Ortu: {reg.parent_name} · {reg.parent_phone}</p>
+                    <p className="text-xs" style={{ color: 'var(--md-sys-color-on-error-container)', opacity: 0.75 }}>Ortu: {reg.parent_name}{reg.parent_job ? ` (${reg.parent_job})` : ''} · {reg.parent_phone}</p>
                   </div>
                   <div className="flex gap-1.5">
                     <Link href={`/owner/registrations?approve=${reg.id}`} className="m3-btn-tonal px-3 py-1 text-xs font-semibold">Setujui</Link>

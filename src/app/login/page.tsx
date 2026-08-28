@@ -19,7 +19,8 @@ import {
   Calendar,
   AlertCircle,
   CheckCircle2,
-  ChevronRight
+  ChevronRight,
+  Briefcase
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -40,6 +41,7 @@ export default function LoginPage() {
     height: '',
     parentName: '',
     parentPhone: '',
+    parentJob: '',
     address: '',
   });
 
@@ -113,6 +115,7 @@ export default function LoginPage() {
         height: regData.height ? Number(regData.height) : undefined,
         parent_name: regData.parentName,
         parent_phone: regData.parentPhone,
+        parent_job: regData.parentJob,
         address: regData.address,
         status: 'menunggu',
         submitted_at: new Date().toISOString(),
@@ -146,6 +149,7 @@ export default function LoginPage() {
         height: '',
         parentName: '',
         parentPhone: '',
+        parentJob: '',
         address: '',
       });
       setView('login');
@@ -455,7 +459,7 @@ export default function LoginPage() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className={fieldWrap}>
                     <label className={labelClass}>Nama Orang Tua *</label>
                     <div className="relative">
@@ -470,6 +474,14 @@ export default function LoginPage() {
                       <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
                       <input type="tel" required className={inputClass} placeholder="contoh: 081234..."
                         value={regData.parentPhone} onChange={(e) => setRegData({ ...regData, parentPhone: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className={fieldWrap}>
+                    <label className={labelClass}>Pekerjaan Orang Tua</label>
+                    <div className="relative">
+                      <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                      <input type="text" className={inputClass} placeholder="PNS, Swasta, Wiraswasta, dll"
+                        value={regData.parentJob} onChange={(e) => setRegData({ ...regData, parentJob: e.target.value })} />
                     </div>
                   </div>
                 </div>

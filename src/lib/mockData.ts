@@ -138,6 +138,7 @@ export interface Registration {
   dob: string;
   parent_name: string;
   parent_phone: string;
+  parent_job?: string;
   address: string;
   status: 'menunggu' | 'disetujui' | 'ditolak';
   submitted_at: string;

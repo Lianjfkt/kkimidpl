@@ -20,6 +20,8 @@ export default function OwnerStudents() {
   const [phone, setPhone] = useState('');
   const [currentBelt, setCurrentBelt] = useState('Putih (Geup 10)');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [parentName, setParentName] = useState('');
+  const [parentJob, setParentJob] = useState('');
 
   // Search/Filter states
   const [search, setSearch] = useState('');
@@ -43,6 +45,8 @@ export default function OwnerStudents() {
     setGender('Laki-laki');
     setAddress('');
     setPhone('');
+    setParentName('');
+    setParentJob('');
     setCurrentBelt('Putih (Geup 10)');
     setStatus('active');
     setIsModalOpen(true);
@@ -55,6 +59,8 @@ export default function OwnerStudents() {
     setGender(student.gender);
     setAddress(student.address);
     setPhone(student.phone);
+    setParentName(student.parent_name || '');
+    setParentJob(student.parent_job || '');
     setCurrentBelt(student.current_belt);
     setStatus(student.status as 'active' | 'inactive');
     setIsModalOpen(true);
@@ -69,6 +75,8 @@ export default function OwnerStudents() {
       gender,
       address,
       phone,
+      parent_name: parentName,
+      parent_job: parentJob,
       current_belt: currentBelt,
       status,
       parent_id: editingStudent ? editingStudent.parent_id : 'user-parent-id',
@@ -173,7 +181,14 @@ export default function OwnerStudents() {
               <tbody className="divide-y divide-[var(--color-border-hairline)]">
                 {filteredStudents.map((student) => (
                   <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-bold text-[var(--color-text-primary)]">{student.full_name}</td>
+                    <td className="px-6 py-4 text-sm font-bold text-[var(--color-text-primary)]">
+                      <div>{student.full_name}</div>
+                      {student.parent_name && (
+                        <div className="text-[10px] font-normal text-gray-500 mt-0.5">
+                          Ortu: {student.parent_name} {student.parent_job ? `(${student.parent_job})` : ''}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-sm text-[var(--color-text-secondary)]">{student.dob}</td>
                     <td className="px-6 py-4 text-sm text-[var(--color-text-secondary)]">{student.gender}</td>
                     <td className="px-6 py-4 text-sm">
@@ -280,6 +295,26 @@ export default function OwnerStudents() {
                       className="w-full px-3 py-2 rounded-lg border border-[var(--color-border-hairline)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-karate)]"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Nama Orang Tua</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--color-border-hairline)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-karate)]"
+                      value={parentName}
+                      onChange={(e) => setParentName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Pekerjaan Orang Tua</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--color-border-hairline)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-karate)]"
+                      value={parentJob}
+                      onChange={(e) => setParentJob(e.target.value)}
                     />
                   </div>
 

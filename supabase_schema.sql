@@ -35,7 +35,9 @@ create table public.students (
   nik text,
   birth_place text,
   weight numeric,
-  height numeric
+  height numeric,
+  parent_name text,
+  parent_job text
 );
 
 -- Enable RLS on students
@@ -246,6 +248,7 @@ create table public.registrations (
   height numeric,
   parent_name text not null,
   parent_phone text not null,
+  parent_job text,
   address text,
   status text not null check (status in ('menunggu', 'disetujui', 'ditolak')) default 'menunggu',
   submitted_at timestamptz default now()

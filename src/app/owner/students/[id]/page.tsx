@@ -141,6 +141,24 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
                 <span className="font-semibold text-sm">{student.join_date}</span>
               </div>
             </div>
+
+            {(student.parent_name || student.parent_job) && (
+              <div className="w-full text-left mt-4 pt-4 border-t space-y-2" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                <span className="block text-[10px] uppercase tracking-wider font-bold opacity-50">Data Orang Tua</span>
+                {student.parent_name && (
+                  <div>
+                    <span className="block text-[10px] opacity-60">Nama Orang Tua</span>
+                    <span className="font-semibold text-sm">{student.parent_name}</span>
+                  </div>
+                )}
+                {student.parent_job && (
+                  <div>
+                    <span className="block text-[10px] opacity-60">Pekerjaan</span>
+                    <span className="font-semibold text-sm">{student.parent_job}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Belt journey progress timeline */}

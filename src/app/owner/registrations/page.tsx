@@ -124,6 +124,8 @@ function RegistrationsContent() {
       address: approveTarget.address,
       parent_id: parentId,
       phone: approveTarget.parent_phone,
+      parent_name: approveTarget.parent_name,
+      parent_job: approveTarget.parent_job,
       photo_url: '',
       join_date: new Date().toISOString().split('T')[0],
       current_belt: approveTarget.current_belt || 'Putih',
@@ -280,6 +282,9 @@ function RegistrationsContent() {
                           <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>Wali:</span> {reg.parent_name}
                         </div>
                         <div>
+                          <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>Pekerjaan Wali:</span> {reg.parent_job || '-'}
+                        </div>
+                        <div>
                           <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>Telp:</span> {reg.parent_phone}
                         </div>
                         <div className="sm:col-span-2">
@@ -336,7 +341,7 @@ function RegistrationsContent() {
             </p>
 
             <div className="rounded-xl p-4 text-xs space-y-1" style={{ background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface-variant)' }}>
-              <p><span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>Wali Pendaftar:</span> {approveTarget.parent_name} · {approveTarget.parent_phone}</p>
+              <p><span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>Wali Pendaftar:</span> {approveTarget.parent_name} {approveTarget.parent_job ? `(${approveTarget.parent_job})` : ''} · {approveTarget.parent_phone}</p>
               <p><span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>Sabuk Saat Ini:</span> {approveTarget.current_belt || 'Putih'}</p>
             </div>
 

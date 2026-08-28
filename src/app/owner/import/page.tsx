@@ -21,6 +21,7 @@ const FIELD_MAP_STUDENTS = [
   { key: 'height',        label: 'Tinggi Badan',        required: false },
   { key: 'join_date',     label: 'Tanggal Bergabung',   required: false, hint: 'Format: YYYY-MM-DD' },
   { key: 'parent_name',   label: 'Nama Orang Tua',      required: false },
+  { key: 'parent_job',    label: 'Pekerjaan Orang Tua', required: false },
 ];
 
 const FIELD_MAP_ATTENDANCE = [
