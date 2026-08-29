@@ -184,6 +184,13 @@ export default function ImportPage() {
       studentMap.set(s.full_name.toLowerCase().trim(), s.id);
     });
 
+    // Cache student class mappings
+    const { data: enrollList } = await supabase.from('class_students').select('student_id, class_id');
+    const studentClassMap = new Map<string, string>();
+    enrollList?.forEach((e: { student_id: string; class_id: string }) => {
+      studentClassMap.set(e.student_id, e.class_id);
+    });
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const get = (key: string) => (colMapping[key] ? row[colMapping[key]] || '' : '');
@@ -249,8 +256,11 @@ export default function ImportPage() {
           continue;
         }
 
+        const targetClassId = studentClassMap.get(studentId) || null;
+
         const { error } = await supabase.from('attendance_students').insert({
           student_id: studentId,
+          class_id: targetClassId,
           session_date: sessionDate,
           status: rawStatus,
           marked_by: markedBy,

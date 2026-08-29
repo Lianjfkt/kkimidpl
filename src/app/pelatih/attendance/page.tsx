@@ -96,6 +96,46 @@ function AttendanceFormContent() {
     setAttendanceState(initialStates);
   }, [selectedClassId, allStudents, enrollments]);
 
+  // Fetch existing attendance records from database to pre-populate the form
+  useEffect(() => {
+    if (!selectedClassId || !sessionDate || students.length === 0) return;
+
+    const fetchExistingAttendance = async () => {
+      const { data: existing, error } = await supabase
+        .from('attendance_students')
+        .eq('class_id', selectedClassId)
+        .eq('session_date', sessionDate)
+        .select('student_id, status');
+
+      if (error) {
+        console.error('Error fetching existing attendance:', error);
+        return;
+      }
+
+      if (existing && existing.length > 0) {
+        const loadedStates: Record<string, 'hadir' | 'izin' | 'sakit' | 'alpha'> = {};
+        // Default to 'hadir' for all enrolled students
+        students.forEach((s) => {
+          loadedStates[s.id] = 'hadir';
+        });
+        // Override with database status
+        existing.forEach((record: any) => {
+          loadedStates[record.student_id] = record.status;
+        });
+        setAttendanceState(loadedStates);
+      } else {
+        // Reset to default 'hadir' if no records are found in database
+        const resetStates: Record<string, 'hadir' | 'izin' | 'sakit' | 'alpha'> = {};
+        students.forEach((s) => {
+          resetStates[s.id] = 'hadir';
+        });
+        setAttendanceState(resetStates);
+      }
+    };
+
+    fetchExistingAttendance();
+  }, [selectedClassId, sessionDate, students]);
+
   useEffect(() => {
     if (classId) {
       setSelectedClassId(classId);
