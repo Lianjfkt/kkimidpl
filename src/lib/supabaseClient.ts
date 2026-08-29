@@ -51,12 +51,16 @@ const getLocalStorageDb = () => {
     'class_students', 'curriculum_materials'
   ];
 
-  // Only reseed if version key is missing (run once per browser)
-  if (localStorage.getItem('db_reseeded_v6') !== 'true') {
-    console.log('First-time initialization: seeding database...');
+  // Bump version string to force fresh reseed when data schema changes
+  // v7: ensure consistent SIS-... student IDs across all tables
+  if (localStorage.getItem('db_reseeded_v7') !== 'true') {
+    console.log('[MockDB] Fresh reseed v7: clearing stale localStorage data...');
     keys.forEach(key => localStorage.removeItem(`db_${key}`));
-    localStorage.setItem('db_reseeded_v6', 'true');
-    // Do NOT clear mock_auth_session here — preserve any active session
+    localStorage.setItem('db_reseeded_v7', 'true');
+    // Remove old version flags too
+    localStorage.removeItem('db_reseeded_v6');
+    localStorage.removeItem('db_reseeded_v5');
+    // Do NOT clear mock_auth_session — preserve any active session
   }
 
   const db: any = {};
