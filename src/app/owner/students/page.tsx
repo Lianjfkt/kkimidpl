@@ -88,6 +88,7 @@ export default function OwnerStudents() {
   };
 
   const openEditModal = async (student: Student) => {
+    // Reset & populate form state first
     setEditingStudent(student);
     setFullName(student.full_name);
     setDob(student.dob);
@@ -98,14 +99,21 @@ export default function OwnerStudents() {
     setParentJob(student.parent_job || '');
     setCurrentBelt(student.current_belt);
     setStatus(student.status as 'active' | 'inactive');
+    setSelectedClassId(''); // reset dulu
 
-    // Load student's current class enrollment
-    const { data: enrollment } = await supabase
-      .from('class_students')
-      .eq('student_id', student.id)
-      .select('class_id');
-    setSelectedClassId(enrollment?.[0]?.class_id || '');
+    // Buka modal DULU agar tidak tampak tidak responsif
     setIsModalOpen(true);
+
+    // Load data kelas enrollment di background setelah modal terbuka
+    try {
+      const { data: enrollment } = await supabase
+        .from('class_students')
+        .eq('student_id', student.id)
+        .select('class_id');
+      setSelectedClassId(enrollment?.[0]?.class_id || '');
+    } catch (err) {
+      console.error('[openEditModal] Gagal load enrollment:', err);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

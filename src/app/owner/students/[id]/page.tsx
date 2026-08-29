@@ -30,40 +30,44 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const [studRes, feesRes, attRes, tournPartsRes, tournsRes, examPartsRes, examsRes] = await Promise.all([
-        supabase.from('students').eq('id', studentId).single(),
-        supabase.from('fees').eq('student_id', studentId).select('*'),
-        supabase.from('attendance_students').eq('student_id', studentId).select('*'),
-        supabase.from('tournament_participants').eq('student_id', studentId).select('*'),
-        supabase.from('tournaments').select('*'),
-        supabase.from('exam_participants').eq('student_id', studentId).select('*'),
-        supabase.from('belt_exams').select('*')
-      ]);
+      try {
+        const [studRes, feesRes, attRes, tournPartsRes, tournsRes, examPartsRes, examsRes] = await Promise.all([
+          supabase.from('students').eq('id', studentId).single(),
+          supabase.from('fees').eq('student_id', studentId).select('*'),
+          supabase.from('attendance_students').eq('student_id', studentId).select('*'),
+          supabase.from('tournament_participants').eq('student_id', studentId).select('*'),
+          supabase.from('tournaments').select('*'),
+          supabase.from('exam_participants').eq('student_id', studentId).select('*'),
+          supabase.from('belt_exams').select('*')
+        ]);
 
-      if (studRes.data) {
-        setStudent(studRes.data as Student);
-        setCoachNotes(studRes.data.medical_history || ''); // use medical history or custom field for coach notes
+        if (studRes.data) {
+          setStudent(studRes.data as Student);
+          setCoachNotes(studRes.data.medical_history || '');
+        }
+        if (feesRes.data) setFees(feesRes.data as Fee[]);
+        if (attRes.data) setAttendance(attRes.data as StudentAttendance[]);
+
+        if (tournPartsRes.data && tournsRes.data) {
+          const matches = (tournPartsRes.data as TournamentParticipant[]).map(tp => {
+            const t = (tournsRes.data as Tournament[]).find(tourn => tourn.id === tp.tournament_id);
+            return { ...tp, tournamentName: t?.name || 'Turnamen', date: t?.tournament_date };
+          });
+          setTournamentRuns(matches);
+        }
+
+        if (examPartsRes.data && examsRes.data) {
+          const matches = (examPartsRes.data as ExamParticipant[]).map(ep => {
+            const e = (examsRes.data as BeltExam[]).find(ex => ex.id === ep.exam_id);
+            return { ...ep, examDate: e?.exam_date, location: e?.location };
+          });
+          setExamsPlayed(matches);
+        }
+      } catch (err) {
+        console.error('[StudentDetail] Gagal memuat data:', err);
+      } finally {
+        setLoading(false);
       }
-      if (feesRes.data) setFees(feesRes.data as Fee[]);
-      if (attRes.data) setAttendance(attRes.data as StudentAttendance[]);
-
-      if (tournPartsRes.data && tournsRes.data) {
-        const matches = (tournPartsRes.data as TournamentParticipant[]).map(tp => {
-          const t = (tournsRes.data as Tournament[]).find(tourn => tourn.id === tp.tournament_id);
-          return { ...tp, tournamentName: t?.name || 'Turnamen', date: t?.tournament_date };
-        });
-        setTournamentRuns(matches);
-      }
-
-      if (examPartsRes.data && examsRes.data) {
-        const matches = (examPartsRes.data as ExamParticipant[]).map(ep => {
-          const e = (examsRes.data as BeltExam[]).find(ex => ex.id === ep.exam_id);
-          return { ...ep, examDate: e?.exam_date, location: e?.location };
-        });
-        setExamsPlayed(matches);
-      }
-
-      setLoading(false);
     };
     load();
   }, [studentId]);
