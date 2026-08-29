@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import NotificationBell from './NotificationBell';
+import { resetMockDatabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
 interface NavigationProps {
   children: React.ReactNode;
@@ -13,7 +14,23 @@ interface NavigationProps {
 export default function Navigation({ children }: NavigationProps) {
   const { profile, signOut } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  const handleReset = () => {
+    setResetting(true);
+    try {
+      resetMockDatabase();
+      setShowResetDialog(false);
+      // Reload halaman agar semua state React di-refresh dengan data baru
+      window.location.href = '/owner';
+    } catch (err) {
+      console.error('Reset gagal:', err);
+      setResetting(false);
+    }
+  };
 
   if (!profile) return <>{children}</>;
 
@@ -135,6 +152,22 @@ export default function Navigation({ children }: NavigationProps) {
               </svg>
               Pengaturan
             </Link>
+            {/* Reset Data — hanya owner, hanya mock DB */}
+            {role === 'owner' && !isSupabaseConfigured && (
+              <button
+                onClick={() => setShowResetDialog(true)}
+                className="w-full flex items-center px-4 py-2.5 text-xs font-semibold rounded-full transition-all duration-200 cursor-pointer mb-1"
+                style={{ color: 'var(--md-sys-color-on-surface-variant)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--md-sys-color-surface-variant)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                <svg className="mr-3 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Reset Data Demo
+              </button>
+            )}
+
             <button
               onClick={signOut}
               className="w-full flex items-center px-4 py-2.5 text-xs font-bold text-[var(--md-sys-color-error)] hover:bg-[var(--md-sys-color-error-container)]/20 rounded-full transition-all duration-200 cursor-pointer"
@@ -314,6 +347,92 @@ export default function Navigation({ children }: NavigationProps) {
           </div>
         )}
       </div>
+
+      {/* ===== MODAL KONFIRMASI RESET DATA ===== */}
+      {showResetDialog && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+          onClick={() => !resetting && setShowResetDialog(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
+            style={{ background: 'var(--md-sys-color-surface-container-high)', border: '1px solid var(--md-sys-color-outline-variant)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header warning */}
+            <div className="px-6 pt-6 pb-4" style={{ background: 'var(--md-sys-color-error-container)' }}>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                  style={{ background: 'var(--md-sys-color-error)', color: '#fff' }}>
+                  ⚠️
+                </div>
+                <div>
+                  <h3 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-error-container)' }}>
+                    Reset Semua Data?
+                  </h3>
+                  <p className="text-xs opacity-80" style={{ color: 'var(--md-sys-color-on-error-container)' }}>
+                    Tindakan ini tidak dapat dibatalkan
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-5 space-y-4">
+              <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Semua data yang telah Anda tambah, edit, atau hapus akan <strong>dikembalikan ke data demo awal</strong>:
+              </p>
+              <ul className="space-y-1.5 text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                {[
+                  '👥 Data siswa & orang tua',
+                  '🧑‍🏫 Data pelatih',
+                  '📚 Kelas & absensi',
+                  '💰 Iuran & keuangan',
+                  '🥋 Ujian sabuk & turnamen',
+                  '📋 Pendaftaran & notifikasi',
+                ].map(item => (
+                  <li key={item} className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--md-sys-color-error)' }} />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="p-3 rounded-xl text-xs" style={{ background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                ℹ️ Sesi login Anda <strong>tidak akan</strong> terpengaruh. Setelah reset, halaman akan dimuat ulang otomatis.
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setShowResetDialog(false)}
+                disabled={resetting}
+                className="flex-1 px-4 py-2.5 rounded-full text-sm font-semibold cursor-pointer transition-colors"
+                style={{
+                  background: 'var(--md-sys-color-surface-container)',
+                  color: 'var(--md-sys-color-on-surface)',
+                  border: '1px solid var(--md-sys-color-outline-variant)',
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleReset}
+                disabled={resetting}
+                className="flex-1 px-4 py-2.5 rounded-full text-sm font-bold cursor-pointer transition-all"
+                style={{
+                  background: resetting ? 'var(--md-sys-color-error-container)' : 'var(--md-sys-color-error)',
+                  color: resetting ? 'var(--md-sys-color-on-error-container)' : '#fff',
+                  opacity: resetting ? 0.7 : 1,
+                }}
+              >
+                {resetting ? '⏳ Mereset...' : '🔄 Ya, Reset Sekarang'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

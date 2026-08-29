@@ -384,3 +384,56 @@ export const supabase = new Proxy({}, {
     return (mockSupabase as any)[prop];
   }
 }) as any;
+
+/**
+ * Reset seluruh data mock ke kondisi awal (seed data).
+ * Hanya berfungsi saat menggunakan mock database (bukan Supabase real).
+ * Sesi login tidak dihapus.
+ */
+export function resetMockDatabase(): void {
+  if (typeof window === 'undefined') return;
+  if (isSupabaseConfigured) {
+    console.warn('[resetMockDatabase] Tidak dapat reset: menggunakan Supabase real.');
+    return;
+  }
+
+  const keys = [
+    'profiles', 'students', 'coaches', 'classes', 'attendance_students',
+    'attendance_coaches', 'fees', 'finance_transactions', 'belt_exams',
+    'exam_participants', 'tournaments', 'tournament_participants', 'registrations',
+    'notifications', 'class_students', 'curriculum_materials',
+  ];
+
+  // Hapus semua data & versi flag reseed
+  keys.forEach(key => localStorage.removeItem(`db_${key}`));
+  ['v4', 'v5', 'v6', 'v7'].forEach(v => localStorage.removeItem(`db_reseeded_${v}`));
+
+  // Seed ulang dengan data awal
+  const seedMap: Record<string, any> = {
+    profiles:               mock.initialProfiles,
+    students:               mock.initialStudents,
+    coaches:                mock.initialCoaches,
+    classes:                mock.initialClasses,
+    attendance_students:    mock.initialAttendanceStudents,
+    attendance_coaches:     [],
+    fees:                   mock.initialFees,
+    finance_transactions:   mock.initialFinanceTransactions,
+    belt_exams:             mock.initialBeltExams,
+    exam_participants:      mock.initialExamParticipants,
+    tournaments:            mock.initialTournaments,
+    tournament_participants:mock.initialTournamentParticipants,
+    registrations:          mock.initialRegistrations,
+    notifications:          mock.initialNotifications,
+    class_students:         mock.initialClassStudents,
+    curriculum_materials:   mock.initialCurriculumMaterials,
+  };
+
+  keys.forEach(key => {
+    localStorage.setItem(`db_${key}`, JSON.stringify(seedMap[key] ?? []));
+  });
+
+  // Set flag reseed terbaru agar tidak di-reseed ulang otomatis
+  localStorage.setItem('db_reseeded_v7', 'true');
+
+  console.log('[resetMockDatabase] ✅ Database berhasil direset ke data awal.');
+}
