@@ -353,7 +353,335 @@ export default function SettingsPage() {
             </div>
           </form>
         </M3Dialog>
+
+        {/* ===== DANGER ZONE ===== */}
+        {profile?.role === 'owner' && <DangerZone />}
+
       </div>
     </Navigation>
+  );
+}
+
+// ─── DANGER ZONE COMPONENT ─────────────────────────────────────────────────────
+const TABLES_CONFIG = [
+  { key: 'attendance_students',     label: 'Absensi Siswa',       icon: '📋', desc: 'Semua rekaman kehadiran latihan' },
+  { key: 'attendance_coaches',      label: 'Absensi Pelatih',     icon: '📋', desc: 'Semua rekaman kehadiran pelatih' },
+  { key: 'fees',                    label: 'Data Iuran',          icon: '💰', desc: 'Semua data pembayaran iuran bulanan' },
+  { key: 'finance_transactions',    label: 'Transaksi Keuangan',  icon: '💳', desc: 'Semua transaksi pemasukan & pengeluaran' },
+  { key: 'exam_participants',       label: 'Peserta Ujian',       icon: '🥋', desc: 'Data keikutsertaan ujian sabuk' },
+  { key: 'belt_exams',              label: 'Ujian Sabuk',         icon: '🎖️', desc: 'Jadwal & histori ujian kenaikan sabuk' },
+  { key: 'tournament_participants', label: 'Peserta Turnamen',    icon: '🏆', desc: 'Data keikutsertaan turnamen' },
+  { key: 'tournaments',             label: 'Turnamen',            icon: '🏆', desc: 'Semua data turnamen karate' },
+  { key: 'registrations',           label: 'Pendaftaran Masuk',   icon: '📝', desc: 'Formulir pendaftaran siswa baru' },
+  { key: 'notifications',           label: 'Notifikasi',          icon: '🔔', desc: 'Semua notifikasi sistem' },
+  { key: 'curriculum_materials',    label: 'Materi Kurikulum',    icon: '📚', desc: 'Video, PDF, dan materi latihan' },
+  { key: 'class_students',          label: 'Enrollment Kelas',    icon: '🏫', desc: 'Relasi siswa dengan kelas' },
+  { key: 'students',                label: 'Data Siswa',          icon: '👤', desc: 'Semua profil siswa & orang tua' },
+  { key: 'coaches',                 label: 'Data Pelatih',        icon: '🧑‍🏫', desc: 'Semua profil pelatih & honor' },
+  { key: 'classes',                 label: 'Data Kelas',          icon: '📅', desc: 'Semua sesi kelas latihan' },
+];
+
+function DangerZone() {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [loadingCounts, setLoadingCounts] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmText, setConfirmText] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteLog, setDeleteLog] = useState<string[]>([]);
+  const [done, setDone] = useState(false);
+  const [deleteMode, setDeleteMode] = useState<'selected' | 'all'>('selected');
+
+  const loadCounts = async () => {
+    setLoadingCounts(true);
+    const results = await Promise.all(
+      TABLES_CONFIG.map(async (t) => {
+        try {
+          const res = await supabase.from(t.key).select('*');
+          return { key: t.key, count: res.data?.length ?? 0 };
+        } catch {
+          return { key: t.key, count: 0 };
+        }
+      })
+    );
+    const map: Record<string, number> = {};
+    results.forEach(r => { map[r.key] = r.count; });
+    setCounts(map);
+    setLoadingCounts(false);
+  };
+
+  useEffect(() => { loadCounts(); }, []);
+
+  const toggleTable = (key: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelected(new Set(TABLES_CONFIG.map(t => t.key)));
+  const clearAll = () => setSelected(new Set());
+
+  const openConfirm = (mode: 'selected' | 'all') => {
+    setDeleteMode(mode);
+    setConfirmText('');
+    setDeleteLog([]);
+    setDone(false);
+    setShowConfirm(true);
+  };
+
+  const handleDelete = async () => {
+    if (confirmText !== 'HAPUS') return;
+    setDeleting(true);
+    const log: string[] = [];
+
+    const targets = deleteMode === 'all'
+      ? TABLES_CONFIG.map(t => t.key)
+      : [...selected];
+
+    for (const tableKey of targets) {
+      const cfg = TABLES_CONFIG.find(t => t.key === tableKey);
+      try {
+        // Delete all rows — Supabase requires a filter; use neq on id with empty string
+        // For real Supabase: use RPC or delete with a tautological filter
+        const res = await (supabase as any).from(tableKey).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (res.error) {
+          log.push(`❌ ${cfg?.label || tableKey}: ${res.error.message}`);
+        } else {
+          log.push(`✅ ${cfg?.label || tableKey}: berhasil dikosongkan`);
+        }
+      } catch (err: any) {
+        log.push(`❌ ${cfg?.label || tableKey}: ${err?.message || 'Error tidak diketahui'}`);
+      }
+    }
+
+    setDeleteLog(log);
+    setDeleting(false);
+    setDone(true);
+    loadCounts();
+  };
+
+  const totalSelected = deleteMode === 'all' ? TABLES_CONFIG.length : selected.size;
+
+  return (
+    <>
+      <div className="mt-8 rounded-3xl overflow-hidden" style={{ border: '1px solid var(--md-sys-color-error)' }}>
+        {/* Header */}
+        <div className="px-6 py-4 flex items-center gap-3" style={{ background: 'rgba(255,82,82,0.08)' }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-base flex-shrink-0"
+            style={{ background: 'var(--md-sys-color-error)', color: '#fff' }}>
+            ⚠️
+          </div>
+          <div>
+            <h3 className="font-bold text-base" style={{ color: 'var(--md-sys-color-error)' }}>Danger Zone — Hapus Data Supabase</h3>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Hapus data dari database Supabase secara permanen. Tindakan ini <strong>tidak dapat dibatalkan</strong>.
+            </p>
+          </div>
+          <button
+            onClick={loadCounts}
+            disabled={loadingCounts}
+            className="ml-auto text-xs px-3 py-1.5 rounded-full cursor-pointer transition-colors flex-shrink-0"
+            style={{ background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface-variant)', border: '1px solid var(--md-sys-color-outline-variant)' }}
+          >
+            {loadingCounts ? '⟳ Memuat...' : '↺ Refresh Jumlah'}
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5" style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+          {/* Select controls */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Pilih tabel yang akan dihapus ({selected.size} dipilih):
+            </p>
+            <div className="flex gap-2">
+              <button onClick={selectAll} className="text-xs px-3 py-1 rounded-full cursor-pointer"
+                style={{ background: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
+                Pilih Semua
+              </button>
+              <button onClick={clearAll} className="text-xs px-3 py-1 rounded-full cursor-pointer"
+                style={{ background: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
+                Hapus Pilihan
+              </button>
+            </div>
+          </div>
+
+          {/* Table grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {TABLES_CONFIG.map(t => {
+              const isChecked = selected.has(t.key);
+              const count = counts[t.key] ?? '—';
+              return (
+                <label
+                  key={t.key}
+                  className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all select-none"
+                  style={{
+                    background: isChecked ? 'rgba(255,82,82,0.08)' : 'var(--md-sys-color-surface-container)',
+                    border: `1px solid ${isChecked ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-outline-variant)'}`,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggleTable(t.key)}
+                    className="mt-0.5 flex-shrink-0 accent-red-500"
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">{t.icon}</span>
+                      <span className="text-xs font-bold truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>{t.label}</span>
+                      <span className="ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded-full flex-shrink-0"
+                        style={{
+                          background: loadingCounts ? 'var(--md-sys-color-surface-container-high)' : (counts[t.key] > 0 ? 'rgba(255,82,82,0.15)' : 'var(--md-sys-color-surface-container-high)'),
+                          color: counts[t.key] > 0 ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-on-surface-variant)',
+                        }}>
+                        {loadingCounts ? '...' : count} baris
+                      </span>
+                    </div>
+                    <p className="text-[10px] mt-0.5 opacity-60 truncate" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{t.desc}</p>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-2" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <button
+              onClick={() => openConfirm('selected')}
+              disabled={selected.size === 0}
+              className="flex-1 px-5 py-3 rounded-full text-sm font-bold cursor-pointer transition-all"
+              style={{
+                background: selected.size > 0 ? 'var(--md-sys-color-error-container)' : 'var(--md-sys-color-surface-container)',
+                color: selected.size > 0 ? 'var(--md-sys-color-on-error-container)' : 'var(--md-sys-color-on-surface-variant)',
+                border: `1px solid ${selected.size > 0 ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-outline-variant)'}`,
+                opacity: selected.size === 0 ? 0.5 : 1,
+              }}
+            >
+              🗑️ Hapus {selected.size} Tabel Dipilih
+            </button>
+            <button
+              onClick={() => openConfirm('all')}
+              className="flex-1 px-5 py-3 rounded-full text-sm font-bold cursor-pointer transition-all"
+              style={{
+                background: 'var(--md-sys-color-error)',
+                color: '#fff',
+              }}
+            >
+              ⚠️ Hapus SEMUA Data ({TABLES_CONFIG.length} Tabel)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Konfirmasi Modal ── */}
+      {showConfirm && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)' }}
+          onClick={() => !deleting && !done && setShowConfirm(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
+            style={{ background: 'var(--md-sys-color-surface-container-high)', border: '1px solid var(--md-sys-color-error)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {done ? (
+              /* ── Hasil Delete ── */
+              <div className="p-6 space-y-4">
+                <h3 className="font-bold text-lg" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  Proses Selesai ✅
+                </h3>
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {deleteLog.map((line, i) => (
+                    <p key={i} className="text-xs font-mono" style={{ color: line.startsWith('✅') ? '#34d399' : '#f87171' }}>
+                      {line}
+                    </p>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowConfirm(false)}
+                  className="w-full py-3 rounded-full text-sm font-bold cursor-pointer"
+                  style={{ background: 'var(--md-sys-color-primary)', color: '#fff' }}
+                >
+                  Tutup
+                </button>
+              </div>
+            ) : (
+              /* ── Form Konfirmasi ── */
+              <div className="p-6 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0"
+                    style={{ background: 'var(--md-sys-color-error)', color: '#fff' }}>
+                    🗑️
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                      Konfirmasi Hapus Data
+                    </h3>
+                    <p className="text-xs opacity-70" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                      {deleteMode === 'all' ? `Semua ${TABLES_CONFIG.length} tabel` : `${selected.size} tabel dipilih`} akan dikosongkan
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl text-xs space-y-1" style={{ background: 'rgba(255,82,82,0.08)', border: '1px solid var(--md-sys-color-error)' }}>
+                  <p className="font-bold" style={{ color: 'var(--md-sys-color-error)' }}>Tabel yang akan dihapus:</p>
+                  {(deleteMode === 'all' ? TABLES_CONFIG : TABLES_CONFIG.filter(t => selected.has(t.key))).map(t => (
+                    <p key={t.key} className="flex justify-between" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                      <span>{t.icon} {t.label}</span>
+                      <span className="font-mono opacity-60">{counts[t.key] ?? 0} baris</span>
+                    </p>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    Ketik <code className="px-1 rounded" style={{ background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }}>HAPUS</code> untuk konfirmasi:
+                  </label>
+                  <input
+                    type="text"
+                    value={confirmText}
+                    onChange={e => setConfirmText(e.target.value)}
+                    placeholder="Ketik HAPUS di sini..."
+                    className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
+                    style={{
+                      background: 'var(--md-sys-color-surface-container)',
+                      color: 'var(--md-sys-color-on-surface)',
+                      border: `1px solid ${confirmText === 'HAPUS' ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-outline-variant)'}`,
+                    }}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowConfirm(false)}
+                    disabled={deleting}
+                    className="flex-1 py-2.5 rounded-full text-sm font-semibold cursor-pointer"
+                    style={{ background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={confirmText !== 'HAPUS' || deleting}
+                    className="flex-1 py-2.5 rounded-full text-sm font-bold cursor-pointer transition-all"
+                    style={{
+                      background: confirmText === 'HAPUS' && !deleting ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-surface-container)',
+                      color: confirmText === 'HAPUS' && !deleting ? '#fff' : 'var(--md-sys-color-on-surface-variant)',
+                      opacity: confirmText !== 'HAPUS' ? 0.5 : 1,
+                    }}
+                  >
+                    {deleting ? '⏳ Menghapus...' : '🗑️ Hapus Sekarang'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
