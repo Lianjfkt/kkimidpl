@@ -180,8 +180,10 @@ export default function ImportPage() {
     // Cache students name to ID mapping to avoid constant queries
     const { data: studentList } = await supabase.from('students').select('id, full_name');
     const studentMap = new Map<string, string>();
+    // Normalize: lowercase + collapse multiple spaces
+    const normalizeName = (name: string) => name.toLowerCase().replace(/\s+/g, ' ').trim();
     studentList?.forEach((s: { id: string; full_name: string }) => {
-      studentMap.set(s.full_name.toLowerCase().trim(), s.id);
+      studentMap.set(normalizeName(s.full_name), s.id);
     });
 
     // Cache student class mappings
@@ -250,9 +252,12 @@ export default function ImportPage() {
         else if (rawStatus === 'sakit' || rawStatus === 's') rawStatus = 'sakit';
         else rawStatus = 'alpha';
 
-        const studentId = studentMap.get(studentName.toLowerCase());
-        if (!studentId) {
-          errors.push(`Baris ${i + 2}: Siswa "${studentName}" tidak ditemukan.`);
+        // Normalize name same way as DB cache
+        const normalizedStudentName = studentName.toLowerCase().replace(/\s+/g, ' ').trim();
+        const studentId = studentMap.get(normalizedStudentName);
+        if (!studentId || studentId === 'imported') {
+          const availableNames = Array.from(studentMap.keys()).join(', ');
+          errors.push(`Baris ${i + 2}: Siswa "${studentName}" tidak ditemukan. Nama siswa di DB: [${availableNames}]`);
           continue;
         }
 

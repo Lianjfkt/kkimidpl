@@ -6,8 +6,15 @@ import Navigation from '@/components/Navigation';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Student } from '@/lib/mockData';
 
+interface ClassSession {
+  id: string;
+  name: string;
+  category: string;
+}
+
 export default function OwnerStudents() {
   const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<ClassSession[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Form states
@@ -22,6 +29,7 @@ export default function OwnerStudents() {
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [parentName, setParentName] = useState('');
   const [parentJob, setParentJob] = useState('');
+  const [selectedClassId, setSelectedClassId] = useState('');
 
   // Search/Filter states
   const [search, setSearch] = useState('');
@@ -29,8 +37,12 @@ export default function OwnerStudents() {
 
   const loadStudents = async () => {
     setLoading(true);
-    const { data } = await supabase.from('students').select('*');
-    if (data) setStudents(data);
+    const [studRes, clsRes] = await Promise.all([
+      supabase.from('students').select('*'),
+      supabase.from('classes').select('*'),
+    ]);
+    if (studRes.data) setStudents(studRes.data);
+    if (clsRes.data) setClasses(clsRes.data);
     setLoading(false);
   };
 
@@ -47,12 +59,13 @@ export default function OwnerStudents() {
     setPhone('');
     setParentName('');
     setParentJob('');
+    setSelectedClassId('');
     setCurrentBelt('Putih (Geup 10)');
     setStatus('active');
     setIsModalOpen(true);
   };
 
-  const openEditModal = (student: Student) => {
+  const openEditModal = async (student: Student) => {
     setEditingStudent(student);
     setFullName(student.full_name);
     setDob(student.dob);
@@ -63,6 +76,13 @@ export default function OwnerStudents() {
     setParentJob(student.parent_job || '');
     setCurrentBelt(student.current_belt);
     setStatus(student.status as 'active' | 'inactive');
+
+    // Load student's current class enrollment
+    const { data: enrollment } = await supabase
+      .from('class_students')
+      .eq('student_id', student.id)
+      .select('class_id');
+    setSelectedClassId(enrollment?.[0]?.class_id || '');
     setIsModalOpen(true);
   };
 
@@ -94,6 +114,7 @@ export default function OwnerStudents() {
       }
     }
 
+    let savedStudentId = editingStudent?.id;
     let error = null;
     if (editingStudent) {
       // Update
@@ -103,11 +124,35 @@ export default function OwnerStudents() {
       // Create
       const res = await supabase.from('students').insert(studentData);
       error = res.error;
+      // Get the newly created student's ID
+      if (!error) {
+        const { data: newStudents } = await supabase
+          .from('students')
+          .eq('full_name', fullName)
+          .select('id');
+        if (newStudents && newStudents.length > 0) {
+          savedStudentId = newStudents[newStudents.length - 1].id;
+        }
+      }
     }
 
     if (error) {
       alert('Gagal menyimpan data siswa: ' + error.message);
       return;
+    }
+
+    // Save class enrollment if a class was selected
+    if (savedStudentId && selectedClassId) {
+      // Delete old enrollment first
+      await supabase.from('class_students').eq('student_id', savedStudentId).delete();
+      // Insert new enrollment
+      await supabase.from('class_students').insert({
+        student_id: savedStudentId,
+        class_id: selectedClassId,
+      });
+    } else if (savedStudentId && !selectedClassId) {
+      // Remove from any class if "Tidak Ada" selected
+      await supabase.from('class_students').eq('student_id', savedStudentId).delete();
     }
 
     setIsModalOpen(false);
@@ -116,6 +161,7 @@ export default function OwnerStudents() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus data siswa ini?')) {
+      await supabase.from('class_students').eq('student_id', id).delete();
       await supabase.from('students').eq('id', id).delete();
       loadStudents();
     }
@@ -334,6 +380,22 @@ export default function OwnerStudents() {
                       value={parentJob}
                       onChange={(e) => setParentJob(e.target.value)}
                     />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">Kelas Latihan</label>
+                    <select
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--color-border-hairline)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-karate)]"
+                      value={selectedClassId}
+                      onChange={(e) => setSelectedClassId(e.target.value)}
+                    >
+                      <option value="">— Tidak Ada / Belum Ditentukan —</option>
+                      {classes.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name} ({cls.category})
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="space-y-1">

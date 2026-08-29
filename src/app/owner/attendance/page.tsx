@@ -13,41 +13,54 @@ export default function OwnerAttendanceRecap() {
   const [attendance, setAttendance] = useState<StudentAttendance[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const now = new Date();
   const [classFilter, setClassFilter] = useState('');
-  const [monthFilter, setMonthFilter] = useState(new Date().getMonth() + 1);
+  const [monthFilter, setMonthFilter] = useState(now.getMonth() + 1);
+  const [yearFilter, setYearFilter] = useState(now.getFullYear());
 
   const loadData = async () => {
     setLoading(true);
     const [studRes, clsRes, attRes] = await Promise.all([
-      supabase.from('students').eq('status', 'active').select('*'),
+      supabase.from('students').select('*'),
       supabase.from('classes').select('*'),
       supabase.from('attendance_students').select('*'),
     ]);
     if (studRes.data) setStudents(studRes.data);
-    if (clsRes.data) {
-      setClasses(clsRes.data);
-    }
+    if (clsRes.data) setClasses(clsRes.data);
     if (attRes.data) setAttendance(attRes.data);
     setLoading(false);
   };
 
   useEffect(() => { loadData(); }, []);
 
+  // Parse date safely from 'YYYY-MM-DD' without UTC shift
+  const parseLocalDate = (dateStr: string) => {
+    const parts = (dateStr || '').split('T')[0].split('-').map(Number);
+    return { year: parts[0], month: parts[1], day: parts[2] };
+  };
+
   const getStats = (studentId: string) => {
     const records = attendance.filter((a) => {
-      const aDate = new Date(a.session_date);
+      const { year, month } = parseLocalDate(a.session_date);
       return a.student_id === studentId &&
         (classFilter ? a.class_id === classFilter : true) &&
-        aDate.getMonth() + 1 === Number(monthFilter);
+        month === Number(monthFilter) &&
+        year === Number(yearFilter);
     });
     const total = records.length;
     const hadir = records.filter((r) => r.status === 'hadir').length;
     const izin = records.filter((r) => r.status === 'izin').length;
     const sakit = records.filter((r) => r.status === 'sakit').length;
     const alpha = records.filter((r) => r.status === 'alpha').length;
-    const percentage = total > 0 ? Math.round((hadir / total) * 100) : 100;
+    const percentage = total > 0 ? Math.round((hadir / total) * 100) : 0;
     return { total, hadir, izin, sakit, alpha, percentage };
   };
+
+  // Available years from attendance data
+  const availableYears = Array.from(
+    new Set(attendance.map((a) => parseLocalDate(a.session_date).year).filter(Boolean))
+  ).sort((a, b) => b - a);
+  if (!availableYears.includes(now.getFullYear())) availableYears.unshift(now.getFullYear());
 
   return (
     <Navigation>
@@ -62,7 +75,7 @@ export default function OwnerAttendanceRecap() {
         </div>
 
         {/* Filters */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] grid grid-cols-1 md:grid-cols-2 gap-4"
+        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] grid grid-cols-1 md:grid-cols-3 gap-4"
           style={{ background: 'var(--md-sys-color-surface-container-low)', padding: '16px' }}>
           <div className="flex flex-col">
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Pilih Kelas</label>
@@ -77,7 +90,22 @@ export default function OwnerAttendanceRecap() {
               {months.map((m, idx) => <option key={idx} value={idx + 1}>{m}</option>)}
             </select>
           </div>
+          <div className="flex flex-col">
+            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Pilih Tahun</label>
+            <select className="m3-textfield-outlined text-sm" value={yearFilter} onChange={(e) => setYearFilter(Number(e.target.value))}>
+              {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
         </div>
+
+        {/* Summary badge */}
+        {!loading && (
+          <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+            Total <strong>{attendance.length}</strong> catatan absensi di database.{' '}
+            Menampilkan: <strong>{months[monthFilter - 1]} {yearFilter}</strong>
+            {classFilter ? ` · Kelas: ${classes.find(c => c.id === classFilter)?.name}` : ' · Semua Kelas'}.
+          </p>
+        )}
 
         {/* Attendance Table */}
         <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
@@ -88,7 +116,7 @@ export default function OwnerAttendanceRecap() {
             </div>
           ) : students.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Belum ada data absensi terekam.</p>
+              <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Belum ada data siswa terekam.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -135,11 +163,13 @@ export default function OwnerAttendanceRecap() {
                         <td className="px-5 py-4 text-sm text-center" style={{ color: 'var(--md-sys-color-error)' }}>{stats.alpha}</td>
                         <td className="px-5 py-4 text-right">
                           <span className="px-2.5 py-1 rounded-[var(--md-sys-shape-corner-full)] text-xs font-semibold"
-                            style={stats.percentage >= 80
+                            style={stats.total === 0
+                              ? { background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface-variant)' }
+                              : stats.percentage >= 80
                               ? { background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' }
                               : { background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }
                             }>
-                            {stats.percentage}%
+                            {stats.total === 0 ? '—' : `${stats.percentage}%`}
                           </span>
                         </td>
                       </tr>
