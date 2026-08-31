@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, rawClient } from '@/lib/supabaseClient';
 import { Profile } from '@/lib/mockData';
 
 interface AuthContextType {
@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await rawClient
         .from('profiles')
         .select('*')
         .eq('id', userId)
