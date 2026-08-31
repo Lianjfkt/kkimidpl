@@ -2,13 +2,9 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import { 
-  Shield, 
-  Users, 
-  Award, 
   ArrowLeft, 
   ArrowRight, 
   Mail, 
@@ -19,13 +15,12 @@ import {
   Calendar,
   AlertCircle,
   CheckCircle2,
-  ChevronRight,
   Briefcase
 } from 'lucide-react';
 
 export default function LoginPage() {
   const { signIn, loading: authLoading } = useAuth();
-  const router = useRouter();
+
 
   const [view, setView] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -160,57 +155,12 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickLogin = async (roleEmail: string, rolePass: string) => {
-    setEmail(roleEmail);
-    setPassword(rolePass);
-    setView('login');
-    setError(null);
-    setSuccessMessage(null);
-    setLoading(true);
-
-    try {
-      console.log('[QuickLogin] Trying:', roleEmail);
-      const response = await signIn(roleEmail, rolePass) as any;
-      console.log('[QuickLogin] Response:', JSON.stringify(response));
-
-      if (response && response.error) {
-        const msg = response.error.message || response.error.toString();
-        console.error('[QuickLogin] Error:', msg);
-        setError(`Login gagal: ${msg}`);
-        setLoading(false);
-      } else {
-        const role = response.role;
-        console.log('[QuickLogin] Role:', role);
-        if (role === 'owner') {
-          window.location.href = '/owner';
-        } else if (role === 'pelatih') {
-          window.location.href = '/pelatih';
-        } else if (role === 'ortu') {
-          window.location.href = '/ortu';
-        } else {
-          console.warn('[QuickLogin] Role null, redirecting to /owner as fallback');
-          window.location.href = '/owner';
-        }
-      }
-    } catch (err: any) {
-      console.error('[QuickLogin] Exception:', err);
-      setError(`Terjadi kesalahan: ${err?.message || err}`);
-      setLoading(false);
-    }
-  };
-
   const beltOptions = ['Putih', 'Kuning', 'Hijau', 'Biru Muda', 'Biru Tua', 'Coklat Muda', 'Coklat Tua', 'Hitam'];
 
   const inputClass =
     'w-full pl-10 pr-4 py-3 bg-zinc-950/60 border border-zinc-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm text-white rounded-xl placeholder:text-zinc-600 outline-none transition-all duration-200';
   const labelClass = 'block text-[10px] font-bold text-zinc-400 tracking-wider uppercase mb-1.5';
   const fieldWrap = 'flex flex-col relative';
-
-  const demoAccounts = [
-    { label: 'Owner', email: 'owner@dojo.com', pass: 'owner123', icon: <Shield className="w-4 h-4 text-red-500" /> },
-    { label: 'Pelatih', email: 'pelatih@dojo.com', pass: 'pelatih123', icon: <Award className="w-4 h-4 text-red-500" /> },
-    { label: 'Orang Tua', email: 'ortu@dojo.com', pass: 'ortu123', icon: <Users className="w-4 h-4 text-red-500" /> },
-  ];
 
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-[#0f0a09] text-zinc-100 p-4 sm:p-6 relative overflow-hidden">
@@ -255,30 +205,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="space-y-4 pt-6 border-t border-zinc-900">
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Akses Cepat Akun Demo</p>
-            <div className="flex flex-col gap-2.5">
-              {demoAccounts.map((account) => (
-                <button
-                  key={account.label}
-                  type="button"
-                  onClick={() => handleQuickLogin(account.email, account.pass)}
-                  className="flex items-center justify-between w-full p-3 rounded-xl bg-zinc-900/30 hover:bg-red-950/25 border border-zinc-800/80 hover:border-red-900/40 text-left transition-all duration-200 group"
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="p-1.5 rounded-lg bg-zinc-950 border border-zinc-800 group-hover:border-red-900/20">
-                      {account.icon}
-                    </span>
-                    <div>
-                      <p className="text-xs font-semibold text-white leading-none">{account.label}</p>
-                      <p className="text-[10px] text-zinc-500 mt-1">{account.email}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-red-500 transition-colors" />
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Right Side: Authentication Forms (Login / Registration) */}
@@ -358,23 +284,7 @@ export default function LoginPage() {
                   {loading ? 'Memverifikasi...' : 'Masuk ke Dashboard'} <ArrowRight className="w-4 h-4" />
                 </button>
 
-                {/* Quick login demo (Visible only on mobile/tablets where left-side panel is hidden) */}
-                <div className="lg:hidden pt-4 border-t border-zinc-900 mt-6 space-y-3">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Akses Cepat Akun Demo</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {demoAccounts.map((account) => (
-                      <button
-                        key={account.label}
-                        type="button"
-                        onClick={() => handleQuickLogin(account.email, account.pass)}
-                        className="flex flex-col items-center justify-center p-3.5 rounded-xl bg-zinc-900/30 hover:bg-red-950/20 border border-zinc-800 text-center transition-all duration-200"
-                      >
-                        {account.icon}
-                        <span className="text-[10px] font-semibold text-white mt-1.5">{account.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+
 
                 <div className="text-center pt-2">
                   <button
