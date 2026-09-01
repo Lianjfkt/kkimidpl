@@ -27,6 +27,14 @@ function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: 
   );
 }
 
+interface ToastNotification {
+  id: string;
+  type: 'success' | 'info' | 'warning' | 'error';
+  title: string;
+  message: string;
+  icon?: string;
+}
+
 const inputClass = 'm3-textfield-outlined text-sm';
 const labelClass = 'block text-xs font-medium mb-1.5';
 const fieldWrap = 'flex flex-col';
@@ -62,6 +70,24 @@ export default function OwnerFinance() {
   const [fees, setFees] = useState<Fee[]>([]);
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Toast System State
+  const [toasts, setToasts] = useState<ToastNotification[]>([]);
+
+  const showToast = (title: string, message: string, type: 'success' | 'info' | 'warning' | 'error' = 'success', icon?: string) => {
+    const id = `toast-${Date.now()}-${Math.random()}`;
+    const defaultIcon = type === 'success' ? '✓' : type === 'error' ? '✕' : type === 'warning' ? '⚠️' : 'ℹ️';
+    const newToast: ToastNotification = { id, title, message, type, icon: icon || defaultIcon };
+    setToasts((prev) => [...prev, newToast]);
+
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4500);
+  };
+
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   // Transactions CRUD state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -157,11 +183,23 @@ export default function OwnerFinance() {
 
     if (editingTx) {
       await supabase.from('finance_transactions').eq('id', editingTx.id).update(txData);
+      showToast(
+        'Transaksi Diperbarui',
+        `Perubahan transaksi "${txDescription}" (Rp ${Number(txAmount).toLocaleString('id-ID')}) berhasil disimpan.`,
+        'success',
+        '✏️'
+      );
     } else {
       await supabase.from('finance_transactions').insert({
         id: `tx-${Date.now()}`,
         ...txData
       });
+      showToast(
+        'Transaksi Berhasil Dicatat',
+        `${txType === 'pemasukan' ? 'Pemasukan (+)' : 'Pengeluaran (-)'} sebesar Rp ${Number(txAmount).toLocaleString('id-ID')} (${txCategory}) telah masuk jurnal kas.`,
+        'success',
+        '💰'
+      );
     }
 
     setIsModalOpen(false);
@@ -173,6 +211,12 @@ export default function OwnerFinance() {
   const handleDeleteTx = async (txId: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus transaksi kas ini?')) {
       await supabase.from('finance_transactions').eq('id', txId).delete();
+      showToast(
+        'Transaksi Kas Dihapus',
+        'Catatan transaksi telah dihapus dari pembukuan dojo.',
+        'info',
+        '🗑️'
+      );
       loadData();
     }
   };
@@ -245,10 +289,18 @@ export default function OwnerFinance() {
         });
       }
 
+      showToast(
+        'Iuran Berhasil Dilunasi!',
+        `Pelunasan Rp ${Number(quickPayAmount).toLocaleString('id-ID')} untuk ${quickPayStudent.full_name} (${months[billingMonth - 1]} ${billingYear}) via ${quickPayMethod.toUpperCase()} sukses dicatat ke kas.`,
+        'success',
+        '🥋'
+      );
+
       setQuickPayOpen(false);
       loadData();
     } catch (err: any) {
       setQuickPayMsg(err?.message || 'Gagal memproses pelunasan.');
+      showToast('Gagal Memproses Pelunasan', err?.message || 'Terjadi kesalahan sistem.', 'error', '✕');
     }
   };
 
@@ -269,6 +321,13 @@ export default function OwnerFinance() {
 
     const url = generateWhatsAppUrl(student.phone, message);
     window.open(url, '_blank');
+
+    showToast(
+      'Membuka WhatsApp Tagihan',
+      `Format pesan penagihan Bank JAGO untuk ananda ${student.full_name} telah disiapkan dan dikirim ke nomor WhatsApp.`,
+      'info',
+      '📱'
+    );
   };
 
   const handleCopyWhatsAppText = (student: Student, arrears: ReturnType<typeof calculateStudentArrears>) => {
@@ -290,6 +349,13 @@ export default function OwnerFinance() {
     setTimeout(() => {
       setCopiedStudentId(null);
     }, 2500);
+
+    showToast(
+      'Pesan Tagihan Disalin!',
+      `Teks tagihan lengkap untuk ananda ${student.full_name} (${months[billingMonth - 1]} ${billingYear}) berhasil disalin ke clipboard.`,
+      'success',
+      '📋'
+    );
   };
 
   // -------------------------------------------------------------
@@ -410,6 +476,13 @@ export default function OwnerFinance() {
     a.download = `Rekap_Penagihan_Iuran_${months[billingMonth - 1]}_${billingYear}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+
+    showToast(
+      'Ekspor CSV Berhasil',
+      `File rekap penagihan iuran periode ${months[billingMonth - 1]} ${billingYear} (${exportItems.length} data siswa) berhasil diunduh.`,
+      'success',
+      '📥'
+    );
   };
 
   const exportKasCSV = () => {
@@ -420,12 +493,18 @@ export default function OwnerFinance() {
     const a = document.createElement('a');
     a.href = url; a.download = `transaksi-dojo-${new Date().toISOString().split('T')[0]}.csv`; a.click();
     URL.revokeObjectURL(url);
+
+    showToast(
+      'Ekspor CSV Kas Berhasil',
+      `Jurnal transaksi kas dojo (${sortedTransactions.length} baris) berhasil diunduh.`,
+      'success',
+      '📊'
+    );
   };
 
   // -------------------------------------------------------------
   // Analytics & Tren Detailed Calculations (Real Dynamic Data)
   // -------------------------------------------------------------
-  // Full 12 Months Analytics for selected year
   const yearlyAnalyticsMonths = Array.from({ length: 12 }, (_, i) => {
     const monthNum = i + 1;
     const monthFees = fees.filter((f) => f.status === 'lunas' && f.period_month === monthNum && f.period_year === analyticsYear);
@@ -439,7 +518,6 @@ export default function OwnerFinance() {
       .filter((t) => t.type === 'pengeluaran' && new Date(t.transaction_date).getMonth() + 1 === monthNum && new Date(t.transaction_date).getFullYear() === analyticsYear)
       .reduce((s, t) => s + Number(t.amount), 0);
 
-    // Compliance in that month
     const paidCount = monthFees.length;
     const complianceRate = totalActive > 0 ? Math.round((paidCount / totalActive) * 100) : 0;
 
@@ -505,7 +583,7 @@ export default function OwnerFinance() {
 
   return (
     <Navigation>
-      <div className="space-y-6 pb-12">
+      <div className="space-y-6 pb-12 relative">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -517,7 +595,7 @@ export default function OwnerFinance() {
             </p>
           </div>
           {activeTab === 'kas' && (
-            <button onClick={openAddTxModal} className="m3-btn-filled px-5 py-2.5 text-sm font-medium">
+            <button onClick={openAddTxModal} className="m3-btn-filled px-5 py-2.5 text-sm font-medium cursor-pointer">
               <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
               Tambah Transaksi
             </button>
@@ -612,13 +690,13 @@ export default function OwnerFinance() {
                       {/* Income Bar */}
                       <div
                         title={`Pemasukan ${d.label} ${d.year}: Rp ${d.income.toLocaleString('id-ID')}`}
-                        className="w-full max-w-[28px] rounded-t-md transition-all duration-500 bg-emerald-500 hover:opacity-80"
+                        className="w-full max-w-[28px] rounded-t-md transition-all duration-500 bg-emerald-500 hover:opacity-80 cursor-pointer"
                         style={{ height: `${(d.income / chartMax) * 100}%`, minHeight: d.income > 0 ? '6px' : '0' }}
                       />
                       {/* Expense Bar */}
                       <div
                         title={`Pengeluaran ${d.label} ${d.year}: Rp ${d.expense.toLocaleString('id-ID')}`}
-                        className="w-full max-w-[28px] rounded-t-md transition-all duration-500 bg-red-500 hover:opacity-80"
+                        className="w-full max-w-[28px] rounded-t-md transition-all duration-500 bg-red-500 hover:opacity-80 cursor-pointer"
                         style={{ height: `${(d.expense / chartMax) * 100}%`, minHeight: d.expense > 0 ? '6px' : '0' }}
                       />
                     </div>
@@ -671,7 +749,7 @@ export default function OwnerFinance() {
                     <option value="umum">Umum</option>
                   </select>
 
-                  <button onClick={exportKasCSV} className="m3-btn-outlined px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5">
+                  <button onClick={exportKasCSV} className="m3-btn-outlined px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -753,8 +831,8 @@ export default function OwnerFinance() {
                           </td>
                           <td className="px-5 py-3.5 text-sm text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => openEditTxModal(tx)} className="m3-btn-text py-1 px-2 font-semibold">Edit</button>
-                              <button onClick={() => handleDeleteTx(tx.id)} className="m3-btn-text py-1 px-2 font-semibold" style={{ color: 'var(--md-sys-color-error)' }}>Hapus</button>
+                              <button onClick={() => openEditTxModal(tx)} className="m3-btn-text py-1 px-2 font-semibold cursor-pointer">Edit</button>
+                              <button onClick={() => handleDeleteTx(tx.id)} className="m3-btn-text py-1 px-2 font-semibold cursor-pointer" style={{ color: 'var(--md-sys-color-error)' }}>Hapus</button>
                             </div>
                           </td>
                         </tr>
@@ -856,7 +934,11 @@ export default function OwnerFinance() {
                     <select
                       className="m3-textfield-outlined text-xs py-1.5 px-3 rounded-lg"
                       value={billingMonth}
-                      onChange={(e) => setBillingMonth(Number(e.target.value))}
+                      onChange={(e) => {
+                        const m = Number(e.target.value);
+                        setBillingMonth(m);
+                        showToast('Periode Diubah', `Menampilkan tagihan untuk bulan ${months[m - 1]} ${billingYear}`, 'info', '📅');
+                      }}
                     >
                       {months.map((m, idx) => (
                         <option key={idx} value={idx + 1}>{m}</option>
@@ -866,7 +948,11 @@ export default function OwnerFinance() {
                       type="number"
                       className="m3-textfield-outlined text-xs py-1.5 px-2 w-20 rounded-lg"
                       value={billingYear}
-                      onChange={(e) => setBillingYear(Number(e.target.value))}
+                      onChange={(e) => {
+                        const yr = Number(e.target.value);
+                        setBillingYear(yr);
+                        showToast('Tahun Diubah', `Menampilkan tagihan tahun ${yr}`, 'info', '📅');
+                      }}
                     />
                   </div>
 
@@ -912,7 +998,7 @@ export default function OwnerFinance() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleExportBillingCSV}
-                    className="m3-btn-outlined px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5"
+                    className="m3-btn-outlined px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
                     title="Unduh data tagihan ke format CSV"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -1178,7 +1264,7 @@ export default function OwnerFinance() {
           </div>
         )}
 
-        {/* TAB 3: ANALYTICS & TREN (UPGRADED WITH REAL DYNAMIC DATA) */}
+        {/* TAB 3: ANALYTICS & TREN */}
         {activeTab === 'analytics' && (
           <div className="space-y-6 animate-fade-in">
             {/* Year Selector & Summary Header */}
@@ -1199,7 +1285,11 @@ export default function OwnerFinance() {
                 <select
                   className="m3-textfield-outlined text-xs py-1.5 px-3 rounded-lg font-bold"
                   value={analyticsYear}
-                  onChange={(e) => setAnalyticsYear(Number(e.target.value))}
+                  onChange={(e) => {
+                    const yr = Number(e.target.value);
+                    setAnalyticsYear(yr);
+                    showToast('Tahun Analisis Berubah', `Memuat visualisasi tren finansial tahun ${yr}`, 'info', '📊');
+                  }}
                 >
                   {[2024, 2025, 2026, 2027].map((yr) => (
                     <option key={yr} value={yr}>Tahun {yr}</option>
@@ -1605,6 +1695,46 @@ export default function OwnerFinance() {
             </div>
           </form>
         </M3Dialog>
+
+        {/* Floating Toast Notification Container */}
+        <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none">
+          {toasts.map((toast) => (
+            <div
+              key={toast.id}
+              className={`pointer-events-auto p-4 rounded-2xl shadow-2xl border backdrop-blur-md flex items-start gap-3 transition-all duration-300 transform translate-y-0 ${
+                toast.type === 'success'
+                  ? 'bg-slate-900/95 text-white border-emerald-500/50 shadow-emerald-950/40'
+                  : toast.type === 'error'
+                  ? 'bg-slate-900/95 text-white border-red-500/50 shadow-red-950/40'
+                  : toast.type === 'warning'
+                  ? 'bg-slate-900/95 text-white border-amber-500/50 shadow-amber-950/40'
+                  : 'bg-slate-900/95 text-white border-blue-500/50 shadow-blue-950/40'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                toast.type === 'success'
+                  ? 'bg-emerald-500/20 text-emerald-400'
+                  : toast.type === 'error'
+                  ? 'bg-red-500/20 text-red-400'
+                  : toast.type === 'warning'
+                  ? 'bg-amber-500/20 text-amber-400'
+                  : 'bg-blue-500/20 text-blue-400'
+              }`}>
+                {toast.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h5 className="text-xs font-bold leading-tight tracking-wide">{toast.title}</h5>
+                <p className="text-[11px] text-slate-300 mt-0.5 leading-snug break-words">{toast.message}</p>
+              </div>
+              <button
+                onClick={() => dismissToast(toast.id)}
+                className="text-slate-400 hover:text-white text-xs font-bold p-1 rounded-md transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </Navigation>
   );
