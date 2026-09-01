@@ -10,7 +10,6 @@ export const MONTH_NAMES = [
  */
 export function formatWhatsAppNumber(phone: string | undefined | null): string {
   if (!phone) return '';
-  // Remove all non-digit characters
   let cleaned = phone.replace(/\D/g, '');
 
   if (cleaned.startsWith('0')) {
@@ -112,24 +111,33 @@ export function calculateStudentArrears(
   selectedYear: number,
   defaultMonthlyAmount: number = 20000
 ): StudentArrearsInfo {
-  // All unpaid fees for this student
+  // All fees for this student
   const studentFees = allFees.filter((f) => f.student_id === studentId);
-  const unpaidFees = studentFees.filter((f) => f.status !== 'lunas');
 
-  const currentMonthFee = studentFees.find(
-    (f) => Number(f.period_month) === Number(selectedMonth) && Number(f.period_year) === Number(selectedYear)
-  );
+  // Find fee for selected month (prioritize 'lunas' if multiple records exist)
+  const currentMonthFee =
+    studentFees.find(
+      (f) => Number(f.period_month) === Number(selectedMonth) && Number(f.period_year) === Number(selectedYear) && f.status === 'lunas'
+    ) ||
+    studentFees.find(
+      (f) => Number(f.period_month) === Number(selectedMonth) && Number(f.period_year) === Number(selectedYear)
+    );
 
   const isCurrentMonthPaid = currentMonthFee ? currentMonthFee.status === 'lunas' : false;
+
+  // Unpaid fees (excluding selected month if it's already lunas)
+  const unpaidFees = studentFees.filter(
+    (f) => f.status !== 'lunas' && !(Number(f.period_month) === Number(selectedMonth) && Number(f.period_year) === Number(selectedYear) && isCurrentMonthPaid)
+  );
 
   const unpaidMonthDetails = unpaidFees.map(
     (f) => `${MONTH_NAMES[f.period_month - 1] || f.period_month} ${f.period_year}`
   );
 
-  // If current month fee doesn't exist yet in the database, it represents an outstanding unbilled/unpaid month
   let totalUnpaidAmount = unpaidFees.reduce((sum, f) => sum + Number(f.amount), 0);
   let unpaidCount = unpaidFees.length;
 
+  // If current month has no fee row at all in database, treat it as unbilled/unpaid
   if (!currentMonthFee) {
     totalUnpaidAmount += defaultMonthlyAmount;
     unpaidCount += 1;
@@ -164,7 +172,6 @@ export function generateUnpaidBillingCsv(
   month: number,
   year: number
 ): string {
-  const monthName = MONTH_NAMES[month - 1] || month;
   const header = 'Nama Siswa,Sabuk,Nama Orang Tua / Wali,No. Telepon / WA,Status Periode Ini,Nominal Periode Ini,Total Akumulasi Tunggakan,Jumlah Bulan Nunggak,Rincian Periode Tunggakan\n';
   
   const rows = items.map((item) => {

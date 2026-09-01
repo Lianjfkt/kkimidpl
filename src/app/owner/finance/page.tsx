@@ -176,13 +176,20 @@ export default function OwnerFinance() {
     e.preventDefault();
     const { data: userData } = await supabase.auth.getUser();
     const txData = {
-      type: txType, category: txCategory, amount: Number(txAmount),
-      transaction_date: txDate, description: txDescription,
-      created_by: userData?.user?.id || 'user-owner-id',
+      type: txType,
+      category: txCategory,
+      amount: Number(txAmount),
+      transaction_date: txDate,
+      description: txDescription,
+      created_by: userData?.user?.id || null,
     };
 
     if (editingTx) {
-      await supabase.from('finance_transactions').eq('id', editingTx.id).update(txData);
+      const { error } = await supabase.from('finance_transactions').eq('id', editingTx.id).update(txData);
+      if (error) {
+        showToast('Gagal Memperbarui Transaksi', error.message, 'error', '✕');
+        return;
+      }
       showToast(
         'Transaksi Diperbarui',
         `Perubahan transaksi "${txDescription}" (Rp ${Number(txAmount).toLocaleString('id-ID')}) berhasil disimpan.`,
@@ -190,10 +197,11 @@ export default function OwnerFinance() {
         '✏️'
       );
     } else {
-      await supabase.from('finance_transactions').insert({
-        id: `tx-${Date.now()}`,
-        ...txData
-      });
+      const { error } = await supabase.from('finance_transactions').insert(txData);
+      if (error) {
+        showToast('Gagal Menambah Transaksi', error.message, 'error', '✕');
+        return;
+      }
       showToast(
         'Transaksi Berhasil Dicatat',
         `${txType === 'pemasukan' ? 'Pemasukan (+)' : 'Pengeluaran (-)'} sebesar Rp ${Number(txAmount).toLocaleString('id-ID')} (${txCategory}) telah masuk jurnal kas.`,
@@ -210,7 +218,11 @@ export default function OwnerFinance() {
 
   const handleDeleteTx = async (txId: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus transaksi kas ini?')) {
-      await supabase.from('finance_transactions').eq('id', txId).delete();
+      const { error } = await supabase.from('finance_transactions').eq('id', txId).delete();
+      if (error) {
+        showToast('Gagal Menghapus Transaksi', error.message, 'error', '✕');
+        return;
+      }
       showToast(
         'Transaksi Kas Dihapus',
         'Catatan transaksi telah dihapus dari pembukuan dojo.',
@@ -226,8 +238,13 @@ export default function OwnerFinance() {
   // -------------------------------------------------------------
   const openQuickPay = (student: Student, fee?: Fee) => {
     setQuickPayStudent(student);
-    setQuickPayFee(fee || null);
-    setQuickPayAmount(fee ? Number(fee.amount) : 20000);
+    // Find existing fee for this student and period if available
+    const matchedFee = fee || fees.find(
+      (f) => f.student_id === student.id && Number(f.period_month) === Number(billingMonth) && Number(f.period_year) === Number(billingYear)
+    ) || null;
+
+    setQuickPayFee(matchedFee);
+    setQuickPayAmount(matchedFee ? Number(matchedFee.amount) : 20000);
     setQuickPayMethod('transfer');
     setQuickPayDate(new Date().toISOString().split('T')[0]);
     setQuickPayNotes('');
@@ -241,35 +258,77 @@ export default function OwnerFinance() {
 
     try {
       const { data: userData } = await supabase.auth.getUser();
-      const currentUserId = userData?.user?.id || 'user-owner-id';
+      const currentUserId = userData?.user?.id || null;
 
-      if (quickPayFee) {
-        // Update existing fee to lunas
-        await supabase.from('fees').eq('id', quickPayFee.id).update({
+      // Find if fee row already exists for this student & selected period
+      const existingFee = quickPayFee || fees.find(
+        (f) => f.student_id === quickPayStudent.id && Number(f.period_month) === Number(billingMonth) && Number(f.period_year) === Number(billingYear)
+      );
+
+      if (existingFee) {
+        // Update existing fee record to lunas
+        const { error: updateErr } = await supabase.from('fees').eq('id', existingFee.id).update({
           status: 'lunas',
+          amount: Number(quickPayAmount),
           paid_date: quickPayDate,
           payment_method: quickPayMethod,
-          notes: quickPayNotes || quickPayFee.notes || 'Pelunasan via menu penagihan',
+          notes: quickPayNotes || existingFee.notes || 'Pelunasan via menu penagihan',
         });
+        if (updateErr) throw new Error(updateErr.message);
+
+        // Optimistically update local fees
+        setFees((prev) =>
+          prev.map((f) =>
+            f.id === existingFee.id
+              ? {
+                  ...f,
+                  status: 'lunas',
+                  amount: Number(quickPayAmount),
+                  paid_date: quickPayDate,
+                  payment_method: quickPayMethod,
+                  notes: quickPayNotes || existingFee.notes || 'Pelunasan via menu penagihan',
+                }
+              : f
+          )
+        );
       } else {
-        // Create new fee as lunas for this period
-        const newFeeId = `PAY-${Date.now()}-${Math.floor(Math.random() * 100)}`;
-        await supabase.from('fees').insert({
-          id: newFeeId,
+        // Insert new fee as lunas (DO NOT pass custom string ID, let Supabase generate UUID)
+        const { data: insertedFee, error: insertErr } = await supabase.from('fees').insert({
           student_id: quickPayStudent.id,
-          period_month: billingMonth,
-          period_year: billingYear,
+          period_month: Number(billingMonth),
+          period_year: Number(billingYear),
           amount: Number(quickPayAmount),
           status: 'lunas',
           paid_date: quickPayDate,
           payment_method: quickPayMethod,
           notes: quickPayNotes || 'Pelunasan langsung via menu penagihan',
-        });
+        }).select().single();
+
+        if (insertErr) throw new Error(insertErr.message);
+
+        // Optimistically update local fees
+        if (insertedFee) {
+          setFees((prev) => [...prev, insertedFee]);
+        } else {
+          setFees((prev) => [
+            ...prev,
+            {
+              id: `temp-${Date.now()}`,
+              student_id: quickPayStudent.id,
+              period_month: Number(billingMonth),
+              period_year: Number(billingYear),
+              amount: Number(quickPayAmount),
+              status: 'lunas',
+              paid_date: quickPayDate,
+              payment_method: quickPayMethod,
+              notes: quickPayNotes || 'Pelunasan langsung via menu penagihan',
+            },
+          ]);
+        }
       }
 
-      // Record in finance_transactions
+      // Record in finance_transactions (DO NOT pass custom string ID)
       await supabase.from('finance_transactions').insert({
-        id: `tx-${Date.now()}`,
         type: 'pemasukan',
         category: 'iuran',
         amount: Number(quickPayAmount),
@@ -278,7 +337,7 @@ export default function OwnerFinance() {
         created_by: currentUserId,
       });
 
-      // Notify Parent
+      // Notify Parent if parent_id exists
       if (quickPayStudent.parent_id) {
         await supabase.from('notifications').insert({
           user_id: quickPayStudent.parent_id,
@@ -297,6 +356,7 @@ export default function OwnerFinance() {
       );
 
       setQuickPayOpen(false);
+      // Reload full database to ensure complete sync
       loadData();
     } catch (err: any) {
       setQuickPayMsg(err?.message || 'Gagal memproses pelunasan.');
@@ -1242,7 +1302,7 @@ export default function OwnerFinance() {
                                 </button>
 
                                 {/* Quick Pay Button */}
-                                {!isPaid && (
+                                {!isPaid ? (
                                   <button
                                     type="button"
                                     onClick={() => openQuickPay(student, fee)}
@@ -1250,6 +1310,10 @@ export default function OwnerFinance() {
                                   >
                                     Bayar
                                   </button>
+                                ) : (
+                                  <span className="px-2.5 py-1 text-xs font-semibold text-emerald-500 flex items-center gap-1">
+                                    ✓ Lunas
+                                  </span>
                                 )}
                               </div>
                             </td>
