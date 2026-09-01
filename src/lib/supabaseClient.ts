@@ -22,6 +22,8 @@ class PendingQuery {
   private action: 'select' | 'insert' | 'update' | 'delete' = 'select';
   private actionArgs: any[] = [];
   private filters: { method: string; args: any[] }[] = [];
+  private hasSelectAfterMutation = false;
+  private selectArgs: any[] = [];
   private isSingle = false;
   private isMaybeSingle = false;
 
@@ -30,6 +32,11 @@ class PendingQuery {
   }
 
   select(...args: any[]) {
+    if (this.action === 'insert' || this.action === 'update' || this.action === 'delete') {
+      this.hasSelectAfterMutation = true;
+      this.selectArgs = args;
+      return this;
+    }
     this.action = 'select';
     this.actionArgs = args;
     return this;
@@ -75,10 +82,12 @@ class PendingQuery {
     
     // Inisialisasi query berdasarkan action
     if (this.action === 'select') {
-      // Jika actionArgs kosong, gunakan select() default (sama dengan select('*'))
       query = rawClient.from(this.relation).select(this.actionArgs[0]);
     } else {
       query = (rawClient.from(this.relation) as any)[this.action](...this.actionArgs);
+      if (this.hasSelectAfterMutation) {
+        query = query.select(this.selectArgs[0]);
+      }
     }
 
     // Terapkan semua filter yang dikumpulkan
@@ -110,13 +119,11 @@ function createQueryProxy(relation: string): any {
 
   return new Proxy(pending, {
     get(target: any, prop: string) {
-      // Jika property ada secara eksplisit di PendingQuery (seperti select, then, dll)
       if (prop in target) {
         const val = target[prop];
         return typeof val === 'function' ? val.bind(target) : val;
       }
 
-      // Jika properti termasuk method filter Supabase
       if (filterMethods.has(prop)) {
         return (...args: any[]) => {
           target.addFilter(prop, args);
@@ -129,7 +136,6 @@ function createQueryProxy(relation: string): any {
   });
 }
 
-// Membungkus kembali instance PendingQuery yang sedang berjalan ke dalam Proxy
 function createQueryProxyWrapper(pending: PendingQuery): any {
   return new Proxy(pending, {
     get(target: any, prop: string) {

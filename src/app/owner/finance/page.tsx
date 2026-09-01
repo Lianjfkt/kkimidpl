@@ -293,7 +293,7 @@ export default function OwnerFinance() {
         );
       } else {
         // Insert new fee as lunas (DO NOT pass custom string ID, let Supabase generate UUID)
-        const { data: insertedData, error: insertErr } = await supabase.from('fees').insert({
+        const { error: insertErr } = await supabase.from('fees').insert({
           student_id: quickPayStudent.id,
           period_month: Number(billingMonth),
           period_year: Number(billingYear),
@@ -302,31 +302,28 @@ export default function OwnerFinance() {
           paid_date: quickPayDate,
           payment_method: quickPayMethod,
           notes: quickPayNotes || 'Pelunasan langsung via menu penagihan',
-        }).select();
+        });
 
         if (insertErr) throw new Error(insertErr.message);
 
-        const insertedFee = insertedData && insertedData.length > 0 ? insertedData[0] : null;
-
         // Optimistically update local fees
-        if (insertedFee) {
-          setFees((prev) => [...prev, insertedFee]);
-        } else {
-          setFees((prev) => [
-            ...prev,
-            {
-              id: `temp-${Date.now()}`,
-              student_id: quickPayStudent.id,
-              period_month: Number(billingMonth),
-              period_year: Number(billingYear),
-              amount: Number(quickPayAmount),
-              status: 'lunas',
-              paid_date: quickPayDate,
-              payment_method: quickPayMethod,
-              notes: quickPayNotes || 'Pelunasan langsung via menu penagihan',
-            },
-          ]);
-        }
+        setFees((prev) => {
+          const filtered = prev.filter(
+            (f) => !(f.student_id === quickPayStudent.id && Number(f.period_month) === Number(billingMonth) && Number(f.period_year) === Number(billingYear))
+          );
+          const newFee: Fee = {
+            id: `temp-${Date.now()}`,
+            student_id: quickPayStudent.id,
+            period_month: Number(billingMonth),
+            period_year: Number(billingYear),
+            amount: Number(quickPayAmount),
+            status: 'lunas',
+            paid_date: quickPayDate,
+            payment_method: quickPayMethod,
+            notes: quickPayNotes || 'Pelunasan langsung via menu penagihan',
+          };
+          return [...filtered, newFee];
+        });
       }
 
       // Record in finance_transactions (DO NOT pass custom string ID)
