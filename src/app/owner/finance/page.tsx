@@ -72,9 +72,12 @@ export default function OwnerFinance() {
   const [txDate, setTxDate] = useState(new Date().toISOString().split('T')[0]);
   const [txDescription, setTxDescription] = useState('');
 
-  // Transactions sorting state
+  // Transactions sorting & filtering
   const [sortTxField, setSortTxField] = useState<'transaction_date' | 'amount' | 'type'>('transaction_date');
   const [sortTxOrder, setSortTxOrder] = useState<'asc' | 'desc'>('desc');
+  const [txFilterCategory, setTxFilterCategory] = useState<string>('all');
+  const [txFilterType, setTxFilterType] = useState<'all' | 'pemasukan' | 'pengeluaran'>('all');
+  const [txSearch, setTxSearch] = useState<string>('');
 
   const handleTxSort = (field: 'transaction_date' | 'amount' | 'type') => {
     if (sortTxField === field) {
@@ -84,24 +87,6 @@ export default function OwnerFinance() {
       setSortTxOrder('desc');
     }
   };
-
-  // Individual Fee CRUD state
-  const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
-  const [editingFee, setEditingFee] = useState<Fee | null>(null);
-  const [feeStudentId, setFeeStudentId] = useState('');
-  const [feeMonth, setFeeMonth] = useState(new Date().getMonth() + 1);
-  const [feeYear, setFeeYear] = useState(new Date().getFullYear());
-  const [feeAmount, setFeeAmount] = useState(20000);
-  const [feeStatus, setFeeStatus] = useState<'lunas' | 'belum_lunas'>('belum_lunas');
-  const [feePaidDate, setFeePaidDate] = useState('');
-  const [feePaymentMethod, setFeePaymentMethod] = useState<'tunai' | 'transfer' | 'qris'>('transfer');
-  const [feeNotes, setFeeNotes] = useState('');
-
-  // Batch invoicing state
-  const [genMonth, setGenMonth] = useState(new Date().getMonth() + 1);
-  const [genYear, setGenYear] = useState(new Date().getFullYear());
-  const [genAmount, setGenAmount] = useState(20000);
-  const [invoiceMsg, setInvoiceMsg] = useState('');
 
   // -------------------------------------------------------------
   // Penagihan & Tunggakan Filter & Actions State
@@ -123,6 +108,9 @@ export default function OwnerFinance() {
   const [quickPayNotes, setQuickPayNotes] = useState('');
   const [quickPayMsg, setQuickPayMsg] = useState('');
 
+  // Analytics Year Selector State
+  const [analyticsYear, setAnalyticsYear] = useState<number>(new Date().getFullYear());
+
   const loadData = async () => {
     setLoading(true);
     const [studRes, feesRes, txRes] = await Promise.all([
@@ -137,32 +125,6 @@ export default function OwnerFinance() {
   };
 
   useEffect(() => { loadData(); }, []);
-
-  const handleGenerateInvoices = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setInvoiceMsg('');
-    const activeStudents = students.filter((s) => s.status === 'active');
-    if (activeStudents.length === 0) { setInvoiceMsg('Tidak ada siswa aktif untuk ditagih.'); return; }
-
-    const existingIds = fees.filter((f) => f.period_month === genMonth && f.period_year === genYear).map((f) => f.student_id);
-    const toBill = activeStudents.filter((s) => !existingIds.includes(s.id));
-    if (toBill.length === 0) { setInvoiceMsg(`Tagihan periode ${months[genMonth - 1]} ${genYear} sudah digenerate untuk semua siswa.`); return; }
-
-    await supabase.from('fees').insert(toBill.map((s) => ({
-      student_id: s.id, period_month: genMonth, period_year: genYear,
-      amount: Number(genAmount), status: 'belum_lunas' as const,
-    })));
-
-    await supabase.from('notifications').insert(toBill.map((s) => ({
-      user_id: s.parent_id || 'user-parent-id',
-      title: 'Tagihan Baru Dibuat',
-      message: `Tagihan bulanan Rp ${genAmount.toLocaleString('id-ID')} periode ${months[genMonth - 1]} ${genYear} untuk ${s.full_name}.`,
-      type: 'iuran' as const, is_read: false,
-    })));
-
-    setInvoiceMsg(`Sukses men-generate ${toBill.length} tagihan iuran baru!`);
-    loadData();
-  };
 
   const openAddTxModal = () => {
     setEditingTx(null);
@@ -211,119 +173,6 @@ export default function OwnerFinance() {
   const handleDeleteTx = async (txId: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus transaksi kas ini?')) {
       await supabase.from('finance_transactions').eq('id', txId).delete();
-      loadData();
-    }
-  };
-
-  // Quick mark paid from kas tab
-  const handleUpdateFeeStatus = async (feeId: string, status: 'lunas' | 'belum_lunas') => {
-    const matchedFee = fees.find((f) => f.id === feeId);
-    if (!matchedFee) return;
-    await supabase.from('fees').eq('id', feeId).update({
-      status, paid_date: status === 'lunas' ? new Date().toISOString().split('T')[0] : null,
-      payment_method: status === 'lunas' ? 'transfer' : null,
-    });
-    if (status === 'lunas') {
-      const { data: userData } = await supabase.auth.getUser();
-      const student = students.find((s) => s.id === matchedFee.student_id);
-      await supabase.from('finance_transactions').insert({
-        type: 'pemasukan', category: 'iuran', amount: Number(matchedFee.amount),
-        transaction_date: new Date().toISOString().split('T')[0],
-        description: `Iuran Bulan ${months[matchedFee.period_month - 1]} ${matchedFee.period_year} - ${student?.full_name || ''}`,
-        created_by: userData?.user?.id || 'user-owner-id',
-      });
-    }
-    loadData();
-  };
-
-  // CRUD Fee helpers
-  const openAddFeeModal = () => {
-    setEditingFee(null);
-    setFeeStudentId(students[0]?.id || '');
-    setFeeMonth(new Date().getMonth() + 1);
-    setFeeYear(new Date().getFullYear());
-    setFeeAmount(20000);
-    setFeeStatus('belum_lunas');
-    setFeePaidDate(new Date().toISOString().split('T')[0]);
-    setFeePaymentMethod('transfer');
-    setFeeNotes('');
-    setIsFeeModalOpen(true);
-  };
-
-  const openEditFeeModal = (fee: Fee) => {
-    setEditingFee(fee);
-    setFeeStudentId(fee.student_id);
-    setFeeMonth(fee.period_month);
-    setFeeYear(fee.period_year);
-    setFeeAmount(fee.amount);
-    setFeeStatus(fee.status as 'lunas' | 'belum_lunas');
-    setFeePaidDate(fee.paid_date || new Date().toISOString().split('T')[0]);
-    setFeePaymentMethod((fee.payment_method as 'tunai' | 'transfer' | 'qris') || 'transfer');
-    setFeeNotes(fee.notes || '');
-    setIsFeeModalOpen(true);
-  };
-
-  const handleFeeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const feeData = {
-      student_id: feeStudentId,
-      period_month: Number(feeMonth),
-      period_year: Number(feeYear),
-      amount: Number(feeAmount),
-      status: feeStatus,
-      paid_date: feeStatus === 'lunas' ? feePaidDate : null,
-      payment_method: feeStatus === 'lunas' ? feePaymentMethod : null,
-      notes: feeNotes,
-    };
-
-    if (editingFee) {
-      await supabase.from('fees').eq('id', editingFee.id).update(feeData);
-
-      if (feeStatus === 'lunas' && editingFee.status !== 'lunas') {
-        const { data: userData } = await supabase.auth.getUser();
-        const student = students.find((s) => s.id === feeStudentId);
-        await supabase.from('finance_transactions').insert({
-          type: 'pemasukan', category: 'iuran', amount: Number(feeAmount),
-          transaction_date: feePaidDate || new Date().toISOString().split('T')[0],
-          description: `Iuran Bulan ${months[feeMonth - 1]} ${feeYear} - ${student?.full_name || ''}`,
-          created_by: userData?.user?.id || 'user-owner-id',
-        });
-      }
-    } else {
-      const newId = `PAY-${Date.now()}-${Math.floor(Math.random() * 100)}`;
-      await supabase.from('fees').insert({
-        id: newId,
-        ...feeData
-      });
-
-      const student = students.find((s) => s.id === feeStudentId);
-      if (student) {
-        await supabase.from('notifications').insert({
-          user_id: student.parent_id || 'user-parent-id',
-          title: 'Tagihan Baru Dibuat',
-          message: `Tagihan bulanan Rp ${Number(feeAmount).toLocaleString('id-ID')} periode ${months[feeMonth - 1]} ${feeYear} untuk ${student.full_name}.`,
-          type: 'iuran', is_read: false
-        });
-      }
-
-      if (feeStatus === 'lunas') {
-        const { data: userData } = await supabase.auth.getUser();
-        await supabase.from('finance_transactions').insert({
-          type: 'pemasukan', category: 'iuran', amount: Number(feeAmount),
-          transaction_date: feePaidDate || new Date().toISOString().split('T')[0],
-          description: `Iuran Bulan ${months[feeMonth - 1]} ${feeYear} - ${student?.full_name || ''}`,
-          created_by: userData?.user?.id || 'user-owner-id',
-        });
-      }
-    }
-
-    setIsFeeModalOpen(false);
-    loadData();
-  };
-
-  const handleDeleteFee = async (feeId: string) => {
-    if (confirm('Apakah Anda yakin ingin menghapus tagihan iuran ini?')) {
-      await supabase.from('fees').eq('id', feeId).delete();
       loadData();
     }
   };
@@ -452,7 +301,20 @@ export default function OwnerFinance() {
   const totalExpense = transactions.filter((t) => t.type === 'pengeluaran').reduce((s, t) => s + Number(t.amount), 0);
   const netProfit = totalIncome - totalExpense;
 
-  const sortedTransactions = [...transactions].sort((a, b) => {
+  // Filtered & Sorted Transactions for Tab 1
+  const filteredTransactions = transactions.filter((t) => {
+    if (txFilterType !== 'all' && t.type !== txFilterType) return false;
+    if (txFilterCategory !== 'all' && t.category !== txFilterCategory) return false;
+    if (txSearch.trim()) {
+      const q = txSearch.toLowerCase();
+      const matchDesc = t.description?.toLowerCase().includes(q);
+      const matchCat = t.category?.toLowerCase().includes(q);
+      if (!matchDesc && !matchCat) return false;
+    }
+    return true;
+  });
+
+  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
     let aVal: any = a[sortTxField];
     let bVal: any = b[sortTxField];
     if (sortTxField === 'amount') {
@@ -464,17 +326,29 @@ export default function OwnerFinance() {
     return 0;
   });
 
+  // 6-Month Cash Flow Chart Data
   const chartMonths = Array.from({ length: 6 }, (_, i) => {
     const d = new Date();
     d.setMonth(d.getMonth() - (5 - i));
     return { month: d.getMonth() + 1, year: d.getFullYear(), label: monthsShort[d.getMonth()] };
   });
-  const chartData = chartMonths.map((cm) => ({
-    ...cm,
-    income: fees.filter((f) => f.status === 'lunas' && f.period_month === cm.month && f.period_year === cm.year).reduce((s, f) => s + Number(f.amount), 0)
-      + transactions.filter((t) => t.type === 'pemasukan' && t.category !== 'iuran' && new Date(t.transaction_date).getMonth() + 1 === cm.month && new Date(t.transaction_date).getFullYear() === cm.year).reduce((s, t) => s + Number(t.amount), 0),
-    expense: transactions.filter((t) => t.type === 'pengeluaran' && new Date(t.transaction_date).getMonth() + 1 === cm.month && new Date(t.transaction_date).getFullYear() === cm.year).reduce((s, t) => s + Number(t.amount), 0),
-  }));
+  const chartData = chartMonths.map((cm) => {
+    const monthFees = fees.filter((f) => f.status === 'lunas' && f.period_month === cm.month && f.period_year === cm.year);
+    const monthFeeIncome = monthFees.reduce((s, f) => s + Number(f.amount), 0);
+    const monthOtherIncome = transactions
+      .filter((t) => t.type === 'pemasukan' && t.category !== 'iuran' && new Date(t.transaction_date).getMonth() + 1 === cm.month && new Date(t.transaction_date).getFullYear() === cm.year)
+      .reduce((s, t) => s + Number(t.amount), 0);
+    const monthExpense = transactions
+      .filter((t) => t.type === 'pengeluaran' && new Date(t.transaction_date).getMonth() + 1 === cm.month && new Date(t.transaction_date).getFullYear() === cm.year)
+      .reduce((s, t) => s + Number(t.amount), 0);
+
+    return {
+      ...cm,
+      income: monthFeeIncome + monthOtherIncome,
+      expense: monthExpense,
+      net: (monthFeeIncome + monthOtherIncome) - monthExpense,
+    };
+  });
   const chartMax = Math.max(...chartData.flatMap((d) => [d.income, d.expense]), 1);
 
   // Active students billing aggregation
@@ -497,9 +371,8 @@ export default function OwnerFinance() {
   const totalUnpaidNominalSelectedMonth = studentBillingList.filter((d) => !d.isPaid).reduce((sum, d) => sum + (d.fee ? Number(d.fee.amount) : 20000), 0);
   const multiMonthArrearsCount = studentBillingList.filter((d) => d.arrears.unpaidCount > 1).length;
 
-  // Filtered list for display in Table
+  // Filtered list for display in Penagihan Table
   const filteredBillingList = studentBillingList.filter((item) => {
-    // Search query
     if (billingSearch.trim()) {
       const q = billingSearch.toLowerCase();
       const matchName = item.student.full_name?.toLowerCase().includes(q);
@@ -507,11 +380,9 @@ export default function OwnerFinance() {
       const matchPhone = item.student.phone?.toLowerCase().includes(q);
       if (!matchName && !matchParent && !matchPhone) return false;
     }
-    // Belt filter
     if (billingBeltFilter && !item.student.current_belt?.toLowerCase().includes(billingBeltFilter.toLowerCase())) {
       return false;
     }
-    // Status filter
     if (billingStatusFilter === 'belum_lunas' && item.isPaid) return false;
     if (billingStatusFilter === 'lunas' && !item.isPaid) return false;
     return true;
@@ -543,7 +414,7 @@ export default function OwnerFinance() {
 
   const exportKasCSV = () => {
     const header = 'Tanggal,Tipe,Kategori,Keterangan,Nominal';
-    const rows = transactions.map((t) => `${t.transaction_date},${t.type},${t.category},"${t.description}",${t.amount}`);
+    const rows = sortedTransactions.map((t) => `${t.transaction_date},${t.type},${t.category},"${t.description}",${t.amount}`);
     const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -551,10 +422,85 @@ export default function OwnerFinance() {
     URL.revokeObjectURL(url);
   };
 
+  // -------------------------------------------------------------
+  // Analytics & Tren Detailed Calculations (Real Dynamic Data)
+  // -------------------------------------------------------------
+  // Full 12 Months Analytics for selected year
+  const yearlyAnalyticsMonths = Array.from({ length: 12 }, (_, i) => {
+    const monthNum = i + 1;
+    const monthFees = fees.filter((f) => f.status === 'lunas' && f.period_month === monthNum && f.period_year === analyticsYear);
+    const feeIncome = monthFees.reduce((s, f) => s + Number(f.amount), 0);
+
+    const otherInc = transactions
+      .filter((t) => t.type === 'pemasukan' && t.category !== 'iuran' && new Date(t.transaction_date).getMonth() + 1 === monthNum && new Date(t.transaction_date).getFullYear() === analyticsYear)
+      .reduce((s, t) => s + Number(t.amount), 0);
+
+    const expense = transactions
+      .filter((t) => t.type === 'pengeluaran' && new Date(t.transaction_date).getMonth() + 1 === monthNum && new Date(t.transaction_date).getFullYear() === analyticsYear)
+      .reduce((s, t) => s + Number(t.amount), 0);
+
+    // Compliance in that month
+    const paidCount = monthFees.length;
+    const complianceRate = totalActive > 0 ? Math.round((paidCount / totalActive) * 100) : 0;
+
+    return {
+      monthNum,
+      label: monthsShort[i],
+      fullName: months[i],
+      feeIncome,
+      otherInc,
+      totalIncome: feeIncome + otherInc,
+      expense,
+      net: (feeIncome + otherInc) - expense,
+      paidCount,
+      complianceRate,
+    };
+  });
+
+  const yearlyTotalIncome = yearlyAnalyticsMonths.reduce((s, m) => s + m.totalIncome, 0);
+  const yearlyTotalExpense = yearlyAnalyticsMonths.reduce((s, m) => s + m.expense, 0);
+  const yearlyNetProfit = yearlyTotalIncome - yearlyTotalExpense;
+  const yearlyAvgMonthlyIncome = Math.round(yearlyTotalIncome / 12);
+  const yearlyAvgCompliance = Math.round(yearlyAnalyticsMonths.reduce((s, m) => s + m.complianceRate, 0) / 12);
+  const yearlyChartMax = Math.max(...yearlyAnalyticsMonths.flatMap((m) => [m.totalIncome, m.expense]), 1);
+
+  // Income Breakdown by category
+  const incomeCategoryBreakdown = ['iuran', 'ujian', 'donasi', 'pendaftaran', 'umum'].map((cat) => {
+    let amount = 0;
+    if (cat === 'iuran') {
+      amount = fees.filter((f) => f.status === 'lunas' && f.period_year === analyticsYear).reduce((s, f) => s + Number(f.amount), 0);
+    } else {
+      amount = transactions
+        .filter((t) => t.type === 'pemasukan' && t.category === cat && new Date(t.transaction_date).getFullYear() === analyticsYear)
+        .reduce((s, t) => s + Number(t.amount), 0);
+    }
+    const percent = yearlyTotalIncome > 0 ? Math.round((amount / yearlyTotalIncome) * 100) : 0;
+    return { category: cat, amount, percent };
+  }).filter((c) => c.amount > 0 || c.category === 'iuran');
+
+  // Expense Breakdown by category
+  const expenseCategoryBreakdown = ['sewa', 'honor', 'peralatan', 'konsumsi', 'umum'].map((cat) => {
+    const amount = transactions
+      .filter((t) => t.type === 'pengeluaran' && t.category === cat && new Date(t.transaction_date).getFullYear() === analyticsYear)
+      .reduce((s, t) => s + Number(t.amount), 0);
+    const percent = yearlyTotalExpense > 0 ? Math.round((amount / yearlyTotalExpense) * 100) : 0;
+    return { category: cat, amount, percent };
+  }).filter((c) => c.amount > 0 || c.category === 'sewa');
+
+  // Student Demographics
+  const beltDistribution = Object.keys(BELT_COLORS).map((belt) => {
+    const count = students.filter((s) => s.status === 'active' && s.current_belt?.toLowerCase().includes(belt.toLowerCase())).length;
+    const percent = totalActive > 0 ? Math.round((count / totalActive) * 100) : 0;
+    return { belt, count, percent, style: BELT_COLORS[belt] };
+  }).filter((b) => b.count > 0);
+
+  const maleCount = students.filter((s) => s.gender?.toLowerCase().startsWith('l')).length;
+  const femaleCount = students.filter((s) => s.gender?.toLowerCase().startsWith('p')).length;
+
   const statCards = [
-    { label: 'Total Pemasukan', value: `Rp ${totalIncome.toLocaleString('id-ID')}`, color: 'var(--md-sys-color-tertiary-container)', textColor: 'var(--md-sys-color-on-tertiary-container)', icon: '↑' },
-    { label: 'Total Pengeluaran', value: `Rp ${totalExpense.toLocaleString('id-ID')}`, color: 'var(--md-sys-color-error-container)', textColor: 'var(--md-sys-color-on-error-container)', icon: '↓' },
-    { label: 'Sisa Kas Dojo (Net)', value: `Rp ${netProfit.toLocaleString('id-ID')}`, color: netProfit >= 0 ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-error-container)', textColor: netProfit >= 0 ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-error-container)', icon: '=' },
+    { label: 'Total Pemasukan Kas', value: `Rp ${totalIncome.toLocaleString('id-ID')}`, color: 'var(--md-sys-color-tertiary-container)', textColor: 'var(--md-sys-color-on-tertiary-container)', icon: '↑' },
+    { label: 'Total Pengeluaran Kas', value: `Rp ${totalExpense.toLocaleString('id-ID')}`, color: 'var(--md-sys-color-error-container)', textColor: 'var(--md-sys-color-on-error-container)', icon: '↓' },
+    { label: 'Sisa Saldo Kas (Net)', value: `Rp ${netProfit.toLocaleString('id-ID')}`, color: netProfit >= 0 ? 'var(--md-sys-color-primary-container)' : 'var(--md-sys-color-error-container)', textColor: netProfit >= 0 ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-error-container)', icon: '=' },
   ];
 
   return (
@@ -567,7 +513,7 @@ export default function OwnerFinance() {
               Keuangan Dojo
             </h2>
             <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-              Kelola kas operasional, pantau siswa yang belum membayar iuran, dan tagih otomatis via WhatsApp.
+              Kelola kas operasional, pantau siswa yang belum membayar iuran, dan pantau performa finansial dojo.
             </p>
           </div>
           {activeTab === 'kas' && (
@@ -622,8 +568,8 @@ export default function OwnerFinance() {
 
         {/* TAB 1: PEMBUKUAN & KAS */}
         {activeTab === 'kas' && (
-          <>
-            {/* Finance stat cards */}
+          <div className="space-y-6 animate-fade-in">
+            {/* Finance Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {statCards.map(({ label, value, color, textColor, icon }) => (
                 <div key={label} className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col gap-2"
@@ -632,141 +578,125 @@ export default function OwnerFinance() {
                     <span className="text-xs font-medium" style={{ color: textColor, opacity: 0.8 }}>{label}</span>
                     <span className="text-lg font-bold" style={{ color: textColor }}>{icon}</span>
                   </div>
-                  <p className="text-xl font-bold" style={{ color: textColor }}>{loading ? '—' : value}</p>
+                  <p className="text-2xl font-bold" style={{ color: textColor }}>{loading ? '—' : value}</p>
                 </div>
               ))}
             </div>
 
-            {/* Invoice gen + billing */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              {/* Invoice Generator */}
-              <div className="rounded-[var(--md-sys-shape-corner-extra-large)]"
-                style={{ background: 'var(--md-sys-color-surface-container-low)', padding: '24px' }}>
-                <h3 className="font-semibold text-base mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>
-                  Generate Tagihan Bulanan
-                </h3>
-                {invoiceMsg && (
-                  <div className="mb-4 p-3 rounded-[var(--md-sys-shape-corner-small)] text-xs"
-                    style={{ background: invoiceMsg.startsWith('Sukses') ? 'var(--md-sys-color-tertiary-container)' : 'var(--md-sys-color-error-container)', color: invoiceMsg.startsWith('Sukses') ? 'var(--md-sys-color-on-tertiary-container)' : 'var(--md-sys-color-on-error-container)' }}>
-                    {invoiceMsg}
-                  </div>
-                )}
-                <form onSubmit={handleGenerateInvoices} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className={fieldWrap}>
-                      <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Bulan</label>
-                      <select className={inputClass} value={genMonth} onChange={(e) => setGenMonth(Number(e.target.value))}>
-                        {months.map((m, idx) => <option key={idx} value={idx + 1}>{m}</option>)}
-                      </select>
-                    </div>
-                    <div className={fieldWrap}>
-                      <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tahun</label>
-                      <input type="number" className={inputClass} value={genYear} onChange={(e) => setGenYear(Number(e.target.value))} />
-                    </div>
-                  </div>
-                  <div className={fieldWrap}>
-                    <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nominal Iuran (Rp)</label>
-                    <input type="number" className={inputClass} value={genAmount} onChange={(e) => setGenAmount(Number(e.target.value))} />
-                  </div>
-                  <button type="submit" className="m3-btn-filled w-full py-2.5 text-sm">Generate Tagihan Siswa</button>
-                </form>
-              </div>
-
-              {/* Billing list */}
-              <div className="lg:col-span-2 rounded-[var(--md-sys-shape-corner-extra-large)]"
-                style={{ background: 'var(--md-sys-color-surface-container-low)', padding: '24px' }}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Riwayat Tagihan Iuran Siswa</h3>
-                  <button onClick={openAddFeeModal} className="m3-btn-outlined px-3 py-1.5 text-xs font-semibold">Buat Tagihan Manual</button>
-                </div>
-                {loading ? (
-                  <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-12 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />)}</div>
-                ) : fees.length === 0 ? (
-                  <p className="text-sm py-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Belum ada tagihan iuran dibuat.</p>
-                ) : (
-                  <div className="divide-y max-h-80 overflow-y-auto pr-1" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
-                    {[...fees].reverse().map((fee) => {
-                      const studentName = students.find((s) => s.id === fee.student_id)?.full_name || 'Siswa Terhapus';
-                      return (
-                        <div key={fee.id} className="py-3 flex items-center justify-between gap-4">
-                          <div>
-                            <h4 className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{studentName}</h4>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                              {months[fee.period_month - 1]} {fee.period_year} · Rp {Number(fee.amount).toLocaleString('id-ID')} {fee.notes ? `· ${fee.notes}` : ''}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {fee.status === 'lunas' ? (
-                              <span className="px-2.5 py-0.5 rounded-[var(--md-sys-shape-corner-full)] text-[10px] font-semibold"
-                                style={{ background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' }}>Lunas</span>
-                            ) : (
-                              <>
-                                <span className="px-2.5 py-0.5 rounded-[var(--md-sys-shape-corner-full)] text-[10px] font-semibold"
-                                  style={{ background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }}>Belum Lunas</span>
-                                <button onClick={() => handleUpdateFeeStatus(fee.id, 'lunas')}
-                                  className="m3-btn-tonal px-2 py-0.5 text-[10px] font-semibold">Tandai Lunas</button>
-                              </>
-                            )}
-                            <button onClick={() => openEditFeeModal(fee)} className="m3-btn-text py-1 px-1.5 text-xs font-semibold">Edit</button>
-                            <button onClick={() => handleDeleteFee(fee.id)} className="m3-btn-text py-1 px-1.5 text-xs font-semibold" style={{ color: 'var(--md-sys-color-error)' }}>Hapus</button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Bar Chart */}
+            {/* Tren Keuangan 6 Bulan Terakhir */}
             <div className="rounded-[var(--md-sys-shape-corner-extra-large)]"
               style={{ background: 'var(--md-sys-color-surface-container-low)', padding: '24px' }}>
-              <h3 className="font-semibold text-base mb-5" style={{ color: 'var(--md-sys-color-on-surface)' }}>
-                Tren Keuangan 6 Bulan Terakhir
-              </h3>
-              <div className="flex items-end gap-2 h-36">
-                {chartData.map((d, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full flex items-end gap-0.5 h-28">
-                      <div title={`Pemasukan: Rp ${d.income.toLocaleString('id-ID')}`}
-                        className="flex-1 rounded-t-[var(--md-sys-shape-corner-extra-small)] transition-all duration-500"
-                        style={{ height: `${(d.income / chartMax) * 100}%`, minHeight: d.income > 0 ? '4px' : '0', background: 'var(--md-sys-color-tertiary)' }} />
-                      <div title={`Pengeluaran: Rp ${d.expense.toLocaleString('id-ID')}`}
-                        className="flex-1 rounded-t-[var(--md-sys-shape-corner-extra-small)] transition-all duration-500"
-                        style={{ height: `${(d.expense / chartMax) * 100}%`, minHeight: d.expense > 0 ? '4px' : '0', background: 'var(--md-sys-color-error)' }} />
-                    </div>
-                    <span className="text-[10px] font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{d.label}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center gap-4 mt-2">
-                {[
-                  { label: 'Pemasukan', color: 'var(--md-sys-color-tertiary)' },
-                  { label: 'Pengeluaran', color: 'var(--md-sys-color-error)' },
-                ].map(({ label, color }) => (
-                  <span key={label} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                    <span className="w-3 h-3 rounded-[var(--md-sys-shape-corner-extra-small)] inline-block" style={{ background: color }} /> {label}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+                <div>
+                  <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                    Tren Arus Kas 6 Bulan Terakhir
+                  </h3>
+                  <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
+                    Perbandingan real-time antara total penerimaan kas vs pengeluaran operasional dojo.
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-xs font-medium">
+                  <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" /> Pemasukan
                   </span>
+                  <span className="flex items-center gap-1.5 text-red-500">
+                    <span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Pengeluaran
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-end gap-3 h-44 pt-4 pb-2 border-b border-[var(--md-sys-color-outline-variant)]">
+                {chartData.map((d, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
+                    <div className="w-full flex items-end justify-center gap-1 h-36">
+                      {/* Income Bar */}
+                      <div
+                        title={`Pemasukan ${d.label} ${d.year}: Rp ${d.income.toLocaleString('id-ID')}`}
+                        className="w-full max-w-[28px] rounded-t-md transition-all duration-500 bg-emerald-500 hover:opacity-80"
+                        style={{ height: `${(d.income / chartMax) * 100}%`, minHeight: d.income > 0 ? '6px' : '0' }}
+                      />
+                      {/* Expense Bar */}
+                      <div
+                        title={`Pengeluaran ${d.label} ${d.year}: Rp ${d.expense.toLocaleString('id-ID')}`}
+                        className="w-full max-w-[28px] rounded-t-md transition-all duration-500 bg-red-500 hover:opacity-80"
+                        style={{ height: `${(d.expense / chartMax) * 100}%`, minHeight: d.expense > 0 ? '6px' : '0' }}
+                      />
+                    </div>
+                    <span className="text-[11px] font-semibold mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      {d.label}
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>
 
-            {/* Transaction ledger */}
+            {/* Jurnal Transaksi Kas Dojo */}
             <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
               style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
-                <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Jurnal Transaksi Kas Dojo</h3>
-                <button onClick={exportKasCSV} className="m3-btn-outlined px-4 py-2 text-xs font-medium">
-                  <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Unduh CSV Kas
-                </button>
+              <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--md-sys-color-outline-variant)]">
+                <div>
+                  <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                    Jurnal Transaksi Kas Dojo
+                  </h3>
+                  <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
+                    Catatan seluruh buku kas masuk dan keluar secara kronologis.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Type Filter */}
+                  <select
+                    className="m3-textfield-outlined text-xs py-1.5 px-3 rounded-lg"
+                    value={txFilterType}
+                    onChange={(e) => setTxFilterType(e.target.value as any)}
+                  >
+                    <option value="all">Semua Tipe</option>
+                    <option value="pemasukan">Pemasukan (+)</option>
+                    <option value="pengeluaran">Pengeluaran (-)</option>
+                  </select>
+
+                  {/* Category Filter */}
+                  <select
+                    className="m3-textfield-outlined text-xs py-1.5 px-3 rounded-lg"
+                    value={txFilterCategory}
+                    onChange={(e) => setTxFilterCategory(e.target.value)}
+                  >
+                    <option value="all">Semua Kategori</option>
+                    <option value="iuran">Iuran Bulanan</option>
+                    <option value="ujian">Ujian Sabuk</option>
+                    <option value="donasi">Donasi</option>
+                    <option value="sewa">Sewa Tempat</option>
+                    <option value="honor">Honor Pelatih</option>
+                    <option value="peralatan">Peralatan Dojo</option>
+                    <option value="umum">Umum</option>
+                  </select>
+
+                  <button onClick={exportKasCSV} className="m3-btn-outlined px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Unduh CSV Kas
+                  </button>
+                </div>
               </div>
+
+              {/* Search Bar Transaksi */}
+              <div className="px-5 py-3 border-b border-[var(--md-sys-color-outline-variant)]">
+                <input
+                  type="text"
+                  placeholder="Cari transaksi berdasarkan keterangan atau kategori..."
+                  value={txSearch}
+                  onChange={(e) => setTxSearch(e.target.value)}
+                  className="m3-textfield-outlined w-full text-xs py-2 px-3 rounded-lg"
+                />
+              </div>
+
               {loading ? (
                 <div className="p-6 space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse rounded-[var(--md-sys-shape-corner-medium)]" style={{ background: 'var(--md-sys-color-surface-container)' }} />)}</div>
-              ) : transactions.length === 0 ? (
-                <p className="p-6 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Belum ada catatan transaksi kas.</p>
+              ) : sortedTransactions.length === 0 ? (
+                <div className="p-8 text-center text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Tidak ada catatan transaksi yang sesuai.
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
@@ -803,7 +733,8 @@ export default function OwnerFinance() {
                     </thead>
                     <tbody>
                       {sortedTransactions.map((tx, idx) => (
-                        <tr key={tx.id} style={{ borderBottom: idx < transactions.length - 1 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}>
+                        <tr key={tx.id} style={{ borderBottom: idx < sortedTransactions.length - 1 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}
+                          className="hover:bg-white/5 transition-colors">
                           <td className="px-5 py-3.5 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{tx.transaction_date}</td>
                           <td className="px-5 py-3.5">
                             <span className="px-2.5 py-1 rounded-[var(--md-sys-shape-corner-full)] text-xs font-semibold"
@@ -815,8 +746,8 @@ export default function OwnerFinance() {
                             </span>
                           </td>
                           <td className="px-5 py-3.5 text-sm capitalize" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{tx.category}</td>
-                          <td className="px-5 py-3.5 text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>{tx.description}</td>
-                          <td className={`px-5 py-3.5 text-sm text-right font-semibold`}
+                          <td className="px-5 py-3.5 text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>{tx.description}</td>
+                          <td className={`px-5 py-3.5 text-sm text-right font-bold`}
                             style={{ color: tx.type === 'pemasukan' ? 'var(--md-sys-color-tertiary)' : 'var(--md-sys-color-error)' }}>
                             {tx.type === 'pemasukan' ? '+' : '-'} Rp {Number(tx.amount).toLocaleString('id-ID')}
                           </td>
@@ -833,7 +764,7 @@ export default function OwnerFinance() {
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
 
         {/* TAB 2: PENAGIHAN & TUNGGAKAN IURAN */}
@@ -944,7 +875,7 @@ export default function OwnerFinance() {
                     <button
                       type="button"
                       onClick={() => setBillingStatusFilter('belum_lunas')}
-                      className={`px-3 py-1 rounded-md transition-all ${
+                      className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
                         billingStatusFilter === 'belum_lunas'
                           ? 'bg-red-500 text-white shadow-sm'
                           : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
@@ -955,7 +886,7 @@ export default function OwnerFinance() {
                     <button
                       type="button"
                       onClick={() => setBillingStatusFilter('lunas')}
-                      className={`px-3 py-1 rounded-md transition-all ${
+                      className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
                         billingStatusFilter === 'lunas'
                           ? 'bg-emerald-600 text-white shadow-sm'
                           : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
@@ -966,7 +897,7 @@ export default function OwnerFinance() {
                     <button
                       type="button"
                       onClick={() => setBillingStatusFilter('all')}
-                      className={`px-3 py-1 rounded-md transition-all ${
+                      className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
                         billingStatusFilter === 'all'
                           ? 'bg-[var(--md-sys-color-primary)] text-white shadow-sm'
                           : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
@@ -977,7 +908,7 @@ export default function OwnerFinance() {
                   </div>
                 </div>
 
-                {/* Export & Bulk Action */}
+                {/* Export Action */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleExportBillingCSV}
@@ -1225,21 +1156,13 @@ export default function OwnerFinance() {
                                 </button>
 
                                 {/* Quick Pay Button */}
-                                {!isPaid ? (
+                                {!isPaid && (
                                   <button
                                     type="button"
                                     onClick={() => openQuickPay(student, fee)}
                                     className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--md-sys-color-primary)] hover:opacity-90 text-white transition-all cursor-pointer"
                                   >
                                     Bayar
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => fee && openEditFeeModal(fee)}
-                                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)] hover:text-white transition-all cursor-pointer"
-                                  >
-                                    Detail
                                   </button>
                                 )}
                               </div>
@@ -1255,68 +1178,276 @@ export default function OwnerFinance() {
           </div>
         )}
 
-        {/* TAB 3: ANALYTICS & TREN */}
+        {/* TAB 3: ANALYTICS & TREN (UPGRADED WITH REAL DYNAMIC DATA) */}
         {activeTab === 'analytics' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
-            {/* Siswa Growth Trend */}
-            <div className="m3-card-elevated">
-              <h3 className="font-semibold text-base mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>Tren Pertumbuhan Siswa Karate</h3>
-              <div className="flex items-end gap-3 h-44 mt-4">
-                {[12, 14, 15, 16, 17, 18].map((count, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                    <span className="text-[10px] font-bold" style={{ color: 'var(--md-sys-color-primary)' }}>{count}</span>
-                    <div className="w-full rounded-t-lg transition-all duration-700" style={{ height: `${(count/20)*100}%`, background: 'var(--md-sys-color-primary)' }} />
-                    <span className="text-[9px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Bulan {i+1}</span>
+          <div className="space-y-6 animate-fade-in">
+            {/* Year Selector & Summary Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-[var(--md-sys-shape-corner-extra-large)] bg-[var(--md-sys-color-surface-container-low)]">
+              <div>
+                <h3 className="font-bold text-lg" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  Performa Finansial &amp; Analisis Dojo
+                </h3>
+                <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
+                  Analisis terpadu tren pemasukan, efisiensi kas operasional, dan tingkat kepatuhan atlet.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Tahun Analisis:
+                </span>
+                <select
+                  className="m3-textfield-outlined text-xs py-1.5 px-3 rounded-lg font-bold"
+                  value={analyticsYear}
+                  onChange={(e) => setAnalyticsYear(Number(e.target.value))}
+                >
+                  {[2024, 2025, 2026, 2027].map((yr) => (
+                    <option key={yr} value={yr}>Tahun {yr}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Executive KPI Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-5 rounded-[var(--md-sys-shape-corner-extra-large)] bg-[var(--md-sys-color-surface-container-high)] flex flex-col justify-between">
+                <span className="text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)]">
+                  Total Pemasukan ({analyticsYear})
+                </span>
+                <div className="mt-2">
+                  <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                    Rp {yearlyTotalIncome.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-[11px] text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
+                    Iuran: Rp {fees.filter(f => f.status === 'lunas' && f.period_year === analyticsYear).reduce((s, f) => s + Number(f.amount), 0).toLocaleString('id-ID')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-[var(--md-sys-shape-corner-extra-large)] bg-[var(--md-sys-color-surface-container-high)] flex flex-col justify-between">
+                <span className="text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)]">
+                  Total Pengeluaran ({analyticsYear})
+                </span>
+                <div className="mt-2">
+                  <p className="text-2xl font-black text-red-500">
+                    Rp {yearlyTotalExpense.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-[11px] text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
+                    Sewa, honor pelatih, dll
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-[var(--md-sys-shape-corner-extra-large)] bg-[var(--md-sys-color-surface-container-high)] flex flex-col justify-between">
+                <span className="text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)]">
+                  Surplus / Net Profit ({analyticsYear})
+                </span>
+                <div className="mt-2">
+                  <p className={`text-2xl font-black ${yearlyNetProfit >= 0 ? 'text-[var(--md-sys-color-primary)]' : 'text-red-500'}`}>
+                    Rp {yearlyNetProfit.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-[11px] text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
+                    Rata-rata/bln: Rp {yearlyAvgMonthlyIncome.toLocaleString('id-ID')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-[var(--md-sys-shape-corner-extra-large)] bg-[var(--md-sys-color-surface-container-high)] flex flex-col justify-between">
+                <span className="text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)]">
+                  Rata-rata Kepatuhan Iuran
+                </span>
+                <div className="mt-2">
+                  <p className="text-2xl font-black text-blue-500">
+                    {yearlyAvgCompliance}%
+                  </p>
+                  <p className="text-[11px] text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
+                    dari {totalActive} atlet aktif
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 12-Month Yearly Cash Flow Chart */}
+            <div className="m3-card-elevated p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+                <div>
+                  <h4 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                    Grafik Arus Kas Bulanan (12 Bulan {analyticsYear})
+                  </h4>
+                  <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
+                    Visualisasi pemasukan vs pengeluaran riil setiap bulan di tahun {analyticsYear}.
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-xs font-medium">
+                  <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                    <span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" /> Pemasukan
+                  </span>
+                  <span className="flex items-center gap-1.5 text-red-500">
+                    <span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Pengeluaran
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-end gap-2 sm:gap-3 h-52 pt-4 pb-2 border-b border-[var(--md-sys-color-outline-variant)]">
+                {yearlyAnalyticsMonths.map((m, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group">
+                    <div className="w-full flex items-end justify-center gap-0.5 sm:gap-1 h-40">
+                      {/* Income Bar */}
+                      <div
+                        title={`${m.fullName} ${analyticsYear} Pemasukan: Rp ${m.totalIncome.toLocaleString('id-ID')}`}
+                        className="w-full max-w-[20px] rounded-t-md transition-all duration-500 bg-emerald-500 hover:opacity-80 cursor-pointer"
+                        style={{ height: `${(m.totalIncome / yearlyChartMax) * 100}%`, minHeight: m.totalIncome > 0 ? '4px' : '0' }}
+                      />
+                      {/* Expense Bar */}
+                      <div
+                        title={`${m.fullName} ${analyticsYear} Pengeluaran: Rp ${m.expense.toLocaleString('id-ID')}`}
+                        className="w-full max-w-[20px] rounded-t-md transition-all duration-500 bg-red-500 hover:opacity-80 cursor-pointer"
+                        style={{ height: `${(m.expense / yearlyChartMax) * 100}%`, minHeight: m.expense > 0 ? '4px' : '0' }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-semibold mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      {m.label}
+                    </span>
                   </div>
                 ))}
               </div>
-              <p className="text-xs mt-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Jumlah atlet aktif berpartisipasi meningkat secara stabil sebesar 50% dalam semester ini.</p>
             </div>
 
-            {/* Attendance Heatmap */}
-            <div className="m3-card-elevated">
-              <h3 className="font-semibold text-base mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>Tingkat Kehadiran per Hari Sesi</h3>
-              <div className="grid grid-cols-7 gap-2 text-center text-xs mt-6">
-                {['M', 'S', 'S', 'R', 'K', 'J', 'S'].map((day, idx) => (
-                  <div key={idx} className="flex flex-col items-center gap-2">
-                    <span className="font-semibold">{day}</span>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold"
-                      style={{
-                        background: idx === 2 || idx === 6 ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
-                        color: idx === 2 || idx === 6 ? '#ffffff' : 'var(--md-sys-color-on-surface-variant)',
-                        opacity: idx === 2 || idx === 6 ? 1 : 0.4
-                      }}
-                    >
-                      {idx === 2 || idx === 6 ? '85%' : '0%'}
+            {/* Income & Expense Breakdown Grids */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Income Categories Breakdown */}
+              <div className="m3-card-elevated p-6">
+                <h4 className="font-bold text-base mb-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  Sumber Pemasukan ({analyticsYear})
+                </h4>
+                <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mb-4">
+                  Distribusi pemasukan kas berdasarkan kategori.
+                </p>
+
+                <div className="space-y-3">
+                  {incomeCategoryBreakdown.map((c) => (
+                    <div key={c.category} className="space-y-1">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span className="capitalize" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                          {c.category === 'iuran' ? '🥋 Iuran Bulanan Siswa' : c.category === 'ujian' ? '📜 Ujian Kenaikan Sabuk' : c.category === 'donasi' ? '🎁 Donasi & Sponsor' : c.category}
+                        </span>
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          Rp {c.amount.toLocaleString('id-ID')} ({c.percent}%)
+                        </span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-[var(--md-sys-color-surface-container)] overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                          style={{ width: `${c.percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Expense Categories Breakdown */}
+              <div className="m3-card-elevated p-6">
+                <h4 className="font-bold text-base mb-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  Alokasi Pengeluaran ({analyticsYear})
+                </h4>
+                <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mb-4">
+                  Distribusi belanja operasional dojo berdasarkan pos anggaran.
+                </p>
+
+                {expenseCategoryBreakdown.length === 0 ? (
+                  <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] py-4">Belum ada catatan pengeluaran di tahun {analyticsYear}.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {expenseCategoryBreakdown.map((c) => (
+                      <div key={c.category} className="space-y-1">
+                        <div className="flex justify-between text-xs font-semibold">
+                          <span className="capitalize" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                            {c.category === 'sewa' ? '🏠 Sewa Gedung & Tempat' : c.category === 'honor' ? '🥋 Honor & Insentif Pelatih' : c.category === 'peralatan' ? '🥊 Peralatan & Matras' : c.category}
+                          </span>
+                          <span className="text-red-500">
+                            Rp {c.amount.toLocaleString('id-ID')} ({c.percent}%)
+                          </span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-[var(--md-sys-color-surface-container)] overflow-hidden">
+                          <div
+                            className="h-full bg-red-500 rounded-full transition-all duration-500"
+                            style={{ width: `${c.percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Demographics & Belt Distribution */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Belt Distribution */}
+              <div className="m3-card-elevated p-6">
+                <h4 className="font-bold text-base mb-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  Distribusi Sabuk Siswa Aktif
+                </h4>
+                <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mb-4">
+                  Komposisi tingkatan sabuk {totalActive} atlet karate aktif di Dojo KKI DPL.
+                </p>
+
+                <div className="space-y-2.5">
+                  {beltDistribution.map((b) => (
+                    <div key={b.belt} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${b.style.bg} ${b.style.text} ${b.style.border}`}>
+                          Sabuk {b.belt}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 font-semibold">
+                        <span style={{ color: 'var(--md-sys-color-on-surface)' }}>{b.count} Atlet</span>
+                        <span className="text-[var(--md-sys-color-on-surface-variant)] text-[11px]">({b.percent}%)</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Gender & Athlete Stats */}
+              <div className="m3-card-elevated p-6 flex flex-col justify-between">
+                <div>
+                  <h4 className="font-bold text-base mb-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                    Demografi &amp; Partisipasi Atlet
+                  </h4>
+                  <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mb-4">
+                    Rasio gender dan status keaktifan peserta didik.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div className="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container)] flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-500 font-bold flex items-center justify-center text-lg">
+                        🥋
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">Laki-laki</span>
+                        <p className="text-lg font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{maleCount} Atlet</p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container)] flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-pink-500/20 text-pink-500 font-bold flex items-center justify-center text-lg">
+                        🥋
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">Perempuan</span>
+                        <p className="text-lg font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{femaleCount} Atlet</p>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-              <p className="text-xs mt-6" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Hari latihan resmi adalah Selasa (Sore) dan Sabtu (Pagi) dengan tingkat partisipasi kehadiran rata-rata mencapai 85%.</p>
-            </div>
+                </div>
 
-            {/* Revenue Forecast */}
-            <div className="m3-card-elevated lg:col-span-2">
-              <h3 className="font-semibold text-base mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>Proyeksi Arus Kas &amp; Forecast Pendapatan</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                <div className="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-high)]">
-                  <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Potensi Bulanan Maksimal</span>
-                  <p className="text-lg font-bold mt-1" style={{ color: 'var(--md-sys-color-primary)' }}>
-                    Rp {(students.filter(s => s.status === 'active').length * 20000).toLocaleString('id-ID')}
-                  </p>
-                  <p className="text-[10px] opacity-75">Berdasarkan {students.filter(s => s.status === 'active').length} siswa aktif @ Rp 20.000</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-high)]">
-                  <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tingkat Koleksi (Kepatuhan)</span>
-                  <p className="text-lg font-bold mt-1 text-emerald-500">
-                    {students.filter(s => s.status === 'active').length > 0 ? Math.round((fees.filter(f => f.status === 'lunas' && f.period_month === new Date().getMonth()+1).length / students.filter(s => s.status === 'active').length) * 100) : 100}%
-                  </p>
-                  <p className="text-[10px] opacity-75">Rasio siswa lunas iuran pada bulan berjalan</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-high)]">
-                  <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Rasio Retensi Atlet</span>
-                  <p className="text-lg font-bold mt-1 text-blue-500">92%</p>
-                  <p className="text-[10px] opacity-75">Rasio kelangsungan latihan siswa aktif dalam 6 bulan terakhir</p>
+                <div className="mt-4 pt-4 border-t border-[var(--md-sys-color-outline-variant)]">
+                  <div className="flex justify-between text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)]">
+                    <span>Total Siswa Terdaftar: {students.length} Siswa</span>
+                    <span className="text-emerald-500">{totalActive} Aktif ({students.length > 0 ? Math.round((totalActive/students.length)*100) : 0}%)</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1357,75 +1488,8 @@ export default function OwnerFinance() {
               <input type="text" required className={inputClass} placeholder="mis. Beli matras latihan baru" value={txDescription} onChange={(e) => setTxDescription(e.target.value)} />
             </div>
             <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="m3-btn-text px-5 py-2.5 text-sm">Batal</button>
-              <button type="submit" className="m3-btn-filled px-5 py-2.5 text-sm">Simpan</button>
-            </div>
-          </form>
-        </M3Dialog>
-
-        {/* Modal CRUD Iuran Standar */}
-        <M3Dialog open={isFeeModalOpen} onClose={() => setIsFeeModalOpen(false)} title={editingFee ? 'Edit Tagihan Iuran' : 'Buat Tagihan Iuran Baru'}>
-          <form onSubmit={handleFeeSubmit} className="space-y-4">
-            <div className={fieldWrap}>
-              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Siswa *</label>
-              <select className={inputClass} value={feeStudentId} onChange={(e) => setFeeStudentId(e.target.value)} required>
-                <option value="" disabled>Pilih Siswa</option>
-                {students.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className={fieldWrap}>
-                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Bulan *</label>
-                <select className={inputClass} value={feeMonth} onChange={(e) => setFeeMonth(Number(e.target.value))} required>
-                  {months.map((m, idx) => <option key={idx} value={idx + 1}>{m}</option>)}
-                </select>
-              </div>
-              <div className={fieldWrap}>
-                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tahun *</label>
-                <input type="number" className={inputClass} value={feeYear} onChange={(e) => setFeeYear(Number(e.target.value))} required />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className={fieldWrap}>
-                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nominal (Rp) *</label>
-                <input type="number" className={inputClass} value={feeAmount} onChange={(e) => setFeeAmount(Number(e.target.value))} required />
-              </div>
-              <div className={fieldWrap}>
-                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Status Pembayaran</label>
-                <select className={inputClass} value={feeStatus} onChange={(e) => setFeeStatus(e.target.value as 'lunas' | 'belum_lunas')}>
-                  <option value="belum_lunas">Belum Lunas</option>
-                  <option value="lunas">Lunas</option>
-                </select>
-              </div>
-            </div>
-
-            {feeStatus === 'lunas' && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className={fieldWrap}>
-                  <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tanggal Bayar</label>
-                  <input type="date" className={inputClass} value={feePaidDate} onChange={(e) => setFeePaidDate(e.target.value)} />
-                </div>
-                <div className={fieldWrap}>
-                  <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Metode Pembayaran</label>
-                  <select className={inputClass} value={feePaymentMethod} onChange={(e) => setFeePaymentMethod(e.target.value as 'tunai' | 'transfer' | 'qris')}>
-                    <option value="transfer">Transfer</option>
-                    <option value="tunai">Tunai</option>
-                    <option value="qris">QRIS</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            <div className={fieldWrap}>
-              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Keterangan / Catatan</label>
-              <input type="text" className={inputClass} placeholder="mis. Bukti transfer sudah dicocokkan" value={feeNotes} onChange={(e) => setFeeNotes(e.target.value)} />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
-              <button type="button" onClick={() => setIsFeeModalOpen(false)} className="m3-btn-text px-5 py-2.5 text-sm">Batal</button>
-              <button type="submit" className="m3-btn-filled px-5 py-2.5 text-sm">Simpan</button>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="m3-btn-text px-5 py-2.5 text-sm cursor-pointer">Batal</button>
+              <button type="submit" className="m3-btn-filled px-5 py-2.5 text-sm cursor-pointer">Simpan</button>
             </div>
           </form>
         </M3Dialog>
@@ -1528,13 +1592,13 @@ export default function OwnerFinance() {
               <button
                 type="button"
                 onClick={() => setQuickPayOpen(false)}
-                className="m3-btn-text px-5 py-2.5 text-sm"
+                className="m3-btn-text px-5 py-2.5 text-sm cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="m3-btn-filled px-5 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-500 text-white"
+                className="m3-btn-filled px-5 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer"
               >
                 Konfirmasi Lunas &amp; Catat Kas
               </button>
