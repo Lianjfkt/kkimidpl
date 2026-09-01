@@ -293,7 +293,7 @@ export default function OwnerFinance() {
         );
       } else {
         // Insert new fee as lunas (DO NOT pass custom string ID, let Supabase generate UUID)
-        const { data: insertedFee, error: insertErr } = await supabase.from('fees').insert({
+        const { data: insertedData, error: insertErr } = await supabase.from('fees').insert({
           student_id: quickPayStudent.id,
           period_month: Number(billingMonth),
           period_year: Number(billingYear),
@@ -302,9 +302,11 @@ export default function OwnerFinance() {
           paid_date: quickPayDate,
           payment_method: quickPayMethod,
           notes: quickPayNotes || 'Pelunasan langsung via menu penagihan',
-        }).select().single();
+        }).select();
 
         if (insertErr) throw new Error(insertErr.message);
+
+        const insertedFee = insertedData && insertedData.length > 0 ? insertedData[0] : null;
 
         // Optimistically update local fees
         if (insertedFee) {
