@@ -61,22 +61,36 @@ export default function OwnerAttendanceMonitor() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const now = new Date();
   const [activeTab, setActiveTab] = useState<'matrix' | 'alert' | 'recap'>('matrix');
   const [classFilter, setClassFilter] = useState('');
-  const [monthFilter, setMonthFilter] = useState(now.getMonth() + 1);
-  const [yearFilter, setYearFilter] = useState(now.getFullYear());
+  const [monthFilter, setMonthFilter] = useState(() => new Date().getMonth() + 1);
+  const [yearFilter, setYearFilter] = useState(() => new Date().getFullYear());
   const [search, setSearch] = useState('');
   const [beltFilter, setBeltFilter] = useState('');
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const loadData = async (showLoader = true) => {
     if (showLoader) setLoading(true);
     else setRefreshing(true);
+
+    // Gunakan rawClient langsung agar tidak terpengaruh bug wrapper
     const [studRes, clsRes, attRes] = await Promise.all([
-      supabase.from('students').select('*'),
-      supabase.from('classes').select('*'),
-      supabase.from('attendance_students').select('*'),
+      rawClient.from('students').select('*'),
+      rawClient.from('classes').select('*'),
+      rawClient.from('attendance_students').select('*'),
     ]);
+
+    // Debug: tampilkan info data + error
+    const errors = [studRes.error, clsRes.error, attRes.error].filter(Boolean);
+    const studCount = studRes.data?.length ?? 0;
+    const attCount = attRes.data?.length ?? 0;
+    const attDates = Array.from(new Set((attRes.data ?? []).map((a: any) => a.session_date?.slice(0, 7)))).join(', ');
+    setDebugInfo(
+      errors.length > 0
+        ? `❌ Error: ${errors.map((e: any) => e?.message).join(' | ')}`
+        : `✅ ${studCount} siswa · ${attCount} record absensi · periode: [${attDates || 'kosong'}]`
+    );
+
     if (studRes.data) setStudents(studRes.data);
     if (clsRes.data) setClasses(clsRes.data);
     if (attRes.data) setAttendance(attRes.data);
@@ -182,7 +196,7 @@ export default function OwnerAttendanceMonitor() {
   const availableYears = Array.from(
     new Set(attendance.map(a => parseDate(a.session_date).year).filter(Boolean))
   ).sort((a, b) => b - a);
-  if (!availableYears.includes(now.getFullYear())) availableYears.unshift(now.getFullYear());
+  if (!availableYears.includes(yearFilter)) availableYears.unshift(yearFilter);
 
   // CSV Export
   const exportCSV = () => {
@@ -244,6 +258,17 @@ export default function OwnerAttendanceMonitor() {
             </button>
           </div>
         </div>
+
+        {/* Debug Banner — hapus setelah masalah teridentifikasi */}
+        {debugInfo && (
+          <div className={`px-4 py-2.5 rounded-xl text-xs font-mono flex items-center gap-2 ${
+            debugInfo.startsWith('❌')
+              ? 'bg-red-500/10 border border-red-500/30 text-red-500'
+              : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+          }`}>
+            <span>{debugInfo}</span>
+          </div>
+        )}
 
         {/* Filter Bar */}
         <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"
