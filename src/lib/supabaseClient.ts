@@ -143,6 +143,13 @@ function createQueryProxyWrapper(pending: PendingQuery): any {
         const val = target[prop];
         return typeof val === 'function' ? val.bind(target) : val;
       }
+      // Izinkan mutation methods dipanggil setelah filter (e.g. .eq().update())
+      if (prop === 'update' || prop === 'delete' || prop === 'insert' || prop === 'select') {
+        return (...args: any[]) => {
+          (target as any)[prop](...args);
+          return createQueryProxyWrapper(target);
+        };
+      }
       if (filterMethods.has(prop)) {
         return (...args: any[]) => {
           target.addFilter(prop, args);

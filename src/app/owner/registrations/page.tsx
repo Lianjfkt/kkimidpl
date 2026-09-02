@@ -86,6 +86,13 @@ function RegistrationsContent() {
 
   const handleApproveConfirm = async () => {
     if (!approveTarget) return;
+    // Guard: jangan proses ulang jika sudah disetujui
+    if (approveTarget.status !== 'menunggu') {
+      alert('Pendaftaran ini sudah diproses sebelumnya.');
+      setApproveTarget(null);
+      setApproving(false);
+      return;
+    }
     setApproving(true);
 
     let parentId = '';
@@ -124,6 +131,18 @@ function RegistrationsContent() {
       fetchParentProfiles();
     }
 
+    // Update status registrasi ke 'disetujui' TERLEBIH DAHULU
+    // untuk mencegah double-approve jika terjadi error di tengah proses
+    const { error: updateRegError } = await supabase.from('registrations').eq('id', approveTarget.id).update({
+      status: 'disetujui',
+      reviewed_by: user?.id || 'user-owner-id',
+    });
+    if (updateRegError) {
+      alert('Gagal mengupdate status pendaftaran: ' + updateRegError.message);
+      setApproving(false);
+      return;
+    }
+
     const newStudent: Partial<Student> = {
       id: isSupabaseConfigured ? crypto.randomUUID() : `student-${crypto.randomUUID().slice(0, 8)}`,
       full_name: approveTarget.full_name,
@@ -141,19 +160,12 @@ function RegistrationsContent() {
     };
     const { error: studentError } = await supabase.from('students').insert(newStudent);
     if (studentError) {
-      alert('Gagal menyetujui pendaftaran (Gagal membuat data siswa): ' + studentError.message);
-      setApproving(false);
-      return;
+      alert('Pendaftaran disetujui, namun gagal membuat data siswa: ' + studentError.message + '\nSilakan tambahkan siswa secara manual di menu Siswa.');
     }
-
-    await supabase.from('registrations').eq('id', approveTarget.id).update({
-      status: 'disetujui',
-      reviewed_by: user?.id || 'user-owner-id',
-    });
 
     const notif: Partial<Notification> = {
       id: `notif-approve-${approveTarget.id}`,
-      user_id: parentId || 'user-owner-id', // Fallback to owner if no parentId
+      user_id: parentId || 'user-owner-id',
       title: 'Pendaftaran Disetujui',
       message: `Pendaftaran ${approveTarget.full_name} telah disetujui dan ditambahkan sebagai siswa baru. Sabuk saat ini: ${approveTarget.current_belt || 'Putih'}.`,
       type: 'umum',
