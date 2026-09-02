@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, rawClient } from '@/lib/supabaseClient';
 import { Student, ClassSession, StudentAttendance } from '@/lib/mockData';
 
 const MONTHS = [
@@ -58,6 +58,8 @@ export default function OwnerAttendanceMonitor() {
   const [classes, setClasses] = useState<ClassSession[]>([]);
   const [attendance, setAttendance] = useState<StudentAttendance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const now = new Date();
   const [activeTab, setActiveTab] = useState<'matrix' | 'alert' | 'recap'>('matrix');
@@ -67,8 +69,9 @@ export default function OwnerAttendanceMonitor() {
   const [search, setSearch] = useState('');
   const [beltFilter, setBeltFilter] = useState('');
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
+    else setRefreshing(true);
     const [studRes, clsRes, attRes] = await Promise.all([
       supabase.from('students').select('*'),
       supabase.from('classes').select('*'),
@@ -77,10 +80,34 @@ export default function OwnerAttendanceMonitor() {
     if (studRes.data) setStudents(studRes.data);
     if (clsRes.data) setClasses(clsRes.data);
     if (attRes.data) setAttendance(attRes.data);
-    setLoading(false);
+    setLastUpdated(new Date());
+    if (showLoader) setLoading(false);
+    else setRefreshing(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+
+    // Realtime subscription — refresh saat ada perubahan data absensi
+    const channel = rawClient
+      .channel('attendance-monitor')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_students' }, () => {
+        loadData(false); // refresh tanpa loading spinner
+      })
+      .subscribe();
+
+    // Refresh saat user kembali ke tab browser
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') loadData(false);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      rawClient.removeChannel(channel);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Parse date safely (avoid UTC shift)
   const parseDate = (dateStr: string) => {
@@ -183,19 +210,39 @@ export default function OwnerAttendanceMonitor() {
             <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
               Monitoring Kehadiran Siswa
             </h2>
-            <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-              Pantau kedisiplinan latihan seluruh atlet karate dojo secara real-time.
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Pantau kedisiplinan latihan seluruh atlet karate dojo secara real-time.
+              </p>
+              {lastUpdated && (
+                <span className="text-[11px] px-2 py-0.5 rounded-full"
+                  style={{ background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  {refreshing ? '🔄 Memperbarui…' : `✓ ${lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
+                </span>
+              )}
+            </div>
           </div>
-          <button
-            onClick={exportCSV}
-            className="m3-btn-outlined px-4 py-2 text-xs font-semibold flex items-center gap-2 cursor-pointer self-start"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Ekspor CSV
-          </button>
+          <div className="flex items-center gap-2 self-start">
+            <button
+              onClick={() => loadData(false)}
+              disabled={refreshing}
+              title="Refresh data sekarang"
+              className="p-2 rounded-full transition-all cursor-pointer hover:bg-[var(--md-sys-color-surface-container)] disabled:opacity-50"
+            >
+              <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} style={{ color: 'var(--md-sys-color-on-surface-variant)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <button
+              onClick={exportCSV}
+              className="m3-btn-outlined px-4 py-2 text-xs font-semibold flex items-center gap-2 cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Ekspor CSV
+            </button>
+          </div>
         </div>
 
         {/* Filter Bar */}
