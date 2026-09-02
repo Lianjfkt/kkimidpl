@@ -43,7 +43,6 @@ function RegistrationsContent() {
   const [selectedParentId, setSelectedParentId] = useState('');
   const [newParentName, setNewParentName] = useState('');
   const [newParentPhone, setNewParentPhone] = useState('');
-  const [newParentEmail, setNewParentEmail] = useState('');
   const [newParentPassword, setNewParentPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [approving, setApproving] = useState(false);
@@ -65,7 +64,6 @@ function RegistrationsContent() {
     setSelectedParentId('');
     setNewParentName(reg.parent_name);
     setNewParentPhone(reg.parent_phone);
-    setNewParentEmail('');
     setNewParentPassword('');
     setShowPassword(false);
   };
@@ -116,20 +114,19 @@ function RegistrationsContent() {
         setApproving(false);
         return;
       }
-      if (!newParentEmail.trim()) {
-        alert('Email orang tua wajib diisi untuk membuat akun.');
-        setApproving(false);
-        return;
-      }
       if (newParentPassword.length < 6) {
         alert('Kata sandi minimal 6 karakter.');
         setApproving(false);
         return;
       }
 
+      // Buat email internal dari nomor HP: {digitsOnly}@kkidpl.ortu
+      const phoneDigits = newParentPhone.trim().replace(/\D/g, '');
+      const generatedEmail = `${phoneDigits}@kkidpl.ortu`;
+
       // Buat akun Auth Supabase untuk orang tua
       const { data: signUpData, error: signUpError } = await rawClient.auth.signUp({
-        email: newParentEmail.trim().toLowerCase(),
+        email: generatedEmail,
         password: newParentPassword,
         options: {
           data: { full_name: newParentName.trim(), role: 'ortu' },
@@ -161,12 +158,9 @@ function RegistrationsContent() {
 
       const { error: profileError } = await supabase.from('profiles').insert(newProfile);
       if (profileError) {
-        console.warn('Profil orang tua gagal dibuat (akun auth sudah ada):', profileError.message);
-        // Akun auth sudah dibuat, lanjutkan dengan ID yang ada
-        parentId = authUserId;
-      } else {
-        parentId = authUserId;
+        console.warn('Profil orang tua gagal dibuat:', profileError.message);
       }
+      parentId = authUserId;
       fetchParentProfiles();
     }
 
@@ -473,7 +467,7 @@ function RegistrationsContent() {
                   />
                 </div>
                 <div className={fieldWrap}>
-                  <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nomor Telepon</label>
+                  <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nomor HP / WhatsApp (digunakan untuk login)</label>
                   <input
                     type="tel"
                     value={newParentPhone}
@@ -483,20 +477,19 @@ function RegistrationsContent() {
                   />
                 </div>
 
+                {/* Preview login identifier */}
+                {newParentPhone.trim() && (
+                  <div className="px-3 py-2 rounded-lg text-xs flex items-center gap-2"
+                    style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                    <span>📱</span>
+                    <span>Login menggunakan: <strong>{newParentPhone.trim()}</strong></span>
+                  </div>
+                )}
+
                 <div style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)', paddingTop: '12px' }}>
                   <p className="text-xs font-semibold mb-3" style={{ color: 'var(--md-sys-color-primary)' }}>
-                    🔐 Kredensial Login Akun Orang Tua
+                    🔐 Buat Kata Sandi Akun
                   </p>
-                  <div className={fieldWrap} style={{ marginBottom: '10px' }}>
-                    <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Email *</label>
-                    <input
-                      type="email"
-                      value={newParentEmail}
-                      onChange={e => setNewParentEmail(e.target.value)}
-                      placeholder="email@contoh.com"
-                      className={inputClass}
-                    />
-                  </div>
                   <div className={fieldWrap}>
                     <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kata Sandi *</label>
                     <div style={{ position: 'relative' }}>
@@ -528,10 +521,11 @@ function RegistrationsContent() {
                 </div>
 
                 <p className="text-xs p-3 rounded-lg" style={{ background: 'var(--md-sys-color-secondary-container)', color: 'var(--md-sys-color-on-secondary-container)' }}>
-                  ℹ️ Akun login akan dibuat dengan email &amp; kata sandi di atas. Sampaikan kredensial ini ke orang tua siswa.
+                  ℹ️ Sampaikan <strong>No. HP</strong> dan <strong>kata sandi</strong> di atas kepada orang tua. Mereka menggunakan nomor HP tersebut untuk masuk ke sistem.
                 </p>
               </div>
             )}
+
 
             <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
               <button

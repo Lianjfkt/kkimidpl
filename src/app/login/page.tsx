@@ -44,6 +44,18 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Konversi no HP ke format email internal yang digunakan Supabase Auth
+  const resolveLoginIdentifier = (input: string): string => {
+    const trimmed = input.trim();
+    // Deteksi jika input adalah nomor HP (hanya angka, atau mulai dengan 0 / +62)
+    const isPhone = /^(\+62|62|0)\d{7,}$/.test(trimmed) || /^\d{8,}$/.test(trimmed);
+    if (isPhone) {
+      const digitsOnly = trimmed.replace(/\D/g, '');
+      return `${digitsOnly}@kkidpl.ortu`;
+    }
+    return trimmed;
+  };
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -51,7 +63,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await signIn(email, password) as any;
+      const loginId = resolveLoginIdentifier(email);
+      const response = await signIn(loginId, password) as any;
       if (response && response.error) {
         setError(response.error.message);
         setLoading(false);
@@ -244,7 +257,7 @@ export default function LoginPage() {
               /* LOGIN FORM */
               <form onSubmit={handleLoginSubmit} className="space-y-5">
                 <div className={fieldWrap}>
-                  <label htmlFor="email" className={labelClass}>Email / No. WhatsApp Wali</label>
+                  <label htmlFor="email" className={labelClass}>Email / No. WhatsApp (Orang Tua)</label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
                     <input
