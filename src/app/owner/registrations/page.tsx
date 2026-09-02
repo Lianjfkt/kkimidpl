@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import { supabase, rawClient, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Registration, Student, Notification, Profile } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthContext';
 import Navigation from '@/components/Navigation';
@@ -43,6 +43,9 @@ function RegistrationsContent() {
   const [selectedParentId, setSelectedParentId] = useState('');
   const [newParentName, setNewParentName] = useState('');
   const [newParentPhone, setNewParentPhone] = useState('');
+  const [newParentEmail, setNewParentEmail] = useState('');
+  const [newParentPassword, setNewParentPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [approving, setApproving] = useState(false);
 
   const fetchRegistrations = async () => {
@@ -62,6 +65,9 @@ function RegistrationsContent() {
     setSelectedParentId('');
     setNewParentName(reg.parent_name);
     setNewParentPhone(reg.parent_phone);
+    setNewParentEmail('');
+    setNewParentPassword('');
+    setShowPassword(false);
   };
 
   useEffect(() => {
@@ -110,23 +116,56 @@ function RegistrationsContent() {
         setApproving(false);
         return;
       }
-      const generatedProfileId = isSupabaseConfigured ? crypto.randomUUID() : `user-ortu-${crypto.randomUUID().slice(0, 8)}`;
+      if (!newParentEmail.trim()) {
+        alert('Email orang tua wajib diisi untuk membuat akun.');
+        setApproving(false);
+        return;
+      }
+      if (newParentPassword.length < 6) {
+        alert('Kata sandi minimal 6 karakter.');
+        setApproving(false);
+        return;
+      }
+
+      // Buat akun Auth Supabase untuk orang tua
+      const { data: signUpData, error: signUpError } = await rawClient.auth.signUp({
+        email: newParentEmail.trim().toLowerCase(),
+        password: newParentPassword,
+        options: {
+          data: { full_name: newParentName.trim(), role: 'ortu' },
+          emailRedirectTo: undefined,
+        },
+      });
+
+      if (signUpError) {
+        alert('Gagal membuat akun orang tua: ' + signUpError.message);
+        setApproving(false);
+        return;
+      }
+
+      const authUserId = signUpData?.user?.id;
+      if (!authUserId) {
+        alert('Gagal mendapatkan ID akun orang tua yang baru dibuat.');
+        setApproving(false);
+        return;
+      }
+
       const newProfile: Partial<Profile> = {
-        id: generatedProfileId,
+        id: authUserId,
         full_name: newParentName.trim(),
         role: 'ortu',
         phone: newParentPhone.trim(),
         avatar_url: '',
         created_at: new Date().toISOString(),
       };
-      
+
       const { error: profileError } = await supabase.from('profiles').insert(newProfile);
       if (profileError) {
-        console.warn('Failed to insert parent profile. This is expected on Supabase if the user does not exist in auth.users:', profileError.message);
-        // On real Supabase, continue but set parentId to null to avoid foreign key errors on student insertion
-        parentId = '';
+        console.warn('Profil orang tua gagal dibuat (akun auth sudah ada):', profileError.message);
+        // Akun auth sudah dibuat, lanjutkan dengan ID yang ada
+        parentId = authUserId;
       } else {
-        parentId = newProfile.id!;
+        parentId = authUserId;
       }
       fetchParentProfiles();
     }
@@ -135,7 +174,6 @@ function RegistrationsContent() {
     // untuk mencegah double-approve jika terjadi error di tengah proses
     const { error: updateRegError } = await supabase.from('registrations').eq('id', approveTarget.id).update({
       status: 'disetujui',
-      reviewed_by: user?.id || 'user-owner-id',
     });
     if (updateRegError) {
       alert('Gagal mengupdate status pendaftaran: ' + updateRegError.message);
@@ -182,7 +220,6 @@ function RegistrationsContent() {
   const handleReject = async (reg: Registration) => {
     await supabase.from('registrations').eq('id', reg.id).update({
       status: 'ditolak',
-      reviewed_by: user?.id || 'user-owner-id',
     });
     fetchRegistrations();
   };
@@ -445,8 +482,53 @@ function RegistrationsContent() {
                     className={inputClass}
                   />
                 </div>
+
+                <div style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)', paddingTop: '12px' }}>
+                  <p className="text-xs font-semibold mb-3" style={{ color: 'var(--md-sys-color-primary)' }}>
+                    🔐 Kredensial Login Akun Orang Tua
+                  </p>
+                  <div className={fieldWrap} style={{ marginBottom: '10px' }}>
+                    <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Email *</label>
+                    <input
+                      type="email"
+                      value={newParentEmail}
+                      onChange={e => setNewParentEmail(e.target.value)}
+                      placeholder="email@contoh.com"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className={fieldWrap}>
+                    <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kata Sandi *</label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={newParentPassword}
+                        onChange={e => setNewParentPassword(e.target.value)}
+                        placeholder="Minimal 6 karakter"
+                        className={inputClass}
+                        style={{ paddingRight: '44px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(s => !s)}
+                        style={{
+                          position: 'absolute', right: '12px', top: '50%',
+                          transform: 'translateY(-50%)', background: 'none',
+                          border: 'none', cursor: 'pointer', fontSize: '14px',
+                          color: 'var(--md-sys-color-on-surface-variant)'
+                        }}
+                      >
+                        {showPassword ? '🙈' : '👁️'}
+                      </button>
+                    </div>
+                    {newParentPassword && newParentPassword.length < 6 && (
+                      <p className="text-xs mt-1" style={{ color: 'var(--md-sys-color-error)' }}>Minimal 6 karakter</p>
+                    )}
+                  </div>
+                </div>
+
                 <p className="text-xs p-3 rounded-lg" style={{ background: 'var(--md-sys-color-secondary-container)', color: 'var(--md-sys-color-on-secondary-container)' }}>
-                  ⚠️ Akun orang tua baru akan dibuat. Berikan kata sandi sementara secara manual.
+                  ℹ️ Akun login akan dibuat dengan email &amp; kata sandi di atas. Sampaikan kredensial ini ke orang tua siswa.
                 </p>
               </div>
             )}
