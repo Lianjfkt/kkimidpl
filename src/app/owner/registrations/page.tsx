@@ -177,13 +177,11 @@ function RegistrationsContent() {
       return;
     }
 
-    const newStudent: Partial<Student> = {
-      id: isSupabaseConfigured ? crypto.randomUUID() : `student-${crypto.randomUUID().slice(0, 8)}`,
+    const newStudentData: any = {
       full_name: approveTarget.full_name,
       dob: approveTarget.dob,
       gender: '-',
       address: approveTarget.address,
-      parent_id: parentId && parentId !== 'user-parent-id' ? parentId : undefined,
       phone: approveTarget.parent_phone,
       parent_name: approveTarget.parent_name,
       parent_job: approveTarget.parent_job,
@@ -192,8 +190,14 @@ function RegistrationsContent() {
       current_belt: approveTarget.current_belt || 'Putih',
       status: 'active',
     };
-    const { error: studentError } = await supabase.from('students').insert(newStudent);
+
+    if (parentId && parentId.trim() !== '' && parentId !== 'user-parent-id') {
+      newStudentData.parent_id = parentId;
+    }
+
+    const { error: studentError } = await supabase.from('students').insert(newStudentData);
     if (studentError) {
+      console.error('Insert student error details:', studentError);
       alert('Pendaftaran disetujui, namun gagal membuat data siswa: ' + studentError.message + '\nSilakan tambahkan siswa secara manual di menu Siswa.');
     }
 
