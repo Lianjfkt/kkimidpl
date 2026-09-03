@@ -156,9 +156,13 @@ function RegistrationsContent() {
 
       const { error: profileError } = await supabase.from('profiles').insert(newProfile);
       if (profileError) {
-        console.warn('Profil orang tua insert log:', profileError.message);
+        console.error('Failed to insert parent profile:', profileError.message);
+        // Jika profil gagal dibuat (misal karena user auth tidak ada di auth.users pada Supabase asli dengan FK strict),
+        // reset parentId ke undefined agar siswa bisa dibuat tanpa error Foreign Key Constraint (students_parent_id_fkey)
+        parentId = '';
+      } else {
+        parentId = authUserId;
       }
-      parentId = authUserId;
       fetchParentProfiles();
     }
 
