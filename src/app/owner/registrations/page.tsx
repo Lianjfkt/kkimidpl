@@ -120,9 +120,9 @@ function RegistrationsContent() {
         return;
       }
 
-      // Buat email internal dari nomor HP: {digitsOnly}@kkidpl.ortu
+      // Buat email internal dari nomor HP: {digitsOnly}@kkidpl.com (menggunakan domain valid agar lolos validasi Supabase)
       const phoneDigits = newParentPhone.trim().replace(/\D/g, '');
-      const generatedEmail = `${phoneDigits}@kkidpl.ortu`;
+      const generatedEmail = `${phoneDigits}@kkidpl.com`;
 
       // Buat akun Auth Supabase untuk orang tua
       const { data: signUpData, error: signUpError } = await rawClient.auth.signUp({

@@ -51,7 +51,7 @@ export default function LoginPage() {
     const isPhone = /^(\+62|62|0)\d{7,}$/.test(trimmed) || /^\d{8,}$/.test(trimmed);
     if (isPhone) {
       const digitsOnly = trimmed.replace(/\D/g, '');
-      return `${digitsOnly}@kkidpl.ortu`;
+      return `${digitsOnly}@kkidpl.com`;
     }
     return trimmed;
   };
