@@ -64,7 +64,8 @@ function RegistrationsContent() {
     setSelectedParentId('');
     setNewParentName(reg.parent_name);
     setNewParentPhone(reg.parent_phone);
-    setNewParentPassword('');
+    // Otomatis jadikan nomor HP sebagai default password agar mudah diingat
+    setNewParentPassword(reg.parent_phone || '');
     setShowPassword(false);
   };
 
@@ -487,11 +488,23 @@ function RegistrationsContent() {
                 )}
 
                 <div style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)', paddingTop: '12px' }}>
-                  <p className="text-xs font-semibold mb-3" style={{ color: 'var(--md-sys-color-primary)' }}>
-                    🔐 Buat Kata Sandi Akun
-                  </p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-primary)' }}>
+                      🔐 Kata Sandi Akun
+                    </p>
+                    {newParentPhone.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setNewParentPassword(newParentPhone.trim())}
+                        className="text-[11px] underline hover:opacity-80 transition-opacity"
+                        style={{ color: 'var(--md-sys-color-tertiary)' }}
+                      >
+                        ⚡ Samakan dengan No. HP
+                      </button>
+                    )}
+                  </div>
                   <div className={fieldWrap}>
-                    <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kata Sandi *</label>
+                    <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kata Sandi (Default: No. HP) *</label>
                     <div style={{ position: 'relative' }}>
                       <input
                         type={showPassword ? 'text' : 'password'}
@@ -521,7 +534,7 @@ function RegistrationsContent() {
                 </div>
 
                 <p className="text-xs p-3 rounded-lg" style={{ background: 'var(--md-sys-color-secondary-container)', color: 'var(--md-sys-color-on-secondary-container)' }}>
-                  ℹ️ Sampaikan <strong>No. HP</strong> dan <strong>kata sandi</strong> di atas kepada orang tua. Mereka menggunakan nomor HP tersebut untuk masuk ke sistem.
+                  💡 <strong>Info Login:</strong> Orang tua dapat login menggunakan <strong>No. HP</strong> sebagai username dan <strong>No. HP</strong> (atau kata sandi di atas) sebagai password.
                 </p>
               </div>
             )}
