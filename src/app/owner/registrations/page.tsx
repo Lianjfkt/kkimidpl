@@ -166,18 +166,8 @@ function RegistrationsContent() {
       fetchParentProfiles();
     }
 
-    // Update status registrasi ke 'disetujui' TERLEBIH DAHULU
-    // untuk mencegah double-approve jika terjadi error di tengah proses
-    const { error: updateRegError } = await supabase.from('registrations').eq('id', approveTarget.id).update({
-      status: 'disetujui',
-    });
-    if (updateRegError) {
-      alert('Gagal mengupdate status pendaftaran: ' + updateRegError.message);
-      setApproving(false);
-      return;
-    }
-
     const newStudentData: any = {
+      id: isSupabaseConfigured ? crypto.randomUUID() : `student-${Date.now()}`,
       full_name: approveTarget.full_name,
       dob: approveTarget.dob,
       gender: '-',
@@ -195,12 +185,24 @@ function RegistrationsContent() {
       newStudentData.parent_id = parentId;
     }
 
+    // 1. Simpan data siswa ke tabel 'students' TERLEBIH DAHULU
     const { error: studentError } = await supabase.from('students').insert(newStudentData);
     if (studentError) {
       console.error('Insert student error details:', studentError);
-      alert('Pendaftaran disetujui, namun gagal membuat data siswa: ' + studentError.message + '\nSilakan tambahkan siswa secara manual di menu Siswa.');
+      alert('Gagal menambahkan siswa ke Data Siswa: ' + studentError.message);
+      setApproving(false);
+      return;
     }
 
+    // 2. Jika siswa berhasil dimasukkan, baru ubah status registrasi ke 'disetujui'
+    const { error: updateRegError } = await supabase.from('registrations').eq('id', approveTarget.id).update({
+      status: 'disetujui',
+    });
+    if (updateRegError) {
+      alert('Siswa berhasil dibuat, namun gagal mengupdate status pendaftaran: ' + updateRegError.message);
+    }
+
+    // 3. Kirim notifikasi
     const notif: Partial<Notification> = {
       id: `notif-approve-${approveTarget.id}`,
       user_id: parentId || 'user-owner-id',
