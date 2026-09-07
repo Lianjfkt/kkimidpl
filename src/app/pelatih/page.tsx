@@ -17,41 +17,117 @@ export default function PelatihDashboard() {
   const [coach, setCoach] = useState<Coach | null>(null);
   const [classes, setClasses] = useState<ClassSession[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [todayAttendance, setTodayAttendance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const todayStr = new Date().toISOString().split('T')[0];
 
   const loadData = async () => {
     setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    if (userData?.user) {
-      const { data: coachData } = await supabase.from('coaches').eq('profile_id', userData.user.id).single();
-      if (coachData) {
-        setCoach(coachData);
-        const { data: classesData } = await supabase.from('classes').eq('coach_id', coachData.id).select('*');
-        if (classesData) setClasses(classesData);
+    let classesList: ClassSession[] = [];
+    
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+        const { data: coachData } = await supabase
+          .from('coaches')
+          .eq('profile_id', userData.user.id)
+          .maybeSingle();
+        
+        if (coachData) {
+          setCoach(coachData);
+          const { data: classesData } = await supabase
+            .from('classes')
+            .eq('coach_id', coachData.id)
+            .select('*');
+          if (classesData && classesData.length > 0) {
+            classesList = classesData;
+          }
+        }
       }
+
+      // Fallback: Jika tidak ada kelas khusus pelatih, muat seluruh kelas dojo
+      if (classesList.length === 0) {
+        const { data: allCls } = await supabase.from('classes').select('*');
+        if (allCls) classesList = allCls;
+      }
+      setClasses(classesList);
+
+      const [studentsRes, attRes] = await Promise.all([
+        supabase.from('students').eq('status', 'active').select('*'),
+        supabase.from('attendance_students').eq('session_date', todayStr).select('*')
+      ]);
+
+      if (studentsRes.data) setStudents(studentsRes.data);
+      if (attRes.data) setTodayAttendance(attRes.data);
+
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Error loading pelatih dashboard:', err);
+    } finally {
+      setLoading(false);
     }
-    const { data: studentsData } = await supabase.from('students').eq('status', 'active').select('*');
-    if (studentsData) setStudents(studentsData);
-    setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+
+    // Live Real-Time Subscription
+    const channel = supabase
+      .channel('pelatih_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const todayDayOfWeek = new Date().getDay();
   const todayClasses = classes.filter(cls => cls.day_of_week === todayDayOfWeek);
   const otherClasses = classes.filter(cls => cls.day_of_week !== todayDayOfWeek);
 
+  // Distribusi Sabuk Siswa Active
+  const BELT_COLORS: Record<string, string> = {
+    'Putih': '#e5e7eb', 'Kuning': '#fde68a', 'Orange': '#fb923c', 'Hijau': '#4ade80',
+    'Biru': '#60a5fa', 'Coklat': '#a16207', 'Hitam': '#111827',
+  };
+  const beltDist = students.reduce<Record<string, number>>((acc, s) => {
+    const b = s.current_belt || 'Putih';
+    acc[b] = (acc[b] || 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <Navigation>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
-            Halo, Sempai {coach ? coach.full_name.split(' ')[1] || coach.full_name.split(' ')[0] : 'Pelatih'} 👋
-          </h2>
-          <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-            Selamat berlatih hari ini! Berikut jadwal kelas dan aksi cepat untuk Anda.
-          </p>
+        {/* Header with Live Realtime Status */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Halo, Sempai {coach ? coach.full_name.split(' ')[1] || coach.full_name.split(' ')[0] : 'Pelatih'} 👋
+              </h2>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                style={{ background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' }}>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                Real-Time Live
+              </span>
+            </div>
+            <p className="mt-1 text-sm flex items-center gap-2" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              <span>Selamat berlatih hari ini! Berikut jadwal kelas dan presensi real-time Anda.</span>
+              {lastUpdated && (
+                <span className="text-xs opacity-75">({lastUpdated.toLocaleTimeString('id-ID')})</span>
+              )}
+            </p>
+          </div>
+          <button onClick={() => loadData()} className="m3-btn-outlined px-3 py-2 text-xs font-medium flex items-center gap-1.5 cursor-pointer w-fit">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            Refresh Real-Time
+          </button>
         </div>
 
         {/* Coach info strip */}

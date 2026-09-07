@@ -68,6 +68,8 @@ export default function OwnerDashboard() {
   const currentYear = now.getFullYear();
   const today = now.toISOString().split('T')[0];
 
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
   const loadData = async () => {
     setLoading(true);
     const [studRes, regRes, feeRes, attRes, examRes, tournRes, classRes] = await Promise.all([
@@ -89,10 +91,25 @@ export default function OwnerDashboard() {
     }
     if (tournRes.data) setTournaments(tournRes.data as Tournament[]);
     if (classRes.data) setClasses(classRes.data as ClassSession[]);
+    setLastUpdated(new Date());
     setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+
+    // Live Real-Time Subscription Supabase
+    const channel = supabase
+      .channel('owner_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const [rejectingReg, setRejectingReg] = useState<Registration | null>(null);
 
@@ -119,13 +136,19 @@ export default function OwnerDashboard() {
   // Total iuran belum lunas (seluruh periode)
   const totalUnpaid = fees.filter(f => f.status !== 'lunas').reduce((s, f) => s + Number(f.amount), 0);
 
-  // Absensi bulan ini
+  // Absensi bulan ini breakdown
   const thisMonthAtt = attendance.filter(a => {
     const d = new Date(a.session_date);
     return d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear;
   });
+  const totalAttCount = thisMonthAtt.length || 1;
+  const countHadir = thisMonthAtt.filter(a => a.status === 'hadir').length;
+  const countIzin = thisMonthAtt.filter(a => a.status === 'izin').length;
+  const countSakit = thisMonthAtt.filter(a => a.status === 'sakit').length;
+  const countAlpha = thisMonthAtt.filter(a => a.status === 'alpha').length;
+
   const attendanceRate = thisMonthAtt.length > 0
-    ? Math.round((thisMonthAtt.filter(a => a.status === 'hadir').length / thisMonthAtt.length) * 100)
+    ? Math.round((countHadir / thisMonthAtt.length) * 100)
     : 0;
 
   // Distribusi sabuk
@@ -158,17 +181,33 @@ export default function OwnerDashboard() {
   return (
     <Navigation>
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header with Live Realtime Status */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
-              Ringkasan Dojo
-            </h2>
-            <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-              {months[currentMonth - 1]} {currentYear} · KKI DPL Manager
+            <div className="flex items-center gap-2">
+              <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Dashboard Pengurus Dojo
+              </h2>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                style={{ background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' }}>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                Real-Time Live
+              </span>
+            </div>
+            <p className="mt-1 text-sm flex items-center gap-2" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              <span>{months[currentMonth - 1]} {currentYear} · Dojo KKI DPL Manager</span>
+              {lastUpdated && (
+                <span className="text-xs opacity-75">
+                  (Diperbarui: {lastUpdated.toLocaleTimeString('id-ID')})
+                </span>
+              )}
             </p>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => loadData()} className="m3-btn-outlined px-3 py-2 text-xs font-medium flex items-center gap-1.5 cursor-pointer">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              Refresh Data
+            </button>
             <Link href="/owner/students" className="m3-btn-tonal px-4 py-2 text-sm font-medium">
               + Tambah Siswa
             </Link>
