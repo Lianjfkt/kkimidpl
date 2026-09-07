@@ -109,15 +109,14 @@ function RegistrationsContent() {
       setRegistrations(prev => prev.map(r => r.id === editingReg.id ? { ...r, ...updatePayload } : r));
       setFormOpen(false);
 
-      const { error } = await rawClient
+      const { data: resData, error } = await rawClient
         .from('registrations')
         .update(updatePayload)
-        .eq('id', editingReg.id);
+        .eq('id', editingReg.id)
+        .select();
 
-      if (error) {
-        alert('Gagal mengupdate pendaftaran: ' + error.message);
-        fetchRegistrations();
-      } else {
+      if (error || !resData || resData.length === 0) {
+        alert('Gagal mengupdate pendaftaran di database: ' + (error?.message || 'Izin database menolak perubahan atau data tidak ditemukan.'));
         fetchRegistrations();
       }
     } else {
@@ -139,14 +138,12 @@ function RegistrationsContent() {
       };
 
       // Optimistic update
-      setRegistrations(prev => [newReg as Registration, ...prev]);
+      setRegistrations(prev => [newReg, ...prev]);
       setFormOpen(false);
 
-      const { error } = await rawClient.from('registrations').insert([newReg]);
-      if (error) {
-        alert('Gagal menambahkan pendaftaran: ' + error.message);
-        fetchRegistrations();
-      } else {
+      const { data: resData, error } = await rawClient.from('registrations').insert([newReg]).select();
+      if (error || !resData || resData.length === 0) {
+        alert('Gagal menambahkan pendaftaran ke database: ' + (error?.message || 'Izin database menolak penambahan.'));
         fetchRegistrations();
       }
     }
@@ -162,12 +159,10 @@ function RegistrationsContent() {
     setRegistrations(prev => prev.filter(r => r.id !== targetId));
     setDeleteTarget(null);
 
-    const { error } = await rawClient.from('registrations').delete().eq('id', targetId);
-    if (error) {
-      alert('Gagal menghapus pendaftaran: ' + error.message);
-      fetchRegistrations(); // Rollback / refresh data jika gagal
-    } else {
-      fetchRegistrations();
+    const { data: resData, error } = await rawClient.from('registrations').delete().eq('id', targetId).select();
+    if (error || !resData || resData.length === 0) {
+      alert('Gagal menghapus pendaftaran dari database: ' + (error?.message || 'Supabase RLS Policy/Izin database menolak penghapusan data.'));
+      fetchRegistrations(); // Rollback / refresh data jika gagal menghapus di DB
     }
     setDeleting(false);
   };
