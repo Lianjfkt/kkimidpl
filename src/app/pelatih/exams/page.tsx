@@ -7,15 +7,13 @@ import { BeltExam, ExamParticipant, Tournament, TournamentParticipant, Student, 
 import { useAuth } from '@/context/AuthContext';
 
 const BELTS = [
-  'Kuning (Geup 9)',
-  'Hijau (Geup 8)',
-  'Biru Muda (Geup 7)',
-  'Biru Tua (Geup 6)',
-  'Coklat Muda (Geup 5)',
-  'Coklat Tua (Geup 4)',
-  'Hitam (Dan I)',
-  'Hitam (Dan II)',
-  'Hitam (Dan III)',
+  'Kuning',
+  'Hijau',
+  'Biru Muda',
+  'Biru Tua',
+  'Coklat Muda',
+  'Coklat Tua',
+  'Hitam',
 ];
 const MEDALS = ['emas', 'perak', 'perunggu', 'none'] as const;
 
@@ -54,7 +52,7 @@ export default function PelatihExams() {
   const [regExamModal, setRegExamModal] = useState(false);
   const [selExamId, setSelExamId] = useState('');
   const [selStudentId, setSelStudentId] = useState('');
-  const [targetBelt, setTargetBelt] = useState('Kuning (Geup 9)');
+  const [targetBelt, setTargetBelt] = useState('Kuning');
 
   // Register tournament participant modal
   const [regTournModal, setRegTournModal] = useState(false);

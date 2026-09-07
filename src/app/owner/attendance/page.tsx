@@ -292,7 +292,7 @@ export default function OwnerAttendanceMonitor() {
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Sabuk</label>
             <select className="m3-textfield-outlined text-sm" value={beltFilter} onChange={e => setBeltFilter(e.target.value)}>
               <option value="">Semua Sabuk</option>
-              {['Putih', 'Kuning', 'Orange', 'Hijau', 'Biru Muda', 'Biru Tua', 'Coklat Muda', 'Coklat', 'Hitam'].map(b => (
+              {['Putih', 'Kuning', 'Hijau', 'Biru Muda', 'Biru Tua', 'Coklat Muda', 'Coklat Tua', 'Hitam'].map(b => (
                 <option key={b} value={b}>{b}</option>
               ))}
             </select>

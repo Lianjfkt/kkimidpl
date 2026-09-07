@@ -5,7 +5,7 @@ import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { CurriculumMaterial } from '@/lib/mockData';
 
-const beltLevels = ['Putih', 'Kuning', 'Orange', 'Hijau', 'Biru Muda', 'Biru Tua', 'Coklat Muda', 'Coklat', 'Hitam'];
+const beltLevels = ['Putih', 'Kuning', 'Hijau', 'Biru Muda', 'Biru Tua', 'Coklat Muda', 'Coklat Tua', 'Hitam'];
 
 export default function CurriculumPage() {
   const [selectedBelt, setSelectedBelt] = useState('Putih');

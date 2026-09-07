@@ -92,8 +92,10 @@ export default function PelatihDashboard() {
 
   // Distribusi Sabuk Siswa Active
   const BELT_COLORS: Record<string, string> = {
-    'Putih': '#e5e7eb', 'Kuning': '#fde68a', 'Orange': '#fb923c', 'Hijau': '#4ade80',
-    'Biru': '#60a5fa', 'Coklat': '#a16207', 'Hitam': '#111827',
+    'Putih': '#e5e7eb', 'Kuning': '#fde68a', 'Hijau': '#4ade80',
+    'Biru Muda': '#93c5fd', 'Biru Tua': '#1d4ed8', 'Biru': '#60a5fa',
+    'Coklat Muda': '#ca8a04', 'Coklat Tua': '#78350f', 'Coklat': '#a16207',
+    'Hitam': '#111827',
   };
   const beltDist = students.reduce<Record<string, number>>((acc, s) => {
     const b = s.current_belt || 'Putih';

@@ -23,9 +23,10 @@ function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: 
 }
 
 const BELT_COLORS: Record<string, string> = {
-  'Putih': '#e5e7eb', 'Kuning': '#fde68a', 'Orange': '#fb923c', 'Hijau': '#4ade80',
-  'Biru': '#60a5fa', 'Biru Muda': '#93c5fd', 'Coklat': '#a16207', 'Coklat Muda': '#ca8a04',
-  'Hitam': '#111827', 'Dan I': '#7c3aed', 'Dan II': '#6d28d9',
+  'Putih': '#e5e7eb', 'Kuning': '#fde68a', 'Hijau': '#4ade80',
+  'Biru Muda': '#93c5fd', 'Biru Tua': '#1d4ed8', 'Biru': '#60a5fa',
+  'Coklat Muda': '#ca8a04', 'Coklat Tua': '#78350f', 'Coklat': '#a16207',
+  'Hitam': '#111827',
 };
 
 const beltColor = (belt: string) => BELT_COLORS[belt] || '#6b7280';

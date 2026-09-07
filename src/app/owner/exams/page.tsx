@@ -159,7 +159,7 @@ export default function OwnerExams() {
   // Form states (Register Candidate)
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [targetBelt, setTargetBelt] = useState('Kuning (Geup 9)');
+  const [targetBelt, setTargetBelt] = useState('Kuning');
 
   // Belt level up celebration
   const [celebration, setCelebration] = useState<CelebrationData | null>(null);
@@ -300,7 +300,7 @@ export default function OwnerExams() {
               Ujian Kenaikan Sabuk
             </h2>
             <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-              Jadwalkan ujian kenaikan tingkat (Geup System KKI) dan input hasil kelulusan siswa.
+              Jadwalkan ujian kenaikan tingkat (Sistem Kyu KKI) dan input hasil kelulusan siswa.
             </p>
           </div>
           <button
@@ -531,15 +531,13 @@ export default function OwnerExams() {
                 value={targetBelt}
                 onChange={(e) => setTargetBelt(e.target.value)}
               >
-                <option value="Kuning (Geup 9)">Kuning (Geup 9)</option>
-                <option value="Hijau (Geup 8)">Hijau (Geup 8)</option>
-                <option value="Biru Muda (Geup 7)">Biru Muda (Geup 7)</option>
-                <option value="Biru Tua (Geup 6)">Biru Tua (Geup 6)</option>
-                <option value="Coklat Muda (Geup 5)">Coklat Muda (Geup 5)</option>
-                <option value="Coklat Tua (Geup 4)">Coklat Tua (Geup 4)</option>
-                <option value="Hitam (Dan I)">Hitam (Dan I)</option>
-                <option value="Hitam (Dan II)">Hitam (Dan II)</option>
-                <option value="Hitam (Dan III)">Hitam (Dan III)</option>
+                <option value="Kuning">Kuning</option>
+                <option value="Hijau">Hijau</option>
+                <option value="Biru Muda">Biru Muda</option>
+                <option value="Biru Tua">Biru Tua</option>
+                <option value="Coklat Muda">Coklat Muda</option>
+                <option value="Coklat Tua">Coklat Tua</option>
+                <option value="Hitam">Hitam</option>
               </select>
             </div>
 

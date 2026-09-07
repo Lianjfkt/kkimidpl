@@ -6,7 +6,7 @@ import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Student, Fee, StudentAttendance, TournamentParticipant, Tournament, BeltExam, ExamParticipant } from '@/lib/mockData';
 
-const beltOrder = ['Putih', 'Kuning', 'Orange', 'Hijau', 'Biru Muda', 'Biru Tua', 'Coklat Muda', 'Coklat', 'Hitam'];
+const beltOrder = ['Putih', 'Kuning', 'Hijau', 'Biru Muda', 'Biru Tua', 'Coklat Muda', 'Coklat Tua', 'Hitam'];
 
 const STATUS_CONFIG = {
   hadir:  { label: 'Hadir', dot: 'bg-emerald-500' },

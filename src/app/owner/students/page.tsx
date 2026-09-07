@@ -12,16 +12,27 @@ interface ClassSession {
   category: string;
 }
 
+export const BELT_OPTIONS = [
+  'Putih',
+  'Kuning',
+  'Hijau',
+  'Biru Muda',
+  'Biru Tua',
+  'Coklat Muda',
+  'Coklat Tua',
+  'Hitam',
+];
+
 const BELT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  Putih:       { bg: 'bg-slate-200',   text: 'text-slate-800',  border: 'border-slate-300' },
-  Kuning:      { bg: 'bg-yellow-300',  text: 'text-yellow-900', border: 'border-yellow-400' },
-  Orange:      { bg: 'bg-orange-400',  text: 'text-white',      border: 'border-orange-500' },
-  Hijau:       { bg: 'bg-green-500',   text: 'text-white',      border: 'border-green-600' },
-  'Biru Muda': { bg: 'bg-blue-400',    text: 'text-white',      border: 'border-blue-500' },
-  'Biru Tua':  { bg: 'bg-blue-700',    text: 'text-white',      border: 'border-blue-800' },
-  'Coklat Muda':{ bg: 'bg-amber-700',  text: 'text-white',      border: 'border-amber-800' },
-  Coklat:      { bg: 'bg-amber-800',   text: 'text-white',      border: 'border-amber-900' },
-  Hitam:       { bg: 'bg-gray-900',    text: 'text-white',      border: 'border-red-500' },
+  Putih:        { bg: 'bg-slate-200',   text: 'text-slate-800',  border: 'border-slate-300' },
+  Kuning:       { bg: 'bg-yellow-300',  text: 'text-yellow-900', border: 'border-yellow-400' },
+  Hijau:        { bg: 'bg-green-500',   text: 'text-white',      border: 'border-green-600' },
+  'Biru Muda':  { bg: 'bg-blue-400',    text: 'text-white',      border: 'border-blue-500' },
+  'Biru Tua':   { bg: 'bg-blue-700',    text: 'text-white',      border: 'border-blue-800' },
+  'Coklat Muda':{ bg: 'bg-amber-700',   text: 'text-white',      border: 'border-amber-800' },
+  'Coklat Tua': { bg: 'bg-amber-900',   text: 'text-white',      border: 'border-amber-950' },
+  Coklat:       { bg: 'bg-amber-800',   text: 'text-white',      border: 'border-amber-900' },
+  Hitam:        { bg: 'bg-gray-900',    text: 'text-white',      border: 'border-red-500' },
 };
 
 function getBeltStyle(belt: string) {
@@ -47,7 +58,7 @@ export default function OwnerStudents() {
   const [gender, setGender] = useState('Laki-laki');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
-  const [currentBelt, setCurrentBelt] = useState('Putih (Geup 10)');
+  const [currentBelt, setCurrentBelt] = useState('Putih');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [parentName, setParentName] = useState('');
   const [parentJob, setParentJob] = useState('');
@@ -82,7 +93,7 @@ export default function OwnerStudents() {
     setParentName('');
     setParentJob('');
     setSelectedClassId('');
-    setCurrentBelt('Putih (Geup 10)');
+    setCurrentBelt('Putih');
     setStatus('active');
     setIsModalOpen(true);
   };
@@ -253,12 +264,11 @@ export default function OwnerStudents() {
               onChange={(e) => setBeltFilter(e.target.value)}
             >
               <option value="">Semua Sabuk</option>
-              <option value="Putih">Putih</option>
-              <option value="Kuning">Kuning</option>
-              <option value="Hijau">Hijau</option>
-              <option value="Biru">Biru</option>
-              <option value="Coklat">Coklat</option>
-              <option value="Hitam">Hitam</option>
+              {BELT_OPTIONS.map((belt) => (
+                <option key={belt} value={belt}>
+                  {belt}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -557,12 +567,11 @@ export default function OwnerStudents() {
                       value={currentBelt}
                       onChange={(e) => setCurrentBelt(e.target.value)}
                     >
-                      <option value="Putih (Geup 10)">Putih (Geup 10)</option>
-                      <option value="Kuning (Geup 9)">Kuning (Geup 9)</option>
-                      <option value="Hijau (Geup 8)">Hijau (Geup 8)</option>
-                      <option value="Biru (Geup 7)">Biru (Geup 7)</option>
-                      <option value="Cokelat (Geup 6)">Cokelat (Geup 6)</option>
-                      <option value="Hitam (Dan I)">Hitam (Dan I)</option>
+                      {BELT_OPTIONS.map((belt) => (
+                        <option key={belt} value={belt}>
+                          {belt}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
