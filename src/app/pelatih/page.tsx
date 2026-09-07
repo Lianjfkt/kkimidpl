@@ -19,7 +19,7 @@ function BeltDistributionChart({ students }: { students: Student[] }) {
   const dist = useMemo(() => {
     const counts = OFFICIAL_BELTS.map(belt => ({
       belt,
-      count: students.filter(s => (s.current_belt || 'Putih') === belt).length,
+      count: students.filter(s => { const b = (s.current_belt || 'Putih').trim().toLowerCase(); const target = belt.toLowerCase(); if (target === 'biru muda') return b === 'biru muda' || b === 'biru' || b === '4 kyu'; if (target === 'coklat muda') return b === 'coklat muda' || b === 'coklat' || b === 'cokelat' || b === '2 kyu'; return b === target; }).length,
       style: getBeltStyle(belt),
     }));
     return counts;
