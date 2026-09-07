@@ -47,6 +47,115 @@ function RegistrationsContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [approving, setApproving] = useState(false);
 
+  // Form Create/Edit state
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingReg, setEditingReg] = useState<Registration | null>(null);
+  const [formData, setFormData] = useState<Partial<Registration>>({});
+  const [saving, setSaving] = useState(false);
+
+  // Delete modal state
+  const [deleteTarget, setDeleteTarget] = useState<Registration | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const openCreateModal = () => {
+    setEditingReg(null);
+    setFormData({
+      full_name: '',
+      dob: '',
+      birth_place: '',
+      nik: '',
+      current_belt: 'Putih',
+      weight: undefined,
+      height: undefined,
+      parent_name: '',
+      parent_phone: '',
+      parent_job: '',
+      address: '',
+      status: 'menunggu',
+    });
+    setFormOpen(true);
+  };
+
+  const openEditModal = (reg: Registration) => {
+    setEditingReg(reg);
+    setFormData({ ...reg });
+    setFormOpen(true);
+  };
+
+  const handleSaveRegistration = async () => {
+    if (!formData.full_name?.trim() || !formData.dob || !formData.parent_name?.trim() || !formData.parent_phone?.trim() || !formData.address?.trim()) {
+      alert('Mohon lengkapi bidang wajib (Nama Siswa, Tanggal Lahir, Nama Wali, No HP Wali, dan Alamat).');
+      return;
+    }
+
+    setSaving(true);
+    if (editingReg) {
+      const { error } = await supabase
+        .from('registrations')
+        .update({
+          full_name: formData.full_name.trim(),
+          dob: formData.dob,
+          birth_place: formData.birth_place || '',
+          nik: formData.nik || '',
+          current_belt: formData.current_belt || 'Putih',
+          weight: formData.weight ? Number(formData.weight) : null,
+          height: formData.height ? Number(formData.height) : null,
+          parent_name: formData.parent_name.trim(),
+          parent_phone: formData.parent_phone.trim(),
+          parent_job: formData.parent_job || '',
+          address: formData.address.trim(),
+          status: formData.status || 'menunggu',
+        })
+        .eq('id', editingReg.id);
+
+      if (error) {
+        alert('Gagal mengupdate pendaftaran: ' + error.message);
+      } else {
+        setFormOpen(false);
+        fetchRegistrations();
+      }
+    } else {
+      const newReg = {
+        id: isSupabaseConfigured ? crypto.randomUUID() : `reg-${Date.now()}`,
+        full_name: formData.full_name.trim(),
+        dob: formData.dob,
+        birth_place: formData.birth_place || '',
+        nik: formData.nik || '',
+        current_belt: formData.current_belt || 'Putih',
+        weight: formData.weight ? Number(formData.weight) : null,
+        height: formData.height ? Number(formData.height) : null,
+        parent_name: formData.parent_name.trim(),
+        parent_phone: formData.parent_phone.trim(),
+        parent_job: formData.parent_job || '',
+        address: formData.address.trim(),
+        status: formData.status || 'menunggu',
+        submitted_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from('registrations').insert([newReg]);
+      if (error) {
+        alert('Gagal menambahkan pendaftaran: ' + error.message);
+      } else {
+        setFormOpen(false);
+        fetchRegistrations();
+      }
+    }
+    setSaving(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await supabase.from('registrations').delete().eq('id', deleteTarget.id);
+    if (error) {
+      alert('Gagal menghapus pendaftaran: ' + error.message);
+    } else {
+      setDeleteTarget(null);
+      fetchRegistrations();
+    }
+    setDeleting(false);
+  };
+
   const fetchRegistrations = async () => {
     const { data } = await supabase.from('registrations').order('submitted_at', { ascending: false }).select();
     if (data) setRegistrations(data as Registration[]);
@@ -269,6 +378,12 @@ function RegistrationsContent() {
               Review dan kelola pendaftaran calon siswa KKI DPL Dojo.
             </p>
           </div>
+          <button
+            onClick={openCreateModal}
+            className="m3-btn-filled text-xs py-2 px-4 flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+          >
+            <span>➕</span> Tambah Pendaftaran
+          </button>
         </div>
 
         {/* Stats Cards */}
@@ -363,22 +478,38 @@ function RegistrationsContent() {
                         {statusLabel(reg.status)}
                       </span>
 
-                      {reg.status === 'menunggu' && (
-                        <div className="flex gap-2 mt-0 sm:mt-2">
-                          <button
-                            onClick={() => openApproveModal(reg)}
-                            className="m3-btn-filled text-xs py-1.5 px-3"
-                          >
-                            ✓ Setujui
-                          </button>
-                          <button
-                            onClick={() => handleReject(reg)}
-                            className="m3-btn-outlined text-xs py-1.5 px-3"
-                          >
-                            ✕ Tolak
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-2">
+                        {reg.status === 'menunggu' && (
+                          <>
+                            <button
+                              onClick={() => openApproveModal(reg)}
+                              className="m3-btn-filled text-xs py-1.5 px-3"
+                            >
+                              ✓ Setujui
+                            </button>
+                            <button
+                              onClick={() => handleReject(reg)}
+                              className="m3-btn-outlined text-xs py-1.5 px-3"
+                            >
+                              ✕ Tolak
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => openEditModal(reg)}
+                          className="m3-btn-tonal text-xs py-1.5 px-2.5"
+                          title="Edit Pendaftaran"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(reg)}
+                          className="m3-btn-outlined text-xs py-1.5 px-2.5 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          title="Hapus Pendaftaran"
+                        >
+                          🗑️ Hapus
+                        </button>
+                      </div>
 
                       <p className="text-[10px] opacity-70 mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                         {new Date(reg.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -566,6 +697,230 @@ function RegistrationsContent() {
                     Menyimpan...
                   </>
                 ) : '✓ Setujui'}
+              </button>
+            </div>
+          </div>
+        )}
+      </M3Dialog>
+
+      {/* ── Form Modal (Tambah / Edit Pendaftaran) ── */}
+      <M3Dialog
+        open={formOpen}
+        onClose={() => !saving && setFormOpen(false)}
+        title={editingReg ? 'Edit Pendaftaran Siswa' : 'Tambah Pendaftaran Siswa'}
+      >
+        <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-primary)' }}>
+              Data Siswa
+            </h4>
+            <div className={fieldWrap}>
+              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama Lengkap Siswa *</label>
+              <input
+                type="text"
+                value={formData.full_name || ''}
+                onChange={e => setFormData({ ...formData, full_name: e.target.value })}
+                placeholder="Contoh: Muhammad Ali"
+                className={inputClass}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tempat Lahir</label>
+                <input
+                  type="text"
+                  value={formData.birth_place || ''}
+                  onChange={e => setFormData({ ...formData, birth_place: e.target.value })}
+                  placeholder="Tempat lahir"
+                  className={inputClass}
+                />
+              </div>
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tanggal Lahir *</label>
+                <input
+                  type="date"
+                  value={formData.dob || ''}
+                  onChange={e => setFormData({ ...formData, dob: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>NIK / No KK</label>
+                <input
+                  type="text"
+                  value={formData.nik || ''}
+                  onChange={e => setFormData({ ...formData, nik: e.target.value })}
+                  placeholder="NIK atau nomor KK"
+                  className={inputClass}
+                />
+              </div>
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Sabuk Saat Ini</label>
+                <select
+                  value={formData.current_belt || 'Putih'}
+                  onChange={e => setFormData({ ...formData, current_belt: e.target.value })}
+                  className={inputClass}
+                >
+                  <option value="Putih">Putih</option>
+                  <option value="Kuning">Kuning</option>
+                  <option value="Hijau">Hijau</option>
+                  <option value="Biru Muda">Biru Muda</option>
+                  <option value="Biru Tua">Biru Tua</option>
+                  <option value="Coklat">Coklat</option>
+                  <option value="Hitam">Hitam</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Berat Badan (kg)</label>
+                <input
+                  type="number"
+                  value={formData.weight ?? ''}
+                  onChange={e => setFormData({ ...formData, weight: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="Misal: 45"
+                  className={inputClass}
+                />
+              </div>
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tinggi Badan (cm)</label>
+                <input
+                  type="number"
+                  value={formData.height ?? ''}
+                  onChange={e => setFormData({ ...formData, height: e.target.value ? Number(e.target.value) : undefined })}
+                  placeholder="Misal: 155"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-3" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-primary)' }}>
+              Data Orang Tua / Wali
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama Wali *</label>
+                <input
+                  type="text"
+                  value={formData.parent_name || ''}
+                  onChange={e => setFormData({ ...formData, parent_name: e.target.value })}
+                  placeholder="Nama orang tua/wali"
+                  className={inputClass}
+                />
+              </div>
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>No. HP / WhatsApp *</label>
+                <input
+                  type="tel"
+                  value={formData.parent_phone || ''}
+                  onChange={e => setFormData({ ...formData, parent_phone: e.target.value })}
+                  placeholder="08xxxxxxxxxx"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className={fieldWrap}>
+              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Pekerjaan Wali</label>
+              <input
+                type="text"
+                value={formData.parent_job || ''}
+                onChange={e => setFormData({ ...formData, parent_job: e.target.value })}
+                placeholder="Pekerjaan wali"
+                className={inputClass}
+              />
+            </div>
+
+            <div className={fieldWrap}>
+              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Alamat *</label>
+              <textarea
+                value={formData.address || ''}
+                onChange={e => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Alamat lengkap rumah"
+                rows={2}
+                className={inputClass}
+              />
+            </div>
+
+            <div className={fieldWrap}>
+              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Status Pendaftaran</label>
+              <select
+                value={formData.status || 'menunggu'}
+                onChange={e => setFormData({ ...formData, status: e.target.value as any })}
+                className={inputClass}
+              >
+                <option value="menunggu">Menunggu</option>
+                <option value="disetujui">Disetujui</option>
+                <option value="ditolak">Ditolak</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <button
+              onClick={() => setFormOpen(false)}
+              disabled={saving}
+              className="m3-btn-text px-5 py-2.5 text-sm"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleSaveRegistration}
+              disabled={saving}
+              className="m3-btn-filled px-5 py-2.5 text-sm flex items-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin inline-block" />
+                  Menyimpan...
+                </>
+              ) : (editingReg ? '💾 Simpan Perubahan' : '➕ Tambah Pendaftaran')}
+            </button>
+          </div>
+        </div>
+      </M3Dialog>
+
+      {/* ── Modal Konfirmasi Hapus ── */}
+      <M3Dialog
+        open={!!deleteTarget}
+        onClose={() => !deleting && setDeleteTarget(null)}
+        title="Konfirmasi Hapus Pendaftaran"
+      >
+        {deleteTarget && (
+          <div className="space-y-4">
+            <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Apakah Anda yakin ingin menghapus pendaftaran untuk <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>{deleteTarget.full_name}</strong>?
+            </p>
+            <p className="text-xs p-3 rounded-lg" style={{ background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }}>
+              ⚠️ Tindakan ini tidak dapat dibatalkan dan akan menghapus record pendaftaran dari database.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="m3-btn-text px-5 py-2.5 text-sm"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="m3-btn-filled px-5 py-2.5 text-sm flex items-center gap-2"
+                style={{ background: 'var(--md-sys-color-error)', color: 'var(--md-sys-color-on-error)' }}
+              >
+                {deleting ? (
+                  <>
+                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin inline-block" />
+                    Menghapus...
+                  </>
+                ) : '🗑️ Ya, Hapus'}
               </button>
             </div>
           </div>
