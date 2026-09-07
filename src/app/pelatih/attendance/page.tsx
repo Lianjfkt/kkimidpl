@@ -39,40 +39,60 @@ function AttendanceFormContent() {
 
   const loadData = async () => {
     setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    if (userData?.user) {
-      const { data: coachData } = await supabase
-        .from('coaches')
-        .eq('profile_id', userData.user.id)
-        .single();
-      
-      if (coachData) {
-        setCoach(coachData);
-        const { data: classesData } = await supabase
-          .from('classes')
-          .eq('coach_id', coachData.id)
-          .select('*');
-        if (classesData) {
-          setClasses(classesData);
-          if (!selectedClassId && classesData.length > 0) {
-            setSelectedClassId(classesData[0].id);
+    let classesList: ClassSession[] = [];
+    let coachObj: Coach | null = null;
+
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+        const { data: coachData } = await supabase
+          .from('coaches')
+          .eq('profile_id', userData.user.id)
+          .maybeSingle();
+        
+        if (coachData) {
+          coachObj = coachData;
+          setCoach(coachData);
+          const { data: coachClasses } = await supabase
+            .from('classes')
+            .eq('coach_id', coachData.id)
+            .select('*');
+          if (coachClasses && coachClasses.length > 0) {
+            classesList = coachClasses;
           }
         }
       }
-    }
 
-    const [studentsRes, enrollRes] = await Promise.all([
-      supabase.from('students').eq('status', 'active').select('*'),
-      supabase.from('class_students').select('*')
-    ]);
+      // Fallback jika pelatih belum ditugaskan kelas tertentu: ambil semua kelas
+      if (classesList.length === 0) {
+        const { data: allCls } = await supabase.from('classes').select('*');
+        if (allCls && allCls.length > 0) {
+          classesList = allCls;
+        }
+      }
 
-    if (studentsRes.data) {
-      setAllStudents(studentsRes.data);
+      setClasses(classesList);
+      if (!selectedClassId && classesList.length > 0) {
+        setSelectedClassId(classesList[0].id);
+      }
+
+      const [studentsRes, enrollRes] = await Promise.all([
+        supabase.from('students').select('*'),
+        supabase.from('class_students').select('*')
+      ]);
+
+      if (studentsRes.data && studentsRes.data.length > 0) {
+        const activeOnly = studentsRes.data.filter((s: Student) => s.status === 'active');
+        setAllStudents(activeOnly.length > 0 ? activeOnly : studentsRes.data);
+      }
+      if (enrollRes.data) {
+        setEnrollments(enrollRes.data);
+      }
+    } catch (err) {
+      console.error('Error loading attendance data:', err);
+    } finally {
+      setLoading(false);
     }
-    if (enrollRes.data) {
-      setEnrollments(enrollRes.data);
-    }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -81,12 +101,25 @@ function AttendanceFormContent() {
 
   // Filter students whenever selectedClassId or allStudents/enrollments changes
   useEffect(() => {
-    if (!selectedClassId) return;
+    if (allStudents.length === 0) return;
+
+    if (!selectedClassId) {
+      setStudents(allStudents);
+      const initialStates: Record<string, 'hadir' | 'izin' | 'sakit' | 'alpha'> = {};
+      allStudents.forEach((s: Student) => { initialStates[s.id] = 'hadir'; });
+      setAttendanceState(initialStates);
+      return;
+    }
+
     const enrolledIds = enrollments
       .filter((e: any) => e.class_id === selectedClassId)
       .map((e: any) => e.student_id);
     
-    const filtered = allStudents.filter(s => enrolledIds.includes(s.id));
+    // Fallback: Jika kelas belum memiliki mapping siswa spesifik di class_students, tampilkan seluruh siswa aktif
+    const filtered = (enrolledIds.length > 0)
+      ? allStudents.filter(s => enrolledIds.includes(s.id))
+      : allStudents;
+
     setStudents(filtered);
 
     const initialStates: Record<string, 'hadir' | 'izin' | 'sakit' | 'alpha'> = {};
