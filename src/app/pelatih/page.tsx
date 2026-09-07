@@ -205,7 +205,7 @@ export default function PelatihDashboard() {
         supabase.from('tournament_participants').select('*'),
       ]);
 
-      if (studentsRes.data && studentsRes.data.length > 0) { setStudents(studentsRes.data); } else { setStudents(initialStudents.filter(s => s.status === 'active')); }
+      const fetchedStudents = studentsRes.data && studentsRes.data.length > 0 ? studentsRes.data : initialStudents; setStudents(fetchedStudents.filter((s: any) => s.status === 'active' || !s.status));
       if (enrollRes.data) setEnrollments(enrollRes.data);
       if (attTodayRes.data) setTodayAttendance(attTodayRes.data);
       if (attRecentRes.data) setRecentAttendance(attRecentRes.data);
