@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { ClassSession, Student, Coach, BeltExam, Tournament } from '@/lib/mockData';
+import { ClassSession, Student, Coach, BeltExam, Tournament, initialStudents } from '@/lib/mockData';
 import { getBeltHex, getBeltStyle, OFFICIAL_BELTS } from '@/lib/constants/belts';
 
 const DAYS = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -205,7 +205,7 @@ export default function PelatihDashboard() {
         supabase.from('tournament_participants').select('*'),
       ]);
 
-      if (studentsRes.data) setStudents(studentsRes.data);
+      if (studentsRes.data && studentsRes.data.length > 0) { setStudents(studentsRes.data); } else { setStudents(initialStudents.filter(s => s.status === 'active')); }
       if (enrollRes.data) setEnrollments(enrollRes.data);
       if (attTodayRes.data) setTodayAttendance(attTodayRes.data);
       if (attRecentRes.data) setRecentAttendance(attRecentRes.data);
