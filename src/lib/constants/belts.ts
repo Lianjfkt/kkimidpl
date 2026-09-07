@@ -55,13 +55,6 @@ export const BELT_CONFIG: Record<string, BeltStyle> = {
     hex: '#1d4ed8',
     emoji: '💙',
   },
-  'Biru': {
-    bg: 'bg-blue-500 dark:bg-blue-900/40',
-    text: 'text-white dark:text-blue-300',
-    border: 'border-blue-600 dark:border-blue-700',
-    hex: '#60a5fa',
-    emoji: '🔵',
-  },
   'Coklat Muda': {
     bg: 'bg-amber-700 dark:bg-amber-900/40',
     text: 'text-white dark:text-amber-300',
@@ -75,13 +68,6 @@ export const BELT_CONFIG: Record<string, BeltStyle> = {
     border: 'border-amber-950 dark:border-amber-800',
     hex: '#78350f',
     emoji: '🟫',
-  },
-  'Coklat': {
-    bg: 'bg-amber-800 dark:bg-amber-900/50',
-    text: 'text-white dark:text-amber-200',
-    border: 'border-amber-900 dark:border-amber-700',
-    hex: '#a16207',
-    emoji: '🟤',
   },
   'Hitam': {
     bg: 'bg-gray-900 dark:bg-gray-800',
@@ -110,12 +96,12 @@ export function getBeltStyle(belt?: string): BeltStyle {
   }
 
   // Substring match
-  if (lower.includes('coklat tua')) return BELT_CONFIG['Coklat Tua'];
-  if (lower.includes('coklat muda')) return BELT_CONFIG['Coklat Muda'];
-  if (lower.includes('coklat') || lower.includes('cokelat')) return BELT_CONFIG['Coklat'];
+  if (lower.includes('coklat tua') || lower.includes('cokelat tua')) return BELT_CONFIG['Coklat Tua'];
+  if (lower.includes('coklat muda') || lower.includes('cokelat muda')) return BELT_CONFIG['Coklat Muda'];
+  if (lower.includes('coklat') || lower.includes('cokelat')) return BELT_CONFIG['Coklat Muda']; // fallback ke Coklat Muda
   if (lower.includes('biru tua')) return BELT_CONFIG['Biru Tua'];
   if (lower.includes('biru muda')) return BELT_CONFIG['Biru Muda'];
-  if (lower.includes('biru')) return BELT_CONFIG['Biru'];
+  if (lower.includes('biru')) return BELT_CONFIG['Biru Muda']; // fallback ke Biru Muda
   if (lower.includes('kuning')) return BELT_CONFIG['Kuning'];
   if (lower.includes('hijau')) return BELT_CONFIG['Hijau'];
   if (lower.includes('putih')) return BELT_CONFIG['Putih'];
