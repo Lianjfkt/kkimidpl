@@ -4,12 +4,22 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('[Supabase] NEXT_PUBLIC_SUPABASE_URL atau NEXT_PUBLIC_SUPABASE_ANON_KEY tidak dikonfigurasi di .env.local');
+  if (typeof window !== 'undefined') {
+    console.warn('[Supabase] NEXT_PUBLIC_SUPABASE_URL atau NEXT_PUBLIC_SUPABASE_ANON_KEY belum dikonfigurasi.');
+  }
 }
 
-export const rawClient = createClient(supabaseUrl, supabaseAnonKey);
+export const rawClient = createClient(
+  supabaseUrl || 'https://placeholder-dojo.supabase.co',
+  supabaseAnonKey || 'placeholder-key',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  }
+);
 
-// Daftar method filter yang didukung Supabase
 const filterMethods = new Set([
   'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'like', 'ilike', 'is', 'in',
   'contains', 'containedBy', 'rangeLt', 'rangeGt', 'rangeGte', 'rangeLte',
@@ -70,34 +80,31 @@ class PendingQuery {
     return this;
   }
 
-  // Menangkap semua panggilan method filter dinamis
   addFilter(method: string, args: any[]) {
     this.filters.push({ method, args });
     return this;
   }
 
-  // Mengeksekusi query Supabase sesungguhnya
   private execute() {
     let query: any;
     
-    // Inisialisasi query berdasarkan action
     if (this.action === 'select') {
-      query = rawClient.from(this.relation).select(this.actionArgs[0]);
+      const selectPattern = this.actionArgs.length > 0 && this.actionArgs[0] ? this.actionArgs[0] : '*';
+      query = rawClient.from(this.relation).select(selectPattern);
     } else {
       query = (rawClient.from(this.relation) as any)[this.action](...this.actionArgs);
       if (this.hasSelectAfterMutation) {
-        query = query.select(this.selectArgs[0]);
+        const selectPattern = this.selectArgs.length > 0 && this.selectArgs[0] ? this.selectArgs[0] : '*';
+        query = query.select(selectPattern);
       }
     }
 
-    // Terapkan semua filter yang dikumpulkan
     for (const filter of this.filters) {
       if (typeof query[filter.method] === 'function') {
         query = query[filter.method](...filter.args);
       }
     }
 
-    // Terapkan single / maybeSingle di akhir
     if (this.isSingle) {
       query = query.single();
     } else if (this.isMaybeSingle) {
@@ -107,13 +114,11 @@ class PendingQuery {
     return query;
   }
 
-  // Agar objek ini bisa di-await secara langsung (Promise-like)
   then(onfulfilled?: (value: any) => any, onrejected?: (reason: any) => any) {
     return this.execute().then(onfulfilled, onrejected);
   }
 }
 
-// Proxy wrapper untuk menangkap pemanggilan method dinamis pada PendingQuery
 function createQueryProxy(relation: string): any {
   const pending = new PendingQuery(relation);
 
@@ -143,7 +148,6 @@ function createQueryProxyWrapper(pending: PendingQuery): any {
         const val = target[prop];
         return typeof val === 'function' ? val.bind(target) : val;
       }
-      // Izinkan mutation methods dipanggil setelah filter (e.g. .eq().update())
       if (prop === 'update' || prop === 'delete' || prop === 'insert' || prop === 'select') {
         return (...args: any[]) => {
           (target as any)[prop](...args);
@@ -161,9 +165,8 @@ function createQueryProxyWrapper(pending: PendingQuery): any {
   });
 }
 
-// Export proxy client utama Supabase
-export const isSupabaseConfigured = true;
-export const supabase = new Proxy(rawClient, {
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+export const supabase: any = new Proxy(rawClient, {
   get(target, prop: string) {
     if (prop === 'from') {
       return (relation: string) => {
@@ -173,4 +176,6 @@ export const supabase = new Proxy(rawClient, {
     const value = (target as any)[prop];
     return typeof value === 'function' ? value.bind(target) : value;
   }
-}) as any;
+});
+
+

@@ -73,23 +73,19 @@ export default function OwnerAttendanceMonitor() {
     if (showLoader) setLoading(true);
     else setRefreshing(true);
 
-    // Gunakan rawClient langsung agar tidak terpengaruh bug wrapper
+    // Load data presensi, siswa, dan kelas dari Supabase
     const [studRes, clsRes, attRes] = await Promise.all([
-      rawClient.from('students').select('*'),
-      rawClient.from('classes').select('*'),
-      rawClient.from('attendance_students').select('*'),
+      supabase.from('students').select('*'),
+      supabase.from('classes').select('*'),
+      supabase.from('attendance_students').select('*'),
     ]);
 
-    // Debug: tampilkan info data + error
     const errors = [studRes.error, clsRes.error, attRes.error].filter(Boolean);
-    const studCount = studRes.data?.length ?? 0;
-    const attCount = attRes.data?.length ?? 0;
-    const attDates = Array.from(new Set((attRes.data ?? []).map((a: any) => a.session_date?.slice(0, 7)))).join(', ');
-    setDebugInfo(
-      errors.length > 0
-        ? `❌ Error: ${errors.map((e: any) => e?.message).join(' | ')}`
-        : `✅ ${studCount} siswa · ${attCount} record absensi · periode: [${attDates || 'kosong'}]`
-    );
+    if (errors.length > 0) {
+      setDebugInfo(`⚠️ Gagal memuat beberapa data: ${errors.map((e: any) => e?.message).join(', ')}`);
+    } else {
+      setDebugInfo(null);
+    }
 
     if (studRes.data) setStudents(studRes.data);
     if (clsRes.data) setClasses(clsRes.data);
