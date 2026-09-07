@@ -65,14 +65,18 @@ export default function PelatihExams() {
     setLoading(true);
     const { data: userData } = await supabase.auth.getUser();
     if (userData?.user) {
-      const { data: coachData } = await supabase.from('coaches').eq('profile_id', userData.user.id).single();
+      const { data: coachData } = await supabase.from('coaches').eq('profile_id', userData.user.id).maybeSingle();
       if (coachData) setCoach(coachData as Coach);
     }
-    const { data: studentsData } = await supabase.from('students').eq('status', 'active').select('*');
-    if (studentsData) {
-      setStudents(studentsData as Student[]);
-      setSelStudentId((studentsData[0] as Student)?.id || '');
-      setSelTournStudentId((studentsData[0] as Student)?.id || '');
+    const { data: studentsData } = await supabase.from('students').select('*');
+    const { initialStudents } = await import('@/lib/mockData');
+    const allSt = (studentsData && studentsData.length > 0) ? studentsData : initialStudents;
+    const activeSt = allSt.filter((s: any) => s.status === 'active' || !s.status);
+    const finalSt = activeSt.length > 0 ? activeSt : allSt;
+    setStudents(finalSt as Student[]);
+    if (finalSt.length > 0) {
+      setSelStudentId(finalSt[0].id);
+      setSelTournStudentId(finalSt[0].id);
     }
     const { data: examsData } = await supabase.from('belt_exams').select('*');
     if (examsData) {

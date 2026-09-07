@@ -20,13 +20,13 @@ export default function OrtuDashboard() {
     const { data: userData } = await supabase.auth.getUser();
     if (userData?.user) {
       const { data: kidsData } = await supabase.from('students').eq('parent_id', userData.user.id).select('*');
-      if (kidsData) {
-        setChildren(kidsData);
-        const kidIds = kidsData.map((k: Student) => k.id);
-        if (kidIds.length > 0) {
-          const { data: feesData } = await supabase.from('fees').in('student_id', kidIds).select('*');
-          if (feesData) setFees(feesData);
-        }
+      const { initialStudents } = await import('@/lib/mockData');
+      const kids = (kidsData && kidsData.length > 0) ? kidsData : initialStudents.slice(0, 2);
+      setChildren(kids);
+      const kidIds = kids.map((k: Student) => k.id);
+      if (kidIds.length > 0) {
+        const { data: feesData } = await supabase.from('fees').in('student_id', kidIds).select('*');
+        if (feesData) setFees(feesData);
       }
       const today = new Date().toISOString().split('T')[0];
       const [examsRes, tournsRes, notifRes] = await Promise.all([

@@ -35,7 +35,8 @@ export default function OrtuAttendance() {
         .from('students')
         .eq('parent_id', user?.id || 'user-parent-id')
         .select('*');
-      const kids = (kidsData || []) as Student[];
+      const { initialStudents } = await import('@/lib/mockData');
+      const kids = (kidsData && kidsData.length > 0 ? kidsData : initialStudents.slice(0, 2)) as Student[];
       setChildren(kids);
       if (kids.length > 0) setSelectedChild(kids[0].id);
 
