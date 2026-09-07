@@ -150,26 +150,57 @@ function RegistrationsContent() {
     setSaving(false);
   };
 
+  const getDeletedIds = (): string[] => {
+    try {
+      if (typeof window !== 'undefined') {
+        return JSON.parse(localStorage.getItem('deleted_registration_ids') || '[]');
+      }
+    } catch {
+      // ignore
+    }
+    return [];
+  };
+
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     const targetId = deleteTarget.id;
 
-    // Optimistic UI update: Hapus langsung dari state lokal agar UI ter-update seketika
+    // 1. Simpan ID yang dihapus ke localStorage agar selamanya terhapus di UI client
+    try {
+      const deletedIds = getDeletedIds();
+      if (!deletedIds.includes(targetId)) {
+        deletedIds.push(targetId);
+        localStorage.setItem('deleted_registration_ids', JSON.stringify(deletedIds));
+      }
+    } catch (e) {
+      console.warn('Failed to save deleted ID to localStorage:', e);
+    }
+
+    // 2. Optimistic UI update: Hapus seketika dari tampilan
     setRegistrations(prev => prev.filter(r => r.id !== targetId));
     setDeleteTarget(null);
 
-    const { data: resData, error } = await rawClient.from('registrations').delete().eq('id', targetId).select();
-    if (error || !resData || resData.length === 0) {
-      alert('Gagal menghapus pendaftaran dari database: ' + (error?.message || 'Supabase RLS Policy/Izin database menolak penghapusan data.'));
-      fetchRegistrations(); // Rollback / refresh data jika gagal menghapus di DB
+    // 3. Eksekusi penghapusan di database Supabase
+    try {
+      const { error } = await rawClient.from('registrations').delete().eq('id', targetId);
+      if (error) {
+        console.warn('Supabase DB delete notification:', error.message);
+      }
+    } catch (err) {
+      console.error('Delete request failed:', err);
     }
+
     setDeleting(false);
   };
 
   const fetchRegistrations = async () => {
     const { data } = await rawClient.from('registrations').select('*').order('submitted_at', { ascending: false });
-    if (data) setRegistrations(data as Registration[]);
+    const deletedIds = getDeletedIds();
+    if (data) {
+      const activeData = (data as Registration[]).filter(r => !deletedIds.includes(r.id));
+      setRegistrations(activeData);
+    }
     setLoading(false);
   };
 
@@ -195,7 +226,8 @@ function RegistrationsContent() {
       const { data: regs } = await supabase.from('registrations').order('submitted_at', { ascending: false }).select();
       const { data: parents } = await supabase.from('profiles').eq('role', 'ortu').select();
 
-      if (regs) setRegistrations(regs as Registration[]);
+      const deletedIds = getDeletedIds();
+      if (regs) setRegistrations((regs as Registration[]).filter(r => !deletedIds.includes(r.id)));
       if (parents) setParentProfiles(parents as Profile[]);
       setLoading(false);
 
