@@ -90,53 +90,63 @@ function RegistrationsContent() {
 
     setSaving(true);
     if (editingReg) {
-      const { error } = await supabase
-        .from('registrations')
-        .update({
-          full_name: formData.full_name.trim(),
-          dob: formData.dob,
-          birth_place: formData.birth_place || '',
-          nik: formData.nik || '',
-          current_belt: formData.current_belt || 'Putih',
-          weight: formData.weight ? Number(formData.weight) : null,
-          height: formData.height ? Number(formData.height) : null,
-          parent_name: formData.parent_name.trim(),
-          parent_phone: formData.parent_phone.trim(),
-          parent_job: formData.parent_job || '',
-          address: formData.address.trim(),
-          status: formData.status || 'menunggu',
-        })
-        .eq('id', editingReg.id);
-
-      if (error) {
-        alert('Gagal mengupdate pendaftaran: ' + error.message);
-      } else {
-        setFormOpen(false);
-        fetchRegistrations();
-      }
-    } else {
-      const newReg = {
-        id: isSupabaseConfigured ? crypto.randomUUID() : `reg-${Date.now()}`,
+      const updatePayload: any = {
         full_name: formData.full_name.trim(),
         dob: formData.dob,
         birth_place: formData.birth_place || '',
         nik: formData.nik || '',
         current_belt: formData.current_belt || 'Putih',
-        weight: formData.weight ? Number(formData.weight) : null,
-        height: formData.height ? Number(formData.height) : null,
+        weight: formData.weight ? Number(formData.weight) : undefined,
+        height: formData.height ? Number(formData.height) : undefined,
         parent_name: formData.parent_name.trim(),
         parent_phone: formData.parent_phone.trim(),
         parent_job: formData.parent_job || '',
         address: formData.address.trim(),
         status: formData.status || 'menunggu',
+      };
+
+      // Optimistic update
+      setRegistrations(prev => prev.map(r => r.id === editingReg.id ? { ...r, ...updatePayload } : r));
+      setFormOpen(false);
+
+      const { error } = await rawClient
+        .from('registrations')
+        .update(updatePayload)
+        .eq('id', editingReg.id);
+
+      if (error) {
+        alert('Gagal mengupdate pendaftaran: ' + error.message);
+        fetchRegistrations();
+      } else {
+        fetchRegistrations();
+      }
+    } else {
+      const newReg: Registration = {
+        id: isSupabaseConfigured ? crypto.randomUUID() : `reg-${Date.now()}`,
+        full_name: formData.full_name.trim(),
+        dob: formData.dob || '',
+        birth_place: formData.birth_place || '',
+        nik: formData.nik || '',
+        current_belt: formData.current_belt || 'Putih',
+        weight: formData.weight ? Number(formData.weight) : undefined,
+        height: formData.height ? Number(formData.height) : undefined,
+        parent_name: formData.parent_name.trim(),
+        parent_phone: formData.parent_phone.trim(),
+        parent_job: formData.parent_job || '',
+        address: formData.address.trim(),
+        status: (formData.status as any) || 'menunggu',
         submitted_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase.from('registrations').insert([newReg]);
+      // Optimistic update
+      setRegistrations(prev => [newReg as Registration, ...prev]);
+      setFormOpen(false);
+
+      const { error } = await rawClient.from('registrations').insert([newReg]);
       if (error) {
         alert('Gagal menambahkan pendaftaran: ' + error.message);
+        fetchRegistrations();
       } else {
-        setFormOpen(false);
         fetchRegistrations();
       }
     }
@@ -146,18 +156,24 @@ function RegistrationsContent() {
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    const { error } = await supabase.from('registrations').delete().eq('id', deleteTarget.id);
+    const targetId = deleteTarget.id;
+
+    // Optimistic UI update: Hapus langsung dari state lokal agar UI ter-update seketika
+    setRegistrations(prev => prev.filter(r => r.id !== targetId));
+    setDeleteTarget(null);
+
+    const { error } = await rawClient.from('registrations').delete().eq('id', targetId);
     if (error) {
       alert('Gagal menghapus pendaftaran: ' + error.message);
+      fetchRegistrations(); // Rollback / refresh data jika gagal
     } else {
-      setDeleteTarget(null);
       fetchRegistrations();
     }
     setDeleting(false);
   };
 
   const fetchRegistrations = async () => {
-    const { data } = await supabase.from('registrations').order('submitted_at', { ascending: false }).select();
+    const { data } = await rawClient.from('registrations').select('*').order('submitted_at', { ascending: false });
     if (data) setRegistrations(data as Registration[]);
     setLoading(false);
   };
