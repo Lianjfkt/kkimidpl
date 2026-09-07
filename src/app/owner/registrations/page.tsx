@@ -83,9 +83,17 @@ function RegistrationsContent() {
   };
 
   const handleSaveRegistration = async () => {
-    if (!formData.full_name?.trim() || !formData.dob || !formData.parent_name?.trim() || !formData.parent_phone?.trim() || !formData.address?.trim()) {
-      alert('Mohon lengkapi bidang wajib (Nama Siswa, Tanggal Lahir, Nama Wali, No HP Wali, dan Alamat).');
+    if (!formData.full_name?.trim() || !formData.dob || !formData.parent_name?.trim() || !formData.parent_phone?.trim()) {
+      alert('Mohon lengkapi bidang wajib (Nama Siswa, Tanggal Lahir, Nama Wali, dan No HP Wali).');
       return;
+    }
+
+    if (formData.nik && formData.nik.trim() !== '') {
+      const trimmedNik = formData.nik.trim();
+      if (trimmedNik.length !== 16 || !/^\d+$/.test(trimmedNik)) {
+        alert('NIK harus berupa 16 digit angka.');
+        return;
+      }
     }
 
     setSaving(true);
@@ -101,7 +109,7 @@ function RegistrationsContent() {
         parent_name: formData.parent_name.trim(),
         parent_phone: formData.parent_phone.trim(),
         parent_job: formData.parent_job || '',
-        address: formData.address.trim(),
+        address: formData.address?.trim() || '',
         status: formData.status || 'menunggu',
       };
 
@@ -132,7 +140,7 @@ function RegistrationsContent() {
         parent_name: formData.parent_name.trim(),
         parent_phone: formData.parent_phone.trim(),
         parent_job: formData.parent_job || '',
-        address: formData.address.trim(),
+        address: formData.address?.trim() || '',
         status: (formData.status as any) || 'menunggu',
         submitted_at: new Date().toISOString(),
       };
@@ -211,8 +219,19 @@ function RegistrationsContent() {
 
   const openApproveModal = (reg: Registration) => {
     setApproveTarget(reg);
-    setParentMode('existing');
-    setSelectedParentId('');
+    const phoneClean = reg.parent_phone?.trim().replace(/\D/g, '');
+    const existingParent = parentProfiles.find(
+      p => p.phone && p.phone.trim().replace(/\D/g, '') === phoneClean
+    );
+
+    if (existingParent) {
+      setParentMode('existing');
+      setSelectedParentId(existingParent.id);
+    } else {
+      setParentMode('new');
+      setSelectedParentId('');
+    }
+
     setNewParentName(reg.parent_name);
     setNewParentPhone(reg.parent_phone);
     // Otomatis jadikan nomor HP sebagai default password agar mudah diingat
@@ -323,10 +342,14 @@ function RegistrationsContent() {
       full_name: approveTarget.full_name,
       dob: approveTarget.dob,
       gender: '-',
-      address: approveTarget.address,
+      address: approveTarget.address || '',
       phone: approveTarget.parent_phone,
       parent_name: approveTarget.parent_name,
       parent_job: approveTarget.parent_job,
+      nik: approveTarget.nik || '',
+      birth_place: approveTarget.birth_place || '',
+      weight: approveTarget.weight ? Number(approveTarget.weight) : undefined,
+      height: approveTarget.height ? Number(approveTarget.height) : undefined,
       photo_url: '',
       join_date: new Date().toISOString().split('T')[0],
       current_belt: approveTarget.current_belt || 'Putih',
@@ -791,7 +814,7 @@ function RegistrationsContent() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className={fieldWrap}>
-                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>NIK / No KK</label>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>NIK (NIK anak pada KK)</label>
                 <input
                   type="text"
                   value={formData.nik || ''}
@@ -812,7 +835,8 @@ function RegistrationsContent() {
                   <option value="Hijau">Hijau</option>
                   <option value="Biru Muda">Biru Muda</option>
                   <option value="Biru Tua">Biru Tua</option>
-                  <option value="Coklat">Coklat</option>
+                  <option value="Coklat Muda">Coklat Muda</option>
+                  <option value="Coklat Tua">Coklat Tua</option>
                   <option value="Hitam">Hitam</option>
                 </select>
               </div>

@@ -348,7 +348,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className={fieldWrap}>
-                  <label className={labelClass}>NIK (Nomor Induk Keluarga) *</label>
+                  <label className={labelClass}>NIK (NIK anak pada KK) *</label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
                     <input type="text" required maxLength={16} className={inputClass} placeholder="16 Digit Angka NIK"
