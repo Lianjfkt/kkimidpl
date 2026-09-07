@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Student } from '@/lib/mockData';
+import { OFFICIAL_BELTS, getBeltStyle } from '@/lib/constants/belts';
 
 interface ClassSession {
   id: string;
@@ -12,37 +13,7 @@ interface ClassSession {
   category: string;
 }
 
-export const BELT_OPTIONS = [
-  'Putih',
-  'Kuning',
-  'Hijau',
-  'Biru Muda',
-  'Biru Tua',
-  'Coklat Muda',
-  'Coklat Tua',
-  'Hitam',
-];
-
-const BELT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  Putih:        { bg: 'bg-slate-200',   text: 'text-slate-800',  border: 'border-slate-300' },
-  Kuning:       { bg: 'bg-yellow-300',  text: 'text-yellow-900', border: 'border-yellow-400' },
-  Hijau:        { bg: 'bg-green-500',   text: 'text-white',      border: 'border-green-600' },
-  'Biru Muda':  { bg: 'bg-blue-400',    text: 'text-white',      border: 'border-blue-500' },
-  'Biru Tua':   { bg: 'bg-blue-700',    text: 'text-white',      border: 'border-blue-800' },
-  'Coklat Muda':{ bg: 'bg-amber-700',   text: 'text-white',      border: 'border-amber-800' },
-  'Coklat Tua': { bg: 'bg-amber-900',   text: 'text-white',      border: 'border-amber-950' },
-  Coklat:       { bg: 'bg-amber-800',   text: 'text-white',      border: 'border-amber-900' },
-  Hitam:        { bg: 'bg-gray-900',    text: 'text-white',      border: 'border-red-500' },
-};
-
-function getBeltStyle(belt: string) {
-  for (const key of Object.keys(BELT_COLORS)) {
-    if (belt.toLowerCase().includes(key.toLowerCase())) {
-      return BELT_COLORS[key];
-    }
-  }
-  return { bg: 'bg-slate-700', text: 'text-slate-100', border: 'border-slate-600' };
-}
+export const BELT_OPTIONS = OFFICIAL_BELTS;
 
 export default function OwnerStudents() {
   const router = useRouter();

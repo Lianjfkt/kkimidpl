@@ -6,6 +6,7 @@ import { Registration, Student, Notification, Profile } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthContext';
 import Navigation from '@/components/Navigation';
 import { useSearchParams } from 'next/navigation';
+import { OFFICIAL_BELTS } from '@/lib/constants/belts';
 
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
@@ -830,14 +831,11 @@ function RegistrationsContent() {
                   onChange={e => setFormData({ ...formData, current_belt: e.target.value })}
                   className={inputClass}
                 >
-                  <option value="Putih">Putih</option>
-                  <option value="Kuning">Kuning</option>
-                  <option value="Hijau">Hijau</option>
-                  <option value="Biru Muda">Biru Muda</option>
-                  <option value="Biru Tua">Biru Tua</option>
-                  <option value="Coklat Muda">Coklat Muda</option>
-                  <option value="Coklat Tua">Coklat Tua</option>
-                  <option value="Hitam">Hitam</option>
+                  {OFFICIAL_BELTS.map((belt) => (
+                    <option key={belt} value={belt}>
+                      {belt}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

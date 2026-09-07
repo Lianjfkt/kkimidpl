@@ -5,8 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Student, Fee, StudentAttendance, TournamentParticipant, Tournament, BeltExam, ExamParticipant } from '@/lib/mockData';
+import { OFFICIAL_BELTS } from '@/lib/constants/belts';
 
-const beltOrder = ['Putih', 'Kuning', 'Hijau', 'Biru Muda', 'Biru Tua', 'Coklat Muda', 'Coklat Tua', 'Hitam'];
+const beltOrder = OFFICIAL_BELTS;
 
 const STATUS_CONFIG = {
   hadir:  { label: 'Hadir', dot: 'bg-emerald-500' },

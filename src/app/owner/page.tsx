@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Student, Registration, Fee, StudentAttendance, BeltExam, Tournament, ClassSession } from '@/lib/mockData';
+import { getBeltHex } from '@/lib/constants/belts';
 
 const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
@@ -22,14 +23,7 @@ function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: 
   );
 }
 
-const BELT_COLORS: Record<string, string> = {
-  'Putih': '#e5e7eb', 'Kuning': '#fde68a', 'Hijau': '#4ade80',
-  'Biru Muda': '#93c5fd', 'Biru Tua': '#1d4ed8', 'Biru': '#60a5fa',
-  'Coklat Muda': '#ca8a04', 'Coklat Tua': '#78350f', 'Coklat': '#a16207',
-  'Hitam': '#111827',
-};
-
-const beltColor = (belt: string) => BELT_COLORS[belt] || '#6b7280';
+const beltColor = (belt: string) => getBeltHex(belt);
 
 function StatCard({ label, value, sub, color, icon }: {
   label: string; value: string; sub?: string;

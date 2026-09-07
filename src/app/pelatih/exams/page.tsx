@@ -5,16 +5,9 @@ import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { BeltExam, ExamParticipant, Tournament, TournamentParticipant, Student, Coach } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthContext';
+import { OFFICIAL_BELTS } from '@/lib/constants/belts';
 
-const BELTS = [
-  'Kuning',
-  'Hijau',
-  'Biru Muda',
-  'Biru Tua',
-  'Coklat Muda',
-  'Coklat Tua',
-  'Hitam',
-];
+const BELTS = OFFICIAL_BELTS.filter((b) => b !== 'Putih');
 const MEDALS = ['emas', 'perak', 'perunggu', 'none'] as const;
 
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {

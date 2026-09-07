@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Briefcase
 } from 'lucide-react';
+import { OFFICIAL_BELTS } from '@/lib/constants/belts';
 
 export default function LoginPage() {
   const { signIn, loading: authLoading } = useAuth();
@@ -168,7 +169,7 @@ export default function LoginPage() {
     }
   };
 
-  const beltOptions = ['Putih', 'Kuning', 'Hijau', 'Biru Muda', 'Biru Tua', 'Coklat Muda', 'Coklat Tua', 'Hitam'];
+  const beltOptions = OFFICIAL_BELTS;
 
   const inputClass =
     'w-full pl-10 pr-4 py-3 bg-zinc-950/60 border border-zinc-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm text-white rounded-xl placeholder:text-zinc-600 outline-none transition-all duration-200';

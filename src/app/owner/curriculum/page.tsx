@@ -4,8 +4,9 @@ import React, { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { CurriculumMaterial } from '@/lib/mockData';
+import { OFFICIAL_BELTS } from '@/lib/constants/belts';
 
-const beltLevels = ['Putih', 'Kuning', 'Hijau', 'Biru Muda', 'Biru Tua', 'Coklat Muda', 'Coklat Tua', 'Hitam'];
+const beltLevels = OFFICIAL_BELTS;
 
 export default function CurriculumPage() {
   const [selectedBelt, setSelectedBelt] = useState('Putih');

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ClassSession, Student, Coach } from '@/lib/mockData';
+import { getBeltHex } from '@/lib/constants/belts';
 
 const days = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
@@ -90,13 +91,7 @@ export default function PelatihDashboard() {
   const todayClasses = classes.filter(cls => cls.day_of_week === todayDayOfWeek);
   const otherClasses = classes.filter(cls => cls.day_of_week !== todayDayOfWeek);
 
-  // Distribusi Sabuk Siswa Active
-  const BELT_COLORS: Record<string, string> = {
-    'Putih': '#e5e7eb', 'Kuning': '#fde68a', 'Hijau': '#4ade80',
-    'Biru Muda': '#93c5fd', 'Biru Tua': '#1d4ed8', 'Biru': '#60a5fa',
-    'Coklat Muda': '#ca8a04', 'Coklat Tua': '#78350f', 'Coklat': '#a16207',
-    'Hitam': '#111827',
-  };
+  const beltColor = (belt: string) => getBeltHex(belt);
   const beltDist = students.reduce<Record<string, number>>((acc, s) => {
     const b = s.current_belt || 'Putih';
     acc[b] = (acc[b] || 0) + 1;

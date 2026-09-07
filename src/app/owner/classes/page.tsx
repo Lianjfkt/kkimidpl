@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ClassSession, Coach, Student } from '@/lib/mockData';
+import { getBeltStyle } from '@/lib/constants/belts';
 
 function M3Dialog({
   open,
@@ -53,28 +54,6 @@ const inputClass = 'm3-textfield-outlined text-sm';
 const labelClass = 'block text-xs font-medium mb-1.5';
 const fieldWrap = 'flex flex-col';
 const days = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-
-const BELT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  Putih:        { bg: 'bg-slate-200',   text: 'text-slate-800',  border: 'border-slate-300' },
-  Kuning:       { bg: 'bg-yellow-300',  text: 'text-yellow-900', border: 'border-yellow-400' },
-  Hijau:        { bg: 'bg-green-500',   text: 'text-white',      border: 'border-green-600' },
-  'Biru Muda':  { bg: 'bg-blue-400',    text: 'text-white',      border: 'border-blue-500' },
-  'Biru Tua':   { bg: 'bg-blue-700',    text: 'text-white',      border: 'border-blue-800' },
-  'Coklat Muda':{ bg: 'bg-amber-700',   text: 'text-white',      border: 'border-amber-800' },
-  'Coklat Tua': { bg: 'bg-amber-900',   text: 'text-white',      border: 'border-amber-950' },
-  Coklat:       { bg: 'bg-amber-800',   text: 'text-white',      border: 'border-amber-900' },
-  Hitam:        { bg: 'bg-gray-900',    text: 'text-white',      border: 'border-red-500' },
-};
-
-function getBeltStyle(belt: string) {
-  if (!belt) return { bg: 'bg-slate-700', text: 'text-slate-100', border: 'border-slate-600' };
-  for (const key of Object.keys(BELT_COLORS)) {
-    if (belt.toLowerCase().includes(key.toLowerCase())) {
-      return BELT_COLORS[key];
-    }
-  }
-  return { bg: 'bg-slate-700', text: 'text-slate-100', border: 'border-slate-600' };
-}
 
 const categoryChip = (cat: string) => {
   if (cat === 'kompetisi') return { background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' };

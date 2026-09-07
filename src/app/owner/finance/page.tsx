@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Student, Fee, FinanceTransaction } from '@/lib/mockData';
+import { OFFICIAL_BELTS, getBeltStyle } from '@/lib/constants/belts';
 import {
   MONTH_NAMES,
   formatWhatsAppNumber,
@@ -42,26 +43,8 @@ const fieldWrap = 'flex flex-col';
 const months = MONTH_NAMES;
 const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
 
-const BELT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  Putih:        { bg: 'bg-slate-100 dark:bg-slate-800',   text: 'text-slate-800 dark:text-slate-200',  border: 'border-slate-300 dark:border-slate-600' },
-  Kuning:       { bg: 'bg-yellow-100 dark:bg-yellow-900/40',  text: 'text-yellow-800 dark:text-yellow-300', border: 'border-yellow-300 dark:border-yellow-700' },
-  Hijau:        { bg: 'bg-emerald-100 dark:bg-emerald-900/40',   text: 'text-emerald-800 dark:text-emerald-300', border: 'border-emerald-300 dark:border-emerald-700' },
-  'Biru Muda':  { bg: 'bg-sky-100 dark:bg-sky-900/40',    text: 'text-sky-800 dark:text-sky-300', border: 'border-sky-300 dark:border-sky-700' },
-  'Biru Tua':   { bg: 'bg-blue-100 dark:bg-blue-900/40',    text: 'text-blue-800 dark:text-blue-300', border: 'border-blue-300 dark:border-blue-700' },
-  'Coklat Muda':{ bg: 'bg-amber-100 dark:bg-amber-900/40',  text: 'text-amber-800 dark:text-amber-300', border: 'border-amber-300 dark:border-amber-700' },
-  'Coklat Tua': { bg: 'bg-amber-100 dark:bg-amber-900/50',   text: 'text-amber-900 dark:text-amber-200', border: 'border-amber-400 dark:border-amber-700' },
-  Coklat:       { bg: 'bg-amber-100 dark:bg-amber-900/50',   text: 'text-amber-900 dark:text-amber-200', border: 'border-amber-400 dark:border-amber-700' },
-  Hitam:        { bg: 'bg-gray-800 text-white',    text: 'text-gray-100',      border: 'border-red-500' },
-};
-
 function getBeltBadge(beltName?: string) {
-  if (!beltName) return { bg: 'bg-slate-700', text: 'text-slate-100', border: 'border-slate-600' };
-  for (const key of Object.keys(BELT_COLORS)) {
-    if (beltName.toLowerCase().includes(key.toLowerCase())) {
-      return BELT_COLORS[key];
-    }
-  }
-  return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-800 dark:text-slate-200', border: 'border-slate-300' };
+  return getBeltStyle(beltName);
 }
 
 export default function OwnerFinance() {
@@ -625,10 +608,10 @@ export default function OwnerFinance() {
   }).filter((c) => c.amount > 0 || c.category === 'sewa');
 
   // Student Demographics
-  const beltDistribution = Object.keys(BELT_COLORS).map((belt) => {
+  const beltDistribution = OFFICIAL_BELTS.map((belt) => {
     const count = students.filter((s) => s.status === 'active' && s.current_belt?.toLowerCase().includes(belt.toLowerCase())).length;
     const percent = totalActive > 0 ? Math.round((count / totalActive) * 100) : 0;
-    return { belt, count, percent, style: BELT_COLORS[belt] };
+    return { belt, count, percent, style: getBeltStyle(belt) };
   }).filter((b) => b.count > 0);
 
   const maleCount = students.filter((s) => s.gender?.toLowerCase().startsWith('l')).length;
@@ -1098,7 +1081,7 @@ export default function OwnerFinance() {
                     onChange={(e) => setBillingBeltFilter(e.target.value)}
                   >
                     <option value="">Semua Tingkat Sabuk</option>
-                    {Object.keys(BELT_COLORS).map((belt) => (
+                    {OFFICIAL_BELTS.map((belt) => (
                       <option key={belt} value={belt}>Sabuk {belt}</option>
                     ))}
                   </select>

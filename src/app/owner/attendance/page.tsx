@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase, rawClient } from '@/lib/supabaseClient';
 import { Student, ClassSession, StudentAttendance } from '@/lib/mockData';
+import { OFFICIAL_BELTS } from '@/lib/constants/belts';
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -292,7 +293,7 @@ export default function OwnerAttendanceMonitor() {
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Sabuk</label>
             <select className="m3-textfield-outlined text-sm" value={beltFilter} onChange={e => setBeltFilter(e.target.value)}>
               <option value="">Semua Sabuk</option>
-              {['Putih', 'Kuning', 'Hijau', 'Biru Muda', 'Biru Tua', 'Coklat Muda', 'Coklat Tua', 'Hitam'].map(b => (
+              {OFFICIAL_BELTS.map((b) => (
                 <option key={b} value={b}>{b}</option>
               ))}
             </select>

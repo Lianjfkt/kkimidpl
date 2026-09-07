@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Student, BeltExam, ExamParticipant } from '@/lib/mockData';
+import { OFFICIAL_BELTS, getBeltEmoji } from '@/lib/constants/belts';
 
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
@@ -26,25 +27,6 @@ interface CelebrationData {
   studentName: string;
   fromBelt: string;
   toBelt: string;
-}
-
-const BELT_EMOJI: Record<string, string> = {
-  'Putih': '🥋',
-  'Kuning': '🟡',
-  'Hijau': '🟢',
-  'Biru Muda': '🔵',
-  'Biru Tua': '💙',
-  'Coklat Muda': '🟤',
-  'Coklat': '🟤',
-  'Coklat Tua': '🟫',
-  'Hitam': '⬛',
-};
-
-function getBeltEmoji(belt: string): string {
-  for (const [key, emoji] of Object.entries(BELT_EMOJI)) {
-    if (belt.toLowerCase().includes(key.toLowerCase())) return emoji;
-  }
-  return '🥋';
 }
 
 function BeltLevelUpCelebration({ data, onDone }: { data: CelebrationData; onDone: () => void }) {
@@ -531,13 +513,11 @@ export default function OwnerExams() {
                 value={targetBelt}
                 onChange={(e) => setTargetBelt(e.target.value)}
               >
-                <option value="Kuning">Kuning</option>
-                <option value="Hijau">Hijau</option>
-                <option value="Biru Muda">Biru Muda</option>
-                <option value="Biru Tua">Biru Tua</option>
-                <option value="Coklat Muda">Coklat Muda</option>
-                <option value="Coklat Tua">Coklat Tua</option>
-                <option value="Hitam">Hitam</option>
+                {OFFICIAL_BELTS.filter((b) => b !== 'Putih').map((belt) => (
+                  <option key={belt} value={belt}>
+                    {belt}
+                  </option>
+                ))}
               </select>
             </div>
 
