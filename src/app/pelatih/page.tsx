@@ -193,7 +193,7 @@ export default function PelatihDashboard() {
       const classIds = classesList.map(c => c.id);
 
       const [studentsRes, enrollRes, attTodayRes, attRecentRes, examsRes, examPartRes, tournsRes, tournPartRes] = await Promise.all([
-        supabase.from('students').eq('status', 'active').select('*'),
+        supabase.from('students').select('*'),
         supabase.from('class_students').select('*'),
         supabase.from('attendance_students').eq('session_date', todayStr).select('*'),
         supabase.from('attendance_students')
@@ -205,7 +205,7 @@ export default function PelatihDashboard() {
         supabase.from('tournament_participants').select('*'),
       ]);
 
-      const fetchedStudents = studentsRes.data && studentsRes.data.length > 0 ? studentsRes.data : initialStudents; setStudents(fetchedStudents.filter((s: any) => s.status === 'active' || !s.status));
+      const rawStudents = (studentsRes.data && studentsRes.data.length > 0) ? studentsRes.data : initialStudents; const activeSt = rawStudents.filter((s: any) => s.status === 'active' || s.status === undefined || s.status === null || s.status === ''); setStudents(activeSt.length > 0 ? activeSt : initialStudents);
       if (enrollRes.data) setEnrollments(enrollRes.data);
       if (attTodayRes.data) setTodayAttendance(attTodayRes.data);
       if (attRecentRes.data) setRecentAttendance(attRecentRes.data);
