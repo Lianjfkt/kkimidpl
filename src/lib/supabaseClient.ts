@@ -31,7 +31,7 @@ class PendingQuery {
   private relation: string;
   private action: 'select' | 'insert' | 'update' | 'delete' = 'select';
   private actionArgs: any[] = [];
-  private filters: { method: string; args: any[] }[] = [];
+  private chain: { method: string; args: any[] }[] = [];
   private hasSelectAfterMutation = false;
   private selectArgs: any[] = [];
   private isSingle = false;
@@ -80,8 +80,8 @@ class PendingQuery {
     return this;
   }
 
-  addFilter(method: string, args: any[]) {
-    this.filters.push({ method, args });
+  addChain(method: string, args: any[]) {
+    this.chain.push({ method, args });
     return this;
   }
 
@@ -99,9 +99,9 @@ class PendingQuery {
       }
     }
 
-    for (const filter of this.filters) {
-      if (typeof query[filter.method] === 'function') {
-        query = query[filter.method](...filter.args);
+    for (const step of this.chain) {
+      if (typeof query[step.method] === 'function') {
+        query = query[step.method](...step.args);
       }
     }
 
@@ -119,47 +119,24 @@ class PendingQuery {
   }
 }
 
-function createQueryProxy(relation: string): any {
-  const pending = new PendingQuery(relation);
-
-  return new Proxy(pending, {
-    get(target: any, prop: string) {
-      if (prop in target) {
-        const val = target[prop];
-        return typeof val === 'function' ? val.bind(target) : val;
+function createProxy(target: any): any {
+  return new Proxy(target, {
+    get(t: any, prop: string) {
+      if (prop in t) {
+        const val = t[prop];
+        return typeof val === 'function' ? (...args: any[]) => {
+          const res = val.apply(t, args);
+          return createProxy(res);
+        } : val;
       }
 
       if (filterMethods.has(prop)) {
         return (...args: any[]) => {
-          target.addFilter(prop, args);
-          return createQueryProxyWrapper(target);
+          t.addChain(prop, args);
+          return createProxy(t);
         };
       }
 
-      return undefined;
-    }
-  });
-}
-
-function createQueryProxyWrapper(pending: PendingQuery): any {
-  return new Proxy(pending, {
-    get(target: any, prop: string) {
-      if (prop in target) {
-        const val = target[prop];
-        return typeof val === 'function' ? val.bind(target) : val;
-      }
-      if (prop === 'update' || prop === 'delete' || prop === 'insert' || prop === 'select') {
-        return (...args: any[]) => {
-          (target as any)[prop](...args);
-          return createQueryProxyWrapper(target);
-        };
-      }
-      if (filterMethods.has(prop)) {
-        return (...args: any[]) => {
-          target.addFilter(prop, args);
-          return createQueryProxyWrapper(target);
-        };
-      }
       return undefined;
     }
   });
@@ -170,7 +147,7 @@ export const supabase: any = new Proxy(rawClient, {
   get(target, prop: string) {
     if (prop === 'from') {
       return (relation: string) => {
-        return createQueryProxy(relation);
+        return createProxy(new PendingQuery(relation));
       };
     }
     const value = (target as any)[prop];
