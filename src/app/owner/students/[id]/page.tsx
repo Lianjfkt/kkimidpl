@@ -117,7 +117,7 @@ export default function StudentDetailPage() {
           <div className="w-16 h-16 rounded-full border-4 border-t-transparent animate-spin mb-6"
             style={{ borderColor: 'var(--md-sys-color-primary)', borderTopColor: 'transparent' }} />
           <p style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Memuat profil detail atlet...</p>
-          <p className="text-xs mt-2" style={{ color: 'var(--md-sys-color-outline)' }}>ID: {studentId}</p>
+          <p className="text-xs mt-2" style={{ color: 'var(--md-sys-color-on-surface-variant)', opacity: 0.6 }}>ID: {studentId}</p>
         </div>
       </Navigation>
     );
@@ -129,16 +129,17 @@ export default function StudentDetailPage() {
         <div className="space-y-4">
           <button
             onClick={() => router.push('/owner/students')}
-            className="m3-btn-outlined py-1.5 px-4 text-xs font-semibold"
+            className="apple-btn-secondary py-1.5 px-4 text-xs font-semibold cursor-pointer rounded-2xl"
           >
             ← Kembali ke Daftar
           </button>
-          <div className="p-8 text-center rounded-3xl" style={{ background: 'var(--md-sys-color-error-container)' }}>
+          <div className="p-8 text-center rounded-3xl border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
             <div className="text-4xl mb-4">⚠️</div>
-            <p className="font-bold text-lg" style={{ color: 'var(--md-sys-color-on-error-container)' }}>
+            <p className="font-bold text-lg" style={{ color: 'var(--md-sys-color-error)' }}>
               {errorMsg || 'Siswa tidak ditemukan.'}
             </p>
-            <p className="text-sm mt-2" style={{ color: 'var(--md-sys-color-on-error-container)', opacity: 0.7 }}>
+            <p className="text-sm mt-2" style={{ color: 'var(--md-sys-color-on-surface-variant)', opacity: 0.7 }}>
               ID yang dicari: <code className="font-mono">{studentId}</code>
             </p>
           </div>
@@ -163,11 +164,11 @@ export default function StudentDetailPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/owner/students')}
-            className="m3-btn-outlined py-1.5 px-3 text-xs font-semibold cursor-pointer"
+            className="apple-btn-secondary py-2 px-4 text-xs font-semibold cursor-pointer rounded-2xl transition-all duration-200"
           >
             ← Kembali ke Daftar
           </button>
-          <h2 className="text-2xl font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+          <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
             Profil Detail Atlet
           </h2>
         </div>
@@ -175,26 +176,46 @@ export default function StudentDetailPage() {
         {/* Top Info Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Main profile card */}
-          <div className="m3-card-elevated flex flex-col items-center text-center">
-            <div className="w-20 h-20 rounded-full bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex items-center justify-center text-3xl font-extrabold mb-3">
+          <div
+            className="rounded-3xl p-6 flex flex-col items-center text-center border border-[var(--neu-border)] transition-all duration-200"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-extrabold mb-3 border border-[var(--neu-border)]"
+              style={{
+                background: 'var(--neu-surface-low)',
+                boxShadow: 'var(--neu-shadow-pressed-sm)',
+                color: 'var(--md-sys-color-primary)',
+              }}
+            >
               {student.full_name.charAt(0)}
             </div>
             <h3 className="font-bold text-lg" style={{ color: 'var(--md-sys-color-on-surface)' }}>{student.full_name}</h3>
-            <span className="text-xs uppercase tracking-wider font-semibold opacity-60">{student.nik || 'No NIK'}</span>
-            <span className="mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold bg-[var(--md-sys-color-surface-variant)]" style={{ color: 'var(--md-sys-color-primary)' }}>
+            <span className="text-xs uppercase tracking-wider font-semibold opacity-60 mt-0.5">{student.nik || 'No NIK'}</span>
+            <span
+              className="mt-2 inline-block px-3.5 py-1 rounded-full text-xs font-bold border border-[var(--neu-border)]"
+              style={{
+                background: 'var(--neu-surface-low)',
+                boxShadow: 'var(--neu-shadow-pressed-sm)',
+                color: 'var(--md-sys-color-primary)',
+              }}
+            >
               🥋 Sabuk {student.current_belt}
             </span>
 
             {/* Status badge */}
-            <span className={`mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold ${
-              student.status === 'active'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-            }`}>
+            <span
+              className="mt-2 inline-block px-3 py-1 rounded-full text-xs font-bold"
+              style={
+                student.status === 'active'
+                  ? { background: 'var(--neu-accent-grad)', color: '#fff', boxShadow: '0 2px 8px rgba(255,82,82,0.3)' }
+                  : { background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface-variant)' }
+              }
+            >
               {student.status === 'active' ? '✓ Aktif' : '✗ Nonaktif'}
             </span>
 
-            <div className="w-full grid grid-cols-2 gap-2 text-left mt-6 pt-6 border-t" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+            <div className="w-full grid grid-cols-2 gap-2 text-left mt-6 pt-6 border-t" style={{ borderColor: 'var(--neu-border)' }}>
               <div>
                 <span className="block text-[10px] opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>Status Kehadiran</span>
                 <span className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>{attPct}% ({hadirAtt}/{totalAtt})</span>
@@ -214,14 +235,14 @@ export default function StudentDetailPage() {
             </div>
 
             {student.phone && (
-              <div className="w-full text-left mt-4 pt-4 border-t" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+              <div className="w-full text-left mt-4 pt-4 border-t" style={{ borderColor: 'var(--neu-border)' }}>
                 <span className="block text-[10px] opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>No. Telepon</span>
                 <span className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>{student.phone}</span>
               </div>
             )}
 
             {(student.parent_name || student.parent_job) && (
-              <div className="w-full text-left mt-4 pt-4 border-t space-y-2" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+              <div className="w-full text-left mt-4 pt-4 border-t space-y-2" style={{ borderColor: 'var(--neu-border)' }}>
                 <span className="block text-[10px] uppercase tracking-wider font-bold opacity-50" style={{ color: 'var(--md-sys-color-on-surface)' }}>Data Orang Tua</span>
                 {student.parent_name && (
                   <div>
@@ -240,7 +261,10 @@ export default function StudentDetailPage() {
           </div>
 
           {/* Belt journey progress timeline */}
-          <div className="m3-card-elevated md:col-span-2">
+          <div
+            className="rounded-3xl p-6 md:col-span-2 border border-[var(--neu-border)] transition-all duration-200"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <h4 className="font-bold text-base mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>Belt Journey &amp; Progress</h4>
 
             {/* Visual belt progress bar */}
@@ -249,10 +273,10 @@ export default function StudentDetailPage() {
                 <span>Sabuk {student.current_belt}</span>
                 <span>{progressPct}% menuju Sabuk Hitam</span>
               </div>
-              <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: 'var(--md-sys-color-surface-container-highest)' }}>
+              <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                 <div
                   className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${progressPct}%`, background: 'var(--md-sys-color-primary)' }}
+                  style={{ width: `${progressPct}%`, background: 'var(--neu-accent-grad)' }}
                 />
               </div>
             </div>
@@ -265,22 +289,29 @@ export default function StudentDetailPage() {
                 return (
                   <div key={belt} className="flex items-center flex-shrink-0">
                     <div className="flex flex-col items-center gap-1">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        isCurrent
-                          ? 'bg-[var(--md-sys-color-primary)] text-white ring-2 ring-red-300'
-                          : isPassed
-                            ? 'bg-emerald-500 text-white'
-                            : 'text-gray-400'
-                      }`}
-                        style={!isCurrent && !isPassed ? { background: 'var(--md-sys-color-surface-container-highest)' } : {}}
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border transition-all ${
+                          isCurrent
+                            ? 'text-white border-transparent'
+                            : isPassed
+                              ? 'bg-emerald-500 text-white border-emerald-400'
+                              : 'text-gray-400 border-[var(--neu-border)]'
+                        }`}
+                        style={
+                          isCurrent
+                            ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)' }
+                            : !isPassed
+                              ? { background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
+                              : {}
+                        }
                       >
                         {idx + 1}
                       </div>
                       <span className="text-[9px] font-semibold" style={{ color: isCurrent ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-on-surface-variant)' }}>{belt}</span>
                     </div>
                     {idx < beltOrder.length - 1 && (
-                      <div className={`w-6 h-0.5 ${isPassed ? 'bg-emerald-500' : ''}`}
-                        style={!isPassed ? { background: 'var(--md-sys-color-surface-container-highest)' } : {}} />
+                      <div className={`w-6 h-1 rounded-full ${isPassed ? 'bg-emerald-500' : ''}`}
+                        style={!isPassed ? { background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' } : {}} />
                     )}
                   </div>
                 );
@@ -289,21 +320,24 @@ export default function StudentDetailPage() {
 
             {/* Physical stats if available */}
             {(student.weight || student.height || student.specialization) && (
-              <div className="mt-6 pt-4 border-t grid grid-cols-3 gap-4" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+              <div className="mt-6 pt-4 border-t grid grid-cols-3 gap-4" style={{ borderColor: 'var(--neu-border)' }}>
                 {student.weight && (
-                  <div className="text-center p-3 rounded-xl" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                  <div className="text-center p-3 rounded-2xl border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                     <p className="text-2xl font-extrabold" style={{ color: 'var(--md-sys-color-primary)' }}>{student.weight}</p>
                     <p className="text-[10px] opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>kg</p>
                   </div>
                 )}
                 {student.height && (
-                  <div className="text-center p-3 rounded-xl" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                  <div className="text-center p-3 rounded-2xl border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                     <p className="text-2xl font-extrabold" style={{ color: 'var(--md-sys-color-primary)' }}>{student.height}</p>
                     <p className="text-[10px] opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>cm</p>
                   </div>
                 )}
                 {student.specialization && (
-                  <div className="text-center p-3 rounded-xl" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                  <div className="text-center p-3 rounded-2xl border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                     <p className="text-sm font-extrabold" style={{ color: 'var(--md-sys-color-primary)' }}>{student.specialization}</p>
                     <p className="text-[10px] opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>Spesialisasi</p>
                   </div>
@@ -316,16 +350,24 @@ export default function StudentDetailPage() {
         {/* Lower Info Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Attendance list */}
-          <div className="m3-card-elevated lg:col-span-2 space-y-4">
+          <div
+            className="rounded-3xl p-6 lg:col-span-2 space-y-4 border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <h4 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Riwayat Absensi Terakhir</h4>
             {attendance.length === 0 ? (
               <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Belum ada data kehadiran latihan tercatat.</p>
             ) : (
-              <div className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+              <div className="divide-y" style={{ borderColor: 'var(--neu-border)' }}>
                 {attendance.slice(0, 10).map(rec => {
                   const cfg = STATUS_CONFIG[rec.status as keyof typeof STATUS_CONFIG];
                   return (
-                    <div key={rec.id} className="py-2.5 flex items-center justify-between">
+                    <div
+                      key={rec.id}
+                      className="py-2.5 px-3 rounded-xl flex items-center justify-between transition-colors"
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    >
                       <div className="flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${cfg?.dot || 'bg-gray-400'}`} />
                         <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{rec.session_date}</span>
@@ -339,7 +381,10 @@ export default function StudentDetailPage() {
           </div>
 
           {/* Coach Notes */}
-          <div className="m3-card-elevated flex flex-col justify-between">
+          <div
+            className="rounded-3xl p-6 flex flex-col justify-between border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <div>
               <h4 className="font-bold text-base mb-2" style={{ color: 'var(--md-sys-color-on-surface)' }}>Catatan Khusus Pelatih</h4>
               <p className="text-[10px] opacity-70 mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>Informasi riwayat medis, cedera, atau evaluasi teknik khusus atlet</p>
@@ -348,19 +393,22 @@ export default function StudentDetailPage() {
                 onChange={e => setCoachNotes(e.target.value)}
                 placeholder="Tulis evaluasi atau riwayat medis..."
                 rows={5}
-                className="w-full text-xs p-3 rounded-xl focus:outline-none focus:ring-2"
+                className="w-full text-xs p-3 rounded-2xl outline-none transition-all"
                 style={{
-                  background: 'var(--md-sys-color-surface-container)',
+                  background: 'var(--neu-surface-low)',
+                  boxShadow: 'var(--neu-shadow-pressed-sm)',
                   color: 'var(--md-sys-color-on-surface)',
-                  border: '1px solid var(--md-sys-color-outline-variant)',
+                  border: '1px solid var(--neu-border)',
                   resize: 'vertical',
                 } as React.CSSProperties}
+                onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
               />
             </div>
             <button
               onClick={saveNotes}
               disabled={savingNotes}
-              className="m3-btn-filled w-full mt-4 text-xs font-semibold cursor-pointer"
+              className="apple-btn w-full mt-4 py-2.5 text-xs font-semibold cursor-pointer"
             >
               {savingNotes ? 'Menyimpan...' : '💾 Simpan Catatan'}
             </button>
@@ -369,22 +417,32 @@ export default function StudentDetailPage() {
 
         {/* Fees */}
         {fees.length > 0 && (
-          <div className="m3-card-elevated">
+          <div
+            className="rounded-3xl p-6 border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <h4 className="font-bold text-base mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>Riwayat Iuran</h4>
             <div className="space-y-2">
               {fees.slice(0, 6).map(fee => (
-                <div key={fee.id} className="p-3 rounded-xl flex items-center justify-between" style={{ background: 'var(--md-sys-color-surface-container-high)' }}>
+                <div
+                  key={fee.id}
+                  className="p-3.5 rounded-2xl flex items-center justify-between border border-[var(--neu-border)] transition-all"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                >
                   <div>
                     <p className="text-xs font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                       {fee.period_month}/{fee.period_year}
                     </p>
                     <p className="text-[10px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Rp {fee.amount?.toLocaleString('id-ID')}</p>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${
-                    fee.status === 'lunas'
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                  }`}>
+                  <span
+                    className="px-2.5 py-1 rounded-full text-[10px] font-bold capitalize"
+                    style={
+                      fee.status === 'lunas'
+                        ? { background: 'var(--neu-accent-grad)', color: '#fff', boxShadow: '0 2px 8px rgba(255,82,82,0.3)' }
+                        : { background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }
+                    }
+                  >
                     {fee.status}
                   </span>
                 </div>
@@ -396,23 +454,33 @@ export default function StudentDetailPage() {
         {/* Exams & Tournaments history */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Ujian */}
-          <div className="m3-card-elevated">
+          <div
+            className="rounded-3xl p-6 border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <h4 className="font-bold text-base mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>Riwayat Ujian Sabuk</h4>
             {examsPlayed.length === 0 ? (
               <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Belum pernah berpartisipasi dalam ujian kenaikan sabuk.</p>
             ) : (
               <div className="space-y-3">
                 {examsPlayed.map(ep => (
-                  <div key={ep.id} className="p-3 rounded-xl flex items-center justify-between" style={{ background: 'var(--md-sys-color-surface-container-high)' }}>
+                  <div
+                    key={ep.id}
+                    className="p-3.5 rounded-2xl flex items-center justify-between border border-[var(--neu-border)] transition-all"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
                     <div>
                       <p className="text-xs font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{ep.current_belt} → {ep.target_belt}</p>
                       <p className="text-[10px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{ep.examDate} · {ep.location}</p>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${
-                      ep.result === 'lulus'
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        : 'bg-red-500/20 text-red-300 border border-red-500/30'
-                    }`}>
+                    <span
+                      className="px-2.5 py-1 rounded-full text-[10px] font-bold capitalize"
+                      style={
+                        ep.result === 'lulus'
+                          ? { background: 'var(--neu-accent-grad)', color: '#fff', boxShadow: '0 2px 8px rgba(255,82,82,0.3)' }
+                          : { background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }
+                      }
+                    >
                       {ep.result}
                     </span>
                   </div>
@@ -422,24 +490,32 @@ export default function StudentDetailPage() {
           </div>
 
           {/* Turnamen */}
-          <div className="m3-card-elevated">
+          <div
+            className="rounded-3xl p-6 border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <h4 className="font-bold text-base mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>Pencapaian Turnamen</h4>
             {tournamentRuns.length === 0 ? (
               <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Belum pernah mengikuti kejuaraan karate resmi.</p>
             ) : (
               <div className="space-y-3">
                 {tournamentRuns.map(tr => (
-                  <div key={tr.id} className="p-3 rounded-xl flex items-center justify-between" style={{ background: 'var(--md-sys-color-surface-container-high)' }}>
+                  <div
+                    key={tr.id}
+                    className="p-3.5 rounded-2xl flex items-center justify-between border border-[var(--neu-border)] transition-all"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
                     <div>
                       <p className="text-xs font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{tr.tournamentName}</p>
                       <p className="text-[10px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{tr.category} · {tr.date}</p>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      tr.medal !== 'none'
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        : ''
-                    }`}
-                      style={tr.medal === 'none' ? { background: 'var(--md-sys-color-surface-container-highest)', color: 'var(--md-sys-color-on-surface-variant)' } : {}}
+                    <span
+                      className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                      style={
+                        tr.medal !== 'none'
+                          ? { background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }
+                          : { background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)', border: '1px solid var(--neu-border)' }
+                      }
                     >
                       🏅 {tr.medal === 'none' ? 'Partisipan' : tr.medal}
                     </span>

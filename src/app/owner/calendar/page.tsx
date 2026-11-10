@@ -69,14 +69,14 @@ export default function CalendarPage() {
     // Check classes (weekly recurring)
     classes.forEach(c => {
       if (c.day_of_week === dayOfWeek) {
-        list.push({ type: 'class', label: `🥋 ${c.name}`, color: 'var(--md-sys-color-secondary-container)' });
+        list.push({ type: 'class', label: `🥋 ${c.name}`, bg: 'rgba(59, 130, 246, 0.15)', text: '#60a5fa', border: 'rgba(59, 130, 246, 0.3)' });
       }
     });
 
     // Check exams
     exams.forEach(e => {
       if (e.exam_date === dateStr) {
-        list.push({ type: 'exam', label: `📝 Ujian: ${e.location}`, color: 'var(--md-sys-color-tertiary-container)' });
+        list.push({ type: 'exam', label: `📝 Ujian: ${e.location}`, bg: 'rgba(234, 88, 12, 0.15)', text: '#fb923c', border: 'rgba(234, 88, 12, 0.3)' });
       }
     });
 
@@ -84,7 +84,7 @@ export default function CalendarPage() {
     tournaments.forEach(t => {
       const tourneyDate = t.tournament_date || t.start_date;
       if (tourneyDate === dateStr) {
-        list.push({ type: 'tournament', label: `🏆 ${t.name}`, color: 'var(--md-sys-color-primary-container)' });
+        list.push({ type: 'tournament', label: `🏆 ${t.name}`, bg: 'rgba(239, 68, 68, 0.15)', text: '#f87171', border: 'rgba(239, 68, 68, 0.3)' });
       }
     });
 
@@ -94,9 +94,9 @@ export default function CalendarPage() {
   return (
     <Navigation>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+            <h2 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
               Kalender Akademik Dojo
             </h2>
             <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -104,70 +104,116 @@ export default function CalendarPage() {
             </p>
           </div>
           
-          <div className="flex items-center gap-2 bg-[var(--md-sys-color-surface-container-high)] p-1 rounded-full w-fit">
-            <button onClick={prevMonth} className="px-3.5 py-1.5 rounded-full hover:bg-black/10 text-xs font-semibold cursor-pointer">⟨ Prev</button>
+          <div
+            className="flex items-center gap-1.5 p-1.5 rounded-2xl border border-[var(--neu-border)] w-fit"
+            style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+          >
+            <button
+              onClick={prevMonth}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-105 cursor-pointer"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat-sm)', color: 'var(--md-sys-color-on-surface)' }}
+            >
+              ⟨ Prev
+            </button>
             <span className="text-xs font-bold px-3 text-[var(--md-sys-color-on-surface)]">{months[month]} {year}</span>
-            <button onClick={nextMonth} className="px-3.5 py-1.5 rounded-full hover:bg-black/10 text-xs font-semibold cursor-pointer">Next ⟩</button>
+            <button
+              onClick={nextMonth}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-105 cursor-pointer"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat-sm)', color: 'var(--md-sys-color-on-surface)' }}
+            >
+              Next ⟩
+            </button>
           </div>
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4 text-xs p-3 rounded-2xl bg-[var(--md-sys-color-surface-container-low)]">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded-md" style={{ background: 'var(--md-sys-color-secondary-container)' }} />
-            <span style={{ color: 'var(--md-sys-color-on-surface)' }}>Latihan Rutin</span>
+        <div
+          className="flex flex-wrap items-center gap-5 text-xs p-4 rounded-3xl border border-[var(--neu-border)]"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+        >
+          <span className="font-bold uppercase tracking-wider text-[11px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+            Keterangan:
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="w-3.5 h-3.5 rounded-lg bg-blue-500/20 border border-blue-500/40" />
+            <span className="font-semibold text-blue-400">Latihan Rutin</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded-md" style={{ background: 'var(--md-sys-color-tertiary-container)' }} />
-            <span style={{ color: 'var(--md-sys-color-on-surface)' }}>Ujian Sabuk</span>
+          <div className="flex items-center gap-2">
+            <span className="w-3.5 h-3.5 rounded-lg bg-orange-500/20 border border-orange-500/40" />
+            <span className="font-semibold text-orange-400">Ujian Sabuk</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3.5 h-3.5 rounded-md" style={{ background: 'var(--md-sys-color-primary-container)' }} />
-            <span style={{ color: 'var(--md-sys-color-on-surface)' }}>Turnamen / Event</span>
+          <div className="flex items-center gap-2">
+            <span className="w-3.5 h-3.5 rounded-lg bg-red-500/20 border border-red-500/40" />
+            <span className="font-semibold text-red-400">Turnamen / Event</span>
           </div>
         </div>
 
         {/* Grid Calendar */}
-        <div className="m3-card-elevated p-4 overflow-x-auto">
-          <div className="min-w-[600px]">
-            <div className="grid grid-cols-7 gap-2 text-center font-bold text-xs pb-3 border-b mb-3" style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface-variant)' }}>
-              {days.map(d => <div key={d}>{d}</div>)}
+        <div
+          className="rounded-3xl border border-[var(--neu-border)] p-6 overflow-x-auto shadow-2xl"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+        >
+          <div className="min-w-[650px]">
+            <div
+              className="grid grid-cols-7 gap-3 text-center font-bold text-xs pb-3 border-b border-[var(--neu-border)] mb-3"
+              style={{ color: 'var(--md-sys-color-on-surface-variant)' }}
+            >
+              {days.map(d => <div key={d} className="uppercase tracking-wider">{d}</div>)}
             </div>
             
             {loading ? (
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-3">
                 {Array.from({ length: 35 }).map((_, i) => (
-                  <div key={i} className="h-24 rounded-xl animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                  <div
+                    key={i}
+                    className="h-28 rounded-2xl animate-pulse"
+                    style={{ background: 'var(--neu-surface-low)' }}
+                  />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-3">
                 {calendarDays.map((day, idx) => {
                   const evs = day ? getEventsForDate(day) : [];
                   const isToday = day && new Date().getDate() === day && new Date().getMonth() === month && new Date().getFullYear() === year;
                   
+                  if (!day) {
+                    return <div key={idx} className="min-h-28 p-2 rounded-2xl opacity-20" />;
+                  }
+
                   return (
                     <div
                       key={idx}
-                      className="min-h-24 p-2 rounded-xl flex flex-col justify-between border"
+                      className={`min-h-28 p-3 rounded-2xl flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 border ${
+                        isToday
+                          ? 'border-[var(--md-sys-color-primary)] ring-2 ring-[var(--md-sys-color-primary)]/40 shadow-lg'
+                          : 'border-[var(--neu-border)]'
+                      }`}
                       style={{
-                        background: isToday ? 'var(--md-sys-color-surface-container-highest)' : 'var(--md-sys-color-surface-container-lowest)',
-                        borderColor: isToday ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)'
+                        background: isToday ? 'var(--neu-surface-high)' : 'var(--neu-surface-low)',
+                        boxShadow: isToday ? 'var(--neu-shadow-hover)' : 'var(--neu-shadow-pressed-sm)'
                       }}
                     >
                       <div className="flex justify-between items-center">
-                        <span className={`text-xs font-semibold ${isToday ? 'text-[var(--md-sys-color-primary)] font-extrabold' : 'text-[var(--md-sys-color-on-surface)]'}`}>
-                          {day || ''}
+                        <span className={`text-xs font-bold ${isToday ? 'text-[var(--md-sys-color-primary)] font-extrabold' : 'text-[var(--md-sys-color-on-surface)]'}`}>
+                          {day}
                         </span>
-                        {isToday && <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]">Hari Ini</span>}
+                        {isToday && (
+                          <span
+                            className="text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full text-white"
+                            style={{ background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)' }}
+                          >
+                            Hari Ini
+                          </span>
+                        )}
                       </div>
 
-                      <div className="space-y-1 mt-2">
+                      <div className="space-y-1.5 mt-2">
                         {evs.map((e, eIdx) => (
                           <div
                             key={eIdx}
-                            className="text-[9px] p-1 rounded font-semibold truncate"
-                            style={{ background: e.color, color: 'var(--md-sys-color-on-surface)' }}
+                            className="text-[10px] px-2 py-1 rounded-xl font-bold truncate border transition-transform hover:scale-102"
+                            style={{ background: e.bg, color: e.text, borderColor: e.border }}
                             title={e.label}
                           >
                             {e.label}

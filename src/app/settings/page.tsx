@@ -12,18 +12,34 @@ const roleLabel: Record<string, string> = {
   ortu: 'Orang Tua / Wali',
 };
 
-const inputClass = 'm3-textfield-outlined text-sm';
 const labelClass = 'block text-xs font-semibold mb-1.5';
 const fieldWrap = 'flex flex-col';
 
-// Reusable M3 Dialog
+const neuInputStyle: React.CSSProperties = {
+  background: 'var(--neu-surface-low)',
+  boxShadow: 'var(--neu-shadow-pressed-sm)',
+  border: '1px solid var(--neu-border)',
+  color: 'var(--md-sys-color-on-surface)',
+};
+
+// Reusable M3 Dialog — updated to Neumorphism style
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)' }} onClick={onClose}>
-      <div className="w-full max-w-md rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-m3-dialog-enter"
-        style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
-        onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-3xl p-6"
+        style={{
+          background: 'var(--neu-surface-high)',
+          boxShadow: 'var(--neu-shadow-flat-lg), 0 20px 48px rgba(0,0,0,0.5)',
+          border: '1px solid var(--neu-border)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-xl font-bold mb-5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
         {children}
       </div>
@@ -190,35 +206,74 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left / Top: Own profile info */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex items-center gap-4"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-              <div className="w-12 h-12 rounded-[var(--md-sys-shape-corner-full)] flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
-                style={{ background: 'var(--md-sys-color-primary)' }}>
+            {/* Profile card */}
+            <div
+              className="rounded-3xl p-5 flex items-center gap-4 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
+              {/* Avatar circle */}
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0"
+                style={{
+                  background: 'var(--neu-surface-low)',
+                  boxShadow: 'var(--neu-shadow-pressed-sm)',
+                  border: '2px solid var(--neu-border)',
+                  color: 'var(--md-sys-color-on-surface)',
+                }}
+              >
                 {fullName.charAt(0) || '?'}
               </div>
               <div>
                 <p className="text-base font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{fullName || '—'}</p>
-                <span className="inline-block mt-0.5 px-2.5 py-0.5 rounded-[var(--md-sys-shape-corner-full)] text-[10px] font-semibold"
-                  style={{ background: 'var(--md-sys-color-surface-container-highest)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                {/* Role badge pill */}
+                <span
+                  className="inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
+                  style={{
+                    background: 'var(--neu-surface-low)',
+                    boxShadow: 'var(--neu-shadow-pressed-sm)',
+                    border: '1px solid var(--neu-border)',
+                    color: 'var(--md-sys-color-on-surface-variant)',
+                  }}
+                >
                   {profile ? roleLabel[profile.role] || profile.role : '—'}
                 </span>
               </div>
             </div>
 
             {/* Own profile form */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-6 space-y-4"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div
+              className="rounded-3xl p-6 space-y-4 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
               <h3 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>Profil Saya</h3>
               <form onSubmit={handleSaveOwnProfile} className="space-y-4">
                 <div className={fieldWrap}>
                   <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama Lengkap</label>
-                  <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} required className={inputClass} />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={e => setFullName(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
+                    style={neuInputStyle}
+                    onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                    onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
+                  />
                 </div>
                 <div className={fieldWrap}>
                   <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nomor Telepon</label>
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="08xxxxxxxxxx" className={inputClass} />
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="08xxxxxxxxxx"
+                    className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
+                    style={neuInputStyle}
+                    onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                    onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
+                  />
                 </div>
-                <button type="submit" disabled={saving} className="m3-btn-filled w-full py-2.5 text-xs font-semibold">
+                <button type="submit" disabled={saving} className="apple-btn w-full py-2.5 text-xs font-semibold cursor-pointer">
                   {saving ? 'Menyimpan...' : '💾 Simpan Perubahan'}
                 </button>
                 {saved && (
@@ -229,32 +284,48 @@ export default function SettingsPage() {
               </form>
             </div>
 
-            {/* Theme Settings Form */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-6 space-y-4"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            {/* Theme Settings */}
+            <div
+              className="rounded-3xl p-6 space-y-4 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
               <h3 className="font-semibold text-sm animate-fade-in" style={{ color: 'var(--md-sys-color-on-surface)' }}>Tampilan</h3>
               <div className="flex flex-col gap-2">
                 <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Mode Tema</label>
-                <div className="flex gap-2 p-1 rounded-full bg-[var(--md-sys-color-surface-container-high)]">
+                {/* Neumorphic segmented control */}
+                <div
+                  className="flex p-1.5 rounded-2xl gap-1 border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed)' }}
+                >
                   <button
                     type="button"
                     onClick={() => handleThemeChange('dark')}
-                    className={`flex-1 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                      theme === 'dark'
-                        ? 'bg-[var(--md-sys-color-primary)] text-white'
-                        : 'text-[var(--md-sys-color-on-surface-variant)]'
-                    }`}
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                    style={theme === 'dark' ? {
+                      background: 'var(--neu-accent-grad)',
+                      boxShadow: 'var(--neu-shadow-accent)',
+                      color: '#fff',
+                    } : {
+                      background: 'transparent',
+                      color: 'var(--md-sys-color-on-surface-variant)',
+                      boxShadow: 'none',
+                    }}
                   >
                     🌙 Dark
                   </button>
                   <button
                     type="button"
                     onClick={() => handleThemeChange('light')}
-                    className={`flex-1 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                      theme === 'light'
-                        ? 'bg-[var(--md-sys-color-primary)] text-white'
-                        : 'text-[var(--md-sys-color-on-surface-variant)]'
-                    }`}
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                    style={theme === 'light' ? {
+                      background: 'var(--neu-accent-grad)',
+                      boxShadow: 'var(--neu-shadow-accent)',
+                      color: '#fff',
+                    } : {
+                      background: 'transparent',
+                      color: 'var(--md-sys-color-on-surface-variant)',
+                      boxShadow: 'none',
+                    }}
                   >
                     ☀️ Light
                   </button>
@@ -265,8 +336,10 @@ export default function SettingsPage() {
 
           {/* Right / Bottom: User Accounts CRUD list (Owner only) */}
           {profile?.role === 'owner' && (
-            <div className="lg:col-span-2 rounded-[var(--md-sys-shape-corner-extra-large)] p-6 flex flex-col"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div
+              className="lg:col-span-2 rounded-3xl p-6 flex flex-col border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Kelola Akun Dojo</h3>
@@ -274,40 +347,75 @@ export default function SettingsPage() {
                     Daftar akun pelatih, orang tua, dan pemilik
                   </p>
                 </div>
-                <button onClick={openAddUserModal} className="m3-btn-outlined px-3 py-1.5 text-xs font-semibold">
+                <button
+                  onClick={openAddUserModal}
+                  className="apple-btn-secondary px-4 py-1.5 text-xs font-semibold cursor-pointer rounded-2xl"
+                >
                   + Tambah Akun
                 </button>
               </div>
 
               {loadingProfiles ? (
                 <div className="space-y-2 py-4">
-                  {[1, 2, 3].map(i => <div key={i} className="h-10 animate-pulse rounded-[var(--md-sys-shape-corner-medium)]" style={{ background: 'var(--md-sys-color-surface-container)' }} />)}
+                  {[1, 2, 3].map(i => (
+                    <div
+                      key={i}
+                      className="h-10 animate-pulse rounded-2xl"
+                      style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                    />
+                  ))}
                 </div>
               ) : (
-                <div className="overflow-x-auto max-h-[350px] overflow-y-auto pr-1">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr style={{ background: 'var(--md-sys-color-surface-container)', borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
-                        <th className="px-4 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama</th>
-                        <th className="px-4 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Role</th>
-                        <th className="px-4 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Username (No WA)</th>
-                        <th className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-right" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allProfiles.map((user, idx) => (
-                        <tr key={user.id} style={{ borderBottom: idx < allProfiles.length - 1 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}>
-                          <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>{user.full_name}</td>
-                          <td className="px-4 py-3 text-xs capitalize" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{user.role}</td>
-                          <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{user.phone || '—'}</td>
-                          <td className="px-4 py-3 text-right text-xs">
-                            <button onClick={() => openEditUserModal(user)} className="m3-btn-text py-1 px-2 font-semibold">Edit</button>
-                            <button onClick={() => handleDeleteUser(user.id)} className="m3-btn-text py-1 px-2 font-semibold" style={{ color: 'var(--md-sys-color-error)' }}>Hapus</button>
-                          </td>
+                <div
+                  className="rounded-3xl border border-[var(--neu-border)] p-0 overflow-hidden"
+                  style={{ boxShadow: 'var(--neu-shadow-flat)' }}
+                >
+                  <div className="overflow-x-auto max-h-[350px] overflow-y-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                          <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama</th>
+                          <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Role</th>
+                          <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Username (No WA)</th>
+                          <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-right" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Aksi</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {allProfiles.map((user, idx) => (
+                          <tr
+                            key={user.id}
+                            style={{ borderBottom: idx < allProfiles.length - 1 ? '1px solid var(--neu-border)' : 'none' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+                          >
+                            <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>{user.full_name}</td>
+                            <td className="px-4 py-3 text-xs capitalize" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{user.role}</td>
+                            <td className="px-4 py-3 text-xs font-mono" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{user.phone || '—'}</td>
+                            <td className="px-4 py-3 text-right text-xs">
+                              <button
+                                onClick={() => openEditUserModal(user)}
+                                className="py-1 px-2 font-semibold rounded-lg transition-all duration-200 cursor-pointer"
+                                style={{ color: 'var(--md-sys-color-on-surface-variant)' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="py-1 px-2 font-semibold rounded-lg transition-all duration-200 cursor-pointer"
+                                style={{ color: 'var(--md-sys-color-error)' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,82,82,0.08)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+                              >
+                                Hapus
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -319,17 +427,42 @@ export default function SettingsPage() {
           <form onSubmit={handleUserSubmit} className="space-y-4 animate-fade-in">
             <div className={fieldWrap}>
               <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama Lengkap *</label>
-              <input type="text" required value={formName} onChange={e => setFormName(e.target.value)} placeholder="Masukkan nama" className={inputClass} />
+              <input
+                type="text"
+                required
+                value={formName}
+                onChange={e => setFormName(e.target.value)}
+                placeholder="Masukkan nama"
+                className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
+                style={neuInputStyle}
+                onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className={fieldWrap}>
                 <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>No WhatsApp / Phone *</label>
-                <input type="tel" required value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="08xxxxx..." className={inputClass} />
+                <input
+                  type="tel"
+                  required
+                  value={formPhone}
+                  onChange={e => setFormPhone(e.target.value)}
+                  placeholder="08xxxxx..."
+                  className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
+                  style={neuInputStyle}
+                  onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                  onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
+                />
               </div>
               <div className={fieldWrap}>
                 <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Hak Akses (Role)</label>
-                <select value={formRole} onChange={e => setFormRole(e.target.value as any)} className={inputClass}>
+                <select
+                  value={formRole}
+                  onChange={e => setFormRole(e.target.value as any)}
+                  className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
+                  style={neuInputStyle}
+                >
                   <option value="ortu">Orang Tua / Wali</option>
                   <option value="pelatih">Pelatih / Sempai</option>
                   <option value="owner">Pemilik / Owner</option>
@@ -341,15 +474,36 @@ export default function SettingsPage() {
               <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                 {editingUser ? 'Sandi Baru (Kosongkan jika tak diubah)' : 'Kata Sandi *'}
               </label>
-              <input type="password" required={!editingUser} value={formPassword} onChange={e => setFormPassword(e.target.value)} placeholder={editingUser ? '••••••••' : 'Sandi masuk'} className={inputClass} />
+              <input
+                type="password"
+                required={!editingUser}
+                value={formPassword}
+                onChange={e => setFormPassword(e.target.value)}
+                placeholder={editingUser ? '••••••••' : 'Sandi masuk'}
+                className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
+                style={neuInputStyle}
+                onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
+              />
               <p className="text-[10px] mt-1 opacity-60" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                 {editingUser ? 'Isi hanya jika ingin mengubah sandi pengguna.' : 'Sandi default jika kosong adalah: 123456'}
               </p>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="m3-btn-text px-5 py-2.5 text-sm">Batal</button>
-              <button type="submit" className="m3-btn-filled px-5 py-2.5 text-sm">Simpan</button>
+            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--neu-border)' }}>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="apple-btn px-5 py-2.5 text-sm cursor-pointer"
+              >
+                Simpan
+              </button>
             </div>
           </form>
         </M3Dialog>
@@ -466,11 +620,16 @@ function DangerZone() {
 
   return (
     <>
-      <div className="mt-8 rounded-3xl overflow-hidden" style={{ border: '1px solid var(--md-sys-color-error)' }}>
+      <div
+        className="mt-8 rounded-3xl overflow-hidden"
+        style={{ border: '1px solid var(--md-sys-color-error)', background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+      >
         {/* Header */}
         <div className="px-6 py-4 flex items-center gap-3" style={{ background: 'rgba(255,82,82,0.08)' }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-base flex-shrink-0"
-            style={{ background: 'var(--md-sys-color-error)', color: '#fff' }}>
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-base flex-shrink-0"
+            style={{ background: 'var(--md-sys-color-error)', color: '#fff' }}
+          >
             ⚠️
           </div>
           <div>
@@ -482,26 +641,38 @@ function DangerZone() {
           <button
             onClick={loadCounts}
             disabled={loadingCounts}
-            className="ml-auto text-xs px-3 py-1.5 rounded-full cursor-pointer transition-colors flex-shrink-0"
-            style={{ background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface-variant)', border: '1px solid var(--md-sys-color-outline-variant)' }}
+            className="ml-auto text-xs px-3 py-1.5 rounded-full cursor-pointer transition-all duration-200 flex-shrink-0 border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-on-surface-variant)' }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-hover-sm)'; }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
           >
             {loadingCounts ? '⟳ Memuat...' : '↺ Refresh Jumlah'}
           </button>
         </div>
 
-        <div className="p-6 space-y-5" style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+        <div className="p-6 space-y-5">
           {/* Select controls */}
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
               Pilih tabel yang akan dihapus ({selected.size} dipilih):
             </p>
             <div className="flex gap-2">
-              <button onClick={selectAll} className="text-xs px-3 py-1 rounded-full cursor-pointer"
-                style={{ background: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
+              <button
+                onClick={selectAll}
+                className="text-xs px-3 py-1 rounded-full cursor-pointer transition-all duration-200 border border-[var(--neu-border)]"
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-on-surface)' }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-hover-sm)'; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
+              >
                 Pilih Semua
               </button>
-              <button onClick={clearAll} className="text-xs px-3 py-1 rounded-full cursor-pointer"
-                style={{ background: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}>
+              <button
+                onClick={clearAll}
+                className="text-xs px-3 py-1 rounded-full cursor-pointer transition-all duration-200 border border-[var(--neu-border)]"
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-on-surface)' }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-hover-sm)'; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
+              >
                 Hapus Pilihan
               </button>
             </div>
@@ -517,8 +688,9 @@ function DangerZone() {
                   key={t.key}
                   className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all select-none"
                   style={{
-                    background: isChecked ? 'rgba(255,82,82,0.08)' : 'var(--md-sys-color-surface-container)',
-                    border: `1px solid ${isChecked ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-outline-variant)'}`,
+                    background: isChecked ? 'rgba(255,82,82,0.08)' : 'var(--neu-surface-low)',
+                    border: isChecked ? '1.5px solid var(--md-sys-color-error)' : '1px solid var(--neu-border)',
+                    boxShadow: isChecked ? 'none' : 'var(--neu-shadow-pressed-sm)',
                   }}
                 >
                   <input
@@ -531,11 +703,13 @@ function DangerZone() {
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm">{t.icon}</span>
                       <span className="text-xs font-bold truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>{t.label}</span>
-                      <span className="ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded-full flex-shrink-0"
+                      <span
+                        className="ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded-full flex-shrink-0"
                         style={{
-                          background: loadingCounts ? 'var(--md-sys-color-surface-container-high)' : (counts[t.key] > 0 ? 'rgba(255,82,82,0.15)' : 'var(--md-sys-color-surface-container-high)'),
+                          background: loadingCounts ? 'var(--neu-surface-high)' : (counts[t.key] > 0 ? 'rgba(255,82,82,0.15)' : 'var(--neu-surface-high)'),
                           color: counts[t.key] > 0 ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-on-surface-variant)',
-                        }}>
+                        }}
+                      >
                         {loadingCounts ? '...' : count} baris
                       </span>
                     </div>
@@ -547,27 +721,36 @@ function DangerZone() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-2" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2" style={{ borderTop: '1px solid var(--neu-border)' }}>
+            {/* Hapus Terpilih — secondary neu with error coloring */}
             <button
               onClick={() => openConfirm('selected')}
               disabled={selected.size === 0}
-              className="flex-1 px-5 py-3 rounded-full text-sm font-bold cursor-pointer transition-all"
+              className="flex-1 px-5 py-3 rounded-2xl text-sm font-bold cursor-pointer transition-all duration-200 border"
               style={{
-                background: selected.size > 0 ? 'var(--md-sys-color-error-container)' : 'var(--md-sys-color-surface-container)',
-                color: selected.size > 0 ? 'var(--md-sys-color-on-error-container)' : 'var(--md-sys-color-on-surface-variant)',
-                border: `1px solid ${selected.size > 0 ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-outline-variant)'}`,
+                background: 'var(--neu-surface-low)',
+                boxShadow: selected.size > 0 ? 'var(--neu-shadow-pressed-sm)' : 'var(--neu-shadow-pressed-sm)',
+                border: `1px solid ${selected.size > 0 ? 'var(--md-sys-color-error)' : 'var(--neu-border)'}`,
+                color: selected.size > 0 ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-on-surface-variant)',
                 opacity: selected.size === 0 ? 0.5 : 1,
               }}
+              onMouseEnter={e => { if (selected.size > 0) e.currentTarget.style.background = 'rgba(255,82,82,0.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--neu-surface-low)'; }}
             >
               🗑️ Hapus {selected.size} Tabel Dipilih
             </button>
+            {/* Hapus SEMUA — apple-btn with error gradient override */}
             <button
               onClick={() => openConfirm('all')}
-              className="flex-1 px-5 py-3 rounded-full text-sm font-bold cursor-pointer transition-all"
+              className="flex-1 px-5 py-3 rounded-2xl text-sm font-bold cursor-pointer transition-all duration-200"
               style={{
-                background: 'var(--md-sys-color-error)',
+                background: 'linear-gradient(145deg, #e53935, #b71c1c)',
+                boxShadow: '4px 4px 10px rgba(183,28,28,0.5), -2px -2px 6px rgba(255,100,100,0.15)',
                 color: '#fff',
+                border: 'none',
               }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(145deg, #ef5350, #c62828)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(145deg, #e53935, #b71c1c)'; }}
             >
               ⚠️ Hapus SEMUA Data ({TABLES_CONFIG.length} Tabel)
             </button>
@@ -579,12 +762,16 @@ function DangerZone() {
       {showConfirm && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)' }}
+          style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
           onClick={() => !deleting && !done && setShowConfirm(false)}
         >
           <div
-            className="w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
-            style={{ background: 'var(--md-sys-color-surface-container-high)', border: '1px solid var(--md-sys-color-error)' }}
+            className="w-full max-w-md rounded-3xl overflow-hidden"
+            style={{
+              background: 'var(--neu-surface-high)',
+              boxShadow: 'var(--neu-shadow-flat-lg), 0 20px 48px rgba(0,0,0,0.5)',
+              border: '1px solid var(--md-sys-color-error)',
+            }}
             onClick={e => e.stopPropagation()}
           >
             {done ? (
@@ -602,8 +789,7 @@ function DangerZone() {
                 </div>
                 <button
                   onClick={() => setShowConfirm(false)}
-                  className="w-full py-3 rounded-full text-sm font-bold cursor-pointer"
-                  style={{ background: 'var(--md-sys-color-primary)', color: '#fff' }}
+                  className="apple-btn w-full py-3 text-sm font-bold cursor-pointer"
                 >
                   Tutup
                 </button>
@@ -612,8 +798,10 @@ function DangerZone() {
               /* ── Form Konfirmasi ── */
               <div className="p-6 space-y-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ background: 'var(--md-sys-color-error)', color: '#fff' }}>
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0"
+                    style={{ background: 'var(--md-sys-color-error)', color: '#fff' }}
+                  >
                     🗑️
                   </div>
                   <div>
@@ -645,11 +833,12 @@ function DangerZone() {
                     value={confirmText}
                     onChange={e => setConfirmText(e.target.value)}
                     placeholder="Ketik HAPUS di sini..."
-                    className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
                     style={{
-                      background: 'var(--md-sys-color-surface-container)',
+                      background: 'var(--neu-surface-low)',
+                      boxShadow: 'var(--neu-shadow-pressed-sm)',
                       color: 'var(--md-sys-color-on-surface)',
-                      border: `1px solid ${confirmText === 'HAPUS' ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-outline-variant)'}`,
+                      border: `1px solid ${confirmText === 'HAPUS' ? 'var(--md-sys-color-error)' : 'var(--neu-border)'}`,
                     }}
                     autoFocus
                   />
@@ -659,18 +848,19 @@ function DangerZone() {
                   <button
                     onClick={() => setShowConfirm(false)}
                     disabled={deleting}
-                    className="flex-1 py-2.5 rounded-full text-sm font-semibold cursor-pointer"
-                    style={{ background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface)', border: '1px solid var(--md-sys-color-outline-variant)' }}
+                    className="apple-btn-secondary flex-1 py-2.5 text-sm font-semibold cursor-pointer"
                   >
                     Batal
                   </button>
                   <button
                     onClick={handleDelete}
                     disabled={confirmText !== 'HAPUS' || deleting}
-                    className="flex-1 py-2.5 rounded-full text-sm font-bold cursor-pointer transition-all"
+                    className="flex-1 py-2.5 rounded-2xl text-sm font-bold cursor-pointer transition-all duration-200"
                     style={{
-                      background: confirmText === 'HAPUS' && !deleting ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-surface-container)',
+                      background: confirmText === 'HAPUS' && !deleting ? 'linear-gradient(145deg, #e53935, #b71c1c)' : 'var(--neu-surface-low)',
+                      boxShadow: confirmText === 'HAPUS' && !deleting ? '4px 4px 10px rgba(183,28,28,0.5), -2px -2px 6px rgba(255,100,100,0.15)' : 'var(--neu-shadow-pressed-sm)',
                       color: confirmText === 'HAPUS' && !deleting ? '#fff' : 'var(--md-sys-color-on-surface-variant)',
+                      border: `1px solid ${confirmText === 'HAPUS' && !deleting ? 'transparent' : 'var(--neu-border)'}`,
                       opacity: confirmText !== 'HAPUS' ? 0.5 : 1,
                     }}
                   >

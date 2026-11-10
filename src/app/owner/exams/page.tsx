@@ -9,19 +9,23 @@ import { OFFICIAL_BELTS, getBeltEmoji, getBeltStyle, getNextBelt } from '@/lib/c
 function M3Dialog({ open, onClose, title, maxWidth = 'max-w-lg', children }: { open: boolean; onClose: () => void; title: string; maxWidth?: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
       <div
-        className={`w-full ${maxWidth} rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in max-h-[90vh] flex flex-col`}
-        style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
+        className={`w-full ${maxWidth} rounded-3xl border border-[var(--neu-border)] p-6 shadow-2xl animate-fade-in max-h-[90vh] flex flex-col`}
+        style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
-          <h3 className="text-xl font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
+          <h3 className="text-xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
           <button
             onClick={onClose}
             type="button"
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-slate-500/10"
-            style={{ color: 'var(--md-sys-color-on-surface-variant)' }}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-105"
+            style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-flat-sm)', color: 'var(--md-sys-color-on-surface-variant)' }}
           >
             ✕
           </button>
@@ -130,8 +134,8 @@ function BeltLevelUpCelebration({ data, onDone }: { data: CelebrationData; onDon
   );
 }
 
-const inputClass = 'm3-textfield-outlined text-sm';
-const labelClass = 'block text-xs font-medium mb-1.5';
+const inputClass = 'w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all';
+const labelClass = 'block text-xs font-semibold uppercase tracking-wider mb-1.5';
 const fieldWrap = 'flex flex-col';
 
 export default function OwnerExams() {
@@ -617,7 +621,7 @@ export default function OwnerExams() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+            <h2 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
               Ujian Kenaikan Sabuk
             </h2>
             <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -626,9 +630,9 @@ export default function OwnerExams() {
           </div>
           <button
             onClick={handleOpenCreateExam}
-            className="m3-btn-filled px-5 py-2.5 text-sm font-semibold cursor-pointer"
+            className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer inline-flex items-center gap-2"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             Jadwalkan Ujian Baru
@@ -637,8 +641,10 @@ export default function OwnerExams() {
 
         {/* Event Select & Quick Metric Header Cards */}
         {exams.length === 0 ? (
-          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-8 text-center border"
-            style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+          <div
+            className="rounded-3xl p-10 text-center border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <div className="text-4xl mb-2">🥋</div>
             <h3 className="font-bold text-lg" style={{ color: 'var(--md-sys-color-on-surface)' }}>Belum Ada Jadwal Ujian Sabuk</h3>
             <p className="text-xs mt-1 mb-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -646,15 +652,15 @@ export default function OwnerExams() {
             </p>
             <button
               onClick={() => setIsExamModalOpen(true)}
-              className="m3-btn-filled px-5 py-2.5 text-sm font-semibold cursor-pointer"
+              className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer"
             >
               + Jadwalkan Ujian Sekarang
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Horizontal Event Selection Pills / Cards */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                   Pilih Jadwal Ujian Aktif ({exams.length})
@@ -663,7 +669,7 @@ export default function OwnerExams() {
                   Klik kartu untuk beralih jadwal
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {exams.map((ex) => {
                   const isSelected = ex.id === selectedExamId;
                   const partCount = participants.filter(p => p.exam_id === ex.id).length;
@@ -671,46 +677,53 @@ export default function OwnerExams() {
                     <div
                       key={ex.id}
                       onClick={() => setSelectedExamId(ex.id)}
-                      className={`p-4 rounded-2xl cursor-pointer transition-all border text-left flex flex-col justify-between gap-3 ${
+                      className={`p-5 rounded-3xl cursor-pointer transition-all duration-300 border text-left flex flex-col justify-between gap-4 ${
                         isSelected
-                          ? 'ring-2 ring-[var(--md-sys-color-primary)] shadow-lg'
-                          : 'hover:border-[var(--md-sys-color-outline)]'
+                          ? 'border-[var(--md-sys-color-primary)] ring-2 ring-[var(--md-sys-color-primary)]/40 shadow-lg'
+                          : 'border-[var(--neu-border)] hover:-translate-y-1'
                       }`}
                       style={{
                         background: isSelected
-                          ? 'linear-gradient(135deg, rgba(255,82,82,0.12) 0%, rgba(20,13,12,0.95) 100%)'
-                          : 'var(--md-sys-color-surface-container-low)',
-                        borderColor: isSelected ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)'
+                          ? 'linear-gradient(135deg, rgba(255,82,82,0.15) 0%, var(--neu-surface) 100%)'
+                          : 'var(--neu-surface)',
+                        boxShadow: isSelected ? 'var(--neu-shadow-hover)' : 'var(--neu-shadow-flat)'
                       }}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <div className="text-xs font-semibold px-2 py-0.5 rounded-full inline-block mb-1.5"
+                          <div
+                            className="text-xs font-bold px-3 py-1 rounded-full inline-block mb-2"
                             style={{
-                              background: isSelected ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
+                              background: isSelected ? 'var(--neu-accent-grad)' : 'var(--neu-surface-high)',
+                              boxShadow: isSelected ? 'var(--neu-shadow-accent)' : 'var(--neu-shadow-flat-sm)',
                               color: isSelected ? 'white' : 'var(--md-sys-color-on-surface)'
-                            }}>
+                            }}
+                          >
                             📅 {ex.exam_date}
                           </div>
                           <h4 className="font-bold text-base line-clamp-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                             {ex.location}
                           </h4>
                         </div>
-                        <span className="text-xs font-bold px-2.5 py-1 rounded-full uppercase"
+                        <span
+                          className="text-xs font-bold px-3 py-1 rounded-full uppercase"
                           style={{
-                            background: ex.status === 'selesai' ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 82, 82, 0.2)',
-                            color: ex.status === 'selesai' ? '#4caf50' : 'var(--md-sys-color-primary)'
-                          }}>
+                            background: ex.status === 'selesai' ? 'rgba(76, 175, 80, 0.15)' : 'rgba(255, 82, 82, 0.15)',
+                            color: ex.status === 'selesai' ? '#4caf50' : 'var(--md-sys-color-primary)',
+                            boxShadow: 'var(--neu-shadow-pressed-sm)'
+                          }}
+                        >
                           {ex.status || 'terjadwal'}
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between text-xs pt-2 border-t"
-                        style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                      <div
+                        className="flex items-center justify-between text-xs pt-3 border-t border-[var(--neu-border)]"
+                      >
                         <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                           Peserta: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>{partCount} Siswa</strong>
                         </span>
-                        <span className="font-medium" style={{ color: 'var(--md-sys-color-primary)' }}>
+                        <span className="font-bold text-emerald-400">
                           Rp {(ex.fee || ex.registration_fee || 100000).toLocaleString('id-ID')}
                         </span>
                       </div>
@@ -722,15 +735,17 @@ export default function OwnerExams() {
 
             {/* Selected Exam Metric Banner & Primary Action */}
             {currentExam && (
-              <div className="rounded-3xl p-6 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 border"
+              <div
+                className="rounded-3xl p-6 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 border border-[var(--neu-border)]"
                 style={{
-                  background: 'linear-gradient(135deg, var(--md-sys-color-surface-container-high) 0%, var(--md-sys-color-surface-container) 100%)',
-                  borderColor: 'var(--md-sys-color-outline-variant)'
-                }}>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">🥋</span>
-                    <h3 className="text-xl font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  background: 'var(--neu-surface)',
+                  boxShadow: 'var(--neu-shadow-flat)'
+                }}
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">🥋</span>
+                    <h3 className="text-xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                       {currentExam.location}
                     </h3>
                   </div>
@@ -739,17 +754,16 @@ export default function OwnerExams() {
                   </p>
                   
                   {/* Action Edit & Hapus Event Ujian */}
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-2 pt-1.5">
                     <button
                       onClick={(e) => handleOpenEditExam(currentExam, e)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-semibold border hover:bg-slate-500/10 transition-colors flex items-center gap-1 cursor-pointer"
-                      style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+                      className="apple-btn-secondary px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer"
                     >
                       ✏️ Edit Jadwal
                     </button>
                     <button
                       onClick={(e) => handleDeleteExam(currentExam.id, currentExam.location, e)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-semibold border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-1 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-1 cursor-pointer"
                     >
                       🗑️ Hapus Jadwal
                     </button>
@@ -758,32 +772,40 @@ export default function OwnerExams() {
 
                 {/* 4 Stats Pills */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 max-w-xl">
-                  <div className="p-3 rounded-2xl text-center border"
-                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
-                    <div className="text-xs font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Total Peserta</div>
-                    <div className="text-xl font-black mt-0.5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{stats.total}</div>
+                  <div
+                    className="p-3 rounded-2xl text-center border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
+                    <div className="text-[11px] font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Total Peserta</div>
+                    <div className="text-xl font-extrabold mt-0.5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{stats.total}</div>
                   </div>
-                  <div className="p-3 rounded-2xl text-center border"
-                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
-                    <div className="text-xs font-medium text-amber-500">⏳ Pending</div>
-                    <div className="text-xl font-black mt-0.5 text-amber-500">{stats.pending}</div>
+                  <div
+                    className="p-3 rounded-2xl text-center border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
+                    <div className="text-[11px] font-medium text-amber-500">⏳ Pending</div>
+                    <div className="text-xl font-extrabold mt-0.5 text-amber-500">{stats.pending}</div>
                   </div>
-                  <div className="p-3 rounded-2xl text-center border"
-                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
-                    <div className="text-xs font-medium text-emerald-500">✅ Lulus</div>
-                    <div className="text-xl font-black mt-0.5 text-emerald-500">{stats.lulus}</div>
+                  <div
+                    className="p-3 rounded-2xl text-center border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
+                    <div className="text-[11px] font-medium text-emerald-500">✅ Lulus</div>
+                    <div className="text-xl font-extrabold mt-0.5 text-emerald-500">{stats.lulus}</div>
                   </div>
-                  <div className="p-3 rounded-2xl text-center border"
-                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
-                    <div className="text-xs font-medium text-rose-500">❌ Tidak Lulus</div>
-                    <div className="text-xl font-black mt-0.5 text-rose-500">{stats.gagal}</div>
+                  <div
+                    className="p-3 rounded-2xl text-center border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
+                    <div className="text-[11px] font-medium text-rose-500">❌ Gagal</div>
+                    <div className="text-xl font-extrabold mt-0.5 text-rose-500">{stats.gagal}</div>
                   </div>
                 </div>
 
                 {/* Action button */}
                 <button
                   onClick={handleOpenBatchRegister}
-                  className="m3-btn-filled px-6 py-3 text-sm font-bold cursor-pointer whitespace-nowrap shadow-lg hover:scale-102 transition-transform"
+                  className="apple-btn px-6 py-3 text-sm font-bold cursor-pointer whitespace-nowrap"
                 >
                   + Daftarkan Peserta (Batch)
                 </button>
@@ -793,12 +815,14 @@ export default function OwnerExams() {
         )}
 
         {/* Participants Table with Live Filter & Search */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden border"
-          style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
-          
+        <div
+          className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+        >
           {/* Table Toolbar Header */}
-          <div className="p-5 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between border-b"
-            style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+          <div
+            className="p-5 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between border-b border-[var(--neu-border)]"
+          >
             <div>
               <h3 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                 Daftar Peserta Ujian ({filteredActiveParticipants.length}/{activeParticipants.length})
@@ -815,15 +839,15 @@ export default function OwnerExams() {
                 placeholder="Cari peserta..."
                 value={tableSearch}
                 onChange={(e) => setTableSearch(e.target.value)}
-                className="text-xs px-3 py-2 rounded-xl border bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+                className="text-xs px-3.5 py-2 rounded-xl outline-none"
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
               />
 
               <select
                 value={tableStatusFilter}
                 onChange={(e) => setTableStatusFilter(e.target.value as any)}
-                className="text-xs px-3 py-2 rounded-xl border bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+                className="text-xs px-3.5 py-2 rounded-xl outline-none"
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
               >
                 <option value="all">Semua Status</option>
                 <option value="pending">⏳ Pending ({stats.pending})</option>
@@ -835,7 +859,7 @@ export default function OwnerExams() {
                 <button
                   onClick={handleBatchPassAllPending}
                   disabled={batchActionLoading}
-                  className="px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1.5 border border-emerald-600/40 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30"
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1.5 border border-emerald-600/40 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30"
                 >
                   {batchActionLoading ? 'Memproses...' : `🎉 Luluskan Semua (${stats.pending})`}
                 </button>
@@ -846,8 +870,11 @@ export default function OwnerExams() {
           {loading ? (
             <div className="p-6 space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-12 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse"
-                  style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                <div
+                  key={i}
+                  className="h-12 rounded-2xl animate-pulse"
+                  style={{ background: 'var(--neu-surface-low)' }}
+                />
               ))}
             </div>
           ) : activeParticipants.length === 0 ? (
@@ -862,7 +889,7 @@ export default function OwnerExams() {
               {selectedExamId && (
                 <button
                   onClick={handleOpenBatchRegister}
-                  className="m3-btn-filled px-5 py-2.5 text-sm cursor-pointer"
+                  className="apple-btn px-5 py-2.5 text-sm cursor-pointer"
                 >
                   + Daftarkan Peserta Ujian Sekarang
                 </button>
@@ -876,7 +903,7 @@ export default function OwnerExams() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                  <tr style={{ background: 'var(--neu-surface-high)' }}>
                     {['Nama Siswa', 'Sabuk Saat Ini', 'Target Kenaikan', 'Status Hasil', 'Aksi Kelulusan'].map((h, idx) => (
                       <th key={h} className={`px-5 py-3.5 text-xs font-semibold uppercase tracking-wider ${idx === 4 ? 'text-right' : ''}`}
                         style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -885,7 +912,7 @@ export default function OwnerExams() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                <tbody className="divide-y divide-[var(--neu-border)]">
                   {filteredActiveParticipants.map((part) => {
                     const student = students.find(s => s.id === part.student_id);
                     const studentName = student?.full_name || 'Siswa';
@@ -903,12 +930,14 @@ export default function OwnerExams() {
                           </div>
                         </td>
                         <td className="px-5 py-4">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
+                          <span
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border border-[var(--neu-border)]"
                             style={{
-                              background: 'var(--md-sys-color-surface-container)',
-                              borderColor: 'var(--md-sys-color-outline-variant)',
+                              background: 'var(--neu-surface-low)',
+                              boxShadow: 'var(--neu-shadow-pressed-sm)',
                               color: 'var(--md-sys-color-on-surface)'
-                            }}>
+                            }}
+                          >
                             {getBeltEmoji(curBelt)} {curBelt}
                           </span>
                         </td>
@@ -932,7 +961,7 @@ export default function OwnerExams() {
                           <div className="flex justify-end items-center gap-1.5">
                             <button
                               onClick={() => handleUpdateResult(part.id, 'lulus')}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all ${
                                 partRes === 'lulus'
                                   ? 'bg-emerald-600 text-white shadow-sm'
                                   : 'border border-emerald-600/40 text-emerald-400 hover:bg-emerald-600/20'
@@ -942,7 +971,7 @@ export default function OwnerExams() {
                             </button>
                             <button
                               onClick={() => handleUpdateResult(part.id, 'tidak_lulus')}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+                              className={`px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all ${
                                 partRes === 'tidak_lulus'
                                   ? 'bg-rose-600 text-white shadow-sm'
                                   : 'border border-rose-600/40 text-rose-400 hover:bg-rose-600/20'
@@ -953,7 +982,7 @@ export default function OwnerExams() {
                             <button
                               onClick={() => handleDeleteParticipant(part.id, studentName)}
                               title="Hapus peserta dari ujian ini"
-                              className="w-7 h-7 rounded-lg flex items-center justify-center border border-rose-500/20 text-rose-400 hover:bg-rose-500/10 transition-colors text-xs cursor-pointer ml-1"
+                              className="w-7 h-7 rounded-xl flex items-center justify-center border border-rose-500/20 text-rose-400 hover:bg-rose-500/10 transition-colors text-xs cursor-pointer ml-1"
                             >
                               ✕
                             </button>
@@ -981,6 +1010,7 @@ export default function OwnerExams() {
                 type="date"
                 required
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 value={examDate}
                 onChange={(e) => setExamDate(e.target.value)}
               />
@@ -992,6 +1022,7 @@ export default function OwnerExams() {
                 required
                 placeholder="mis. Aula Dojo Pusat DPL"
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 value={examLocation}
                 onChange={(e) => setExamLocation(e.target.value)}
               />
@@ -1003,6 +1034,7 @@ export default function OwnerExams() {
                   type="number"
                   required
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                   value={examFee}
                   onChange={(e) => setExamFee(Number(e.target.value))}
                 />
@@ -1011,6 +1043,7 @@ export default function OwnerExams() {
                 <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Status Event</label>
                 <select
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                   value={examStatus}
                   onChange={(e) => setExamStatus(e.target.value as any)}
                 >
@@ -1025,20 +1058,21 @@ export default function OwnerExams() {
               <input
                 type="text"
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 value={examNotes}
                 onChange={(e) => setExamNotes(e.target.value)}
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--neu-border)]">
               <button
                 type="button"
                 onClick={() => setIsExamModalOpen(false)}
-                className="m3-btn-text px-5 py-2.5 text-sm"
+                className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer"
               >
                 Batal
               </button>
-              <button type="submit" disabled={submittingExam} className="m3-btn-filled px-5 py-2.5 text-sm font-semibold">
+              <button type="submit" disabled={submittingExam} className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer">
                 {submittingExam ? 'Menyimpan...' : editingExamId ? 'Simpan Perubahan' : 'Jadwalkan Ujian'}
               </button>
             </div>
@@ -1064,6 +1098,7 @@ export default function OwnerExams() {
                   type="text"
                   placeholder="Cari nama siswa..."
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                   value={searchStudent}
                   onChange={(e) => setSearchStudent(e.target.value)}
                 />
@@ -1071,6 +1106,7 @@ export default function OwnerExams() {
               <div className="sm:col-span-5">
                 <select
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                   value={filterBelt}
                   onChange={(e) => setFilterBelt(e.target.value)}
                 >
@@ -1106,10 +1142,9 @@ export default function OwnerExams() {
 
             {/* Students List with Checkboxes */}
             <div
-              className="border rounded-[var(--md-sys-shape-corner-medium)] max-h-72 overflow-y-auto divide-y"
+              className="border border-[var(--neu-border)] rounded-2xl max-h-72 overflow-y-auto divide-y divide-[var(--neu-border)]"
               style={{
-                borderColor: 'var(--md-sys-color-outline-variant)',
-                background: 'var(--md-sys-color-surface-container-low)'
+                background: 'var(--neu-surface-low)'
               }}
             >
               {filteredStudents.length === 0 ? (
@@ -1128,8 +1163,8 @@ export default function OwnerExams() {
                   return (
                     <div
                       key={st.id}
-                      className={`p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
-                        isChecked ? 'bg-primary/5' : 'hover:bg-slate-500/5'
+                      className={`p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                        isChecked ? 'bg-primary/10' : 'hover:bg-slate-500/5'
                       }`}
                     >
                       <label className="flex items-center gap-3 cursor-pointer flex-1">
@@ -1143,9 +1178,9 @@ export default function OwnerExams() {
                           <div className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                             {st.full_name}
                           </div>
-                          <div className="text-xs flex items-center gap-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          <div className="text-xs flex items-center gap-1.5 mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                             <span>Sabuk Saat Ini:</span>
-                            <span className="font-medium px-2 py-0.5 rounded-full text-[11px]" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                            <span className="font-semibold px-2 py-0.5 rounded-full text-[11px]" style={{ background: 'var(--neu-surface-high)', color: 'var(--md-sys-color-on-surface)' }}>
                               {getBeltEmoji(curBelt)} {curBelt}
                             </span>
                           </div>
@@ -1154,7 +1189,7 @@ export default function OwnerExams() {
 
                       {/* Target Belt Selector per student */}
                       <div className="flex items-center gap-2 pl-7 sm:pl-0">
-                        <span className="text-xs whitespace-nowrap" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        <span className="text-xs whitespace-nowrap font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                           Target:
                         </span>
                         <select
@@ -1164,11 +1199,11 @@ export default function OwnerExams() {
                             const val = e.target.value;
                             setCustomTargetBelts(prev => ({ ...prev, [st.id]: val }));
                           }}
-                          className="text-xs px-2.5 py-1.5 rounded-lg border focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                          className="text-xs px-2.5 py-1.5 rounded-xl border focus:ring-2 focus:ring-red-500 disabled:opacity-50"
                           style={{
-                            background: isChecked ? 'var(--md-sys-color-surface)' : 'var(--md-sys-color-surface-container)',
+                            background: isChecked ? 'var(--neu-surface)' : 'var(--neu-surface-high)',
                             color: 'var(--md-sys-color-on-surface)',
-                            borderColor: 'var(--md-sys-color-outline-variant)'
+                            borderColor: 'var(--neu-border)'
                           }}
                         >
                           {OFFICIAL_BELTS.filter(b => b !== 'Putih').map((b) => (
@@ -1185,22 +1220,22 @@ export default function OwnerExams() {
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
-              <div className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+            <div className="flex items-center justify-between pt-4 border-t border-[var(--neu-border)]">
+              <div className="text-xs font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                 {selectedStudentIds.length} siswa akan didaftarkan
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setIsRegModalOpen(false)}
-                  className="m3-btn-text px-4 py-2 text-sm"
+                  className="apple-btn-secondary px-4 py-2 text-sm cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingReg || selectedStudentIds.length === 0}
-                  className="m3-btn-filled px-5 py-2 text-sm font-semibold"
+                  className="apple-btn px-5 py-2 text-sm font-semibold cursor-pointer disabled:opacity-50"
                 >
                   {submittingReg ? 'Mendaftarkan...' : `Daftarkan ${selectedStudentIds.length} Peserta`}
                 </button>

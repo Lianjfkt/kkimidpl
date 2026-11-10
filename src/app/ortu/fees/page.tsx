@@ -57,17 +57,17 @@ export default function OrtuFees() {
         {/* Summary cards */}
         {!loading && fees.length > 0 && (
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-              style={{ background: 'var(--md-sys-color-tertiary-container)' }}>
-              <span className="text-xs font-medium" style={{ color: 'var(--md-sys-color-on-tertiary-container)', opacity: 0.8 }}>Total Lunas</span>
-              <p className="text-xl font-bold mt-1" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }}>
+            <div className="rounded-3xl p-5 border border-[var(--neu-border)]"
+              style={{ background: 'rgba(52,211,153,0.12)' }}>
+              <span className="text-xs font-medium" style={{ color: '#10b981', opacity: 0.8 }}>Total Lunas</span>
+              <p className="text-xl font-bold mt-1" style={{ color: '#10b981' }}>
                 Rp {totalPaid.toLocaleString('id-ID')}
               </p>
             </div>
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-              style={{ background: totalUnpaid > 0 ? 'var(--md-sys-color-error-container)' : 'var(--md-sys-color-surface-container)' }}>
-              <span className="text-xs font-medium" style={{ color: totalUnpaid > 0 ? 'var(--md-sys-color-on-error-container)' : 'var(--md-sys-color-on-surface-variant)', opacity: 0.8 }}>Belum Lunas</span>
-              <p className="text-xl font-bold mt-1" style={{ color: totalUnpaid > 0 ? 'var(--md-sys-color-on-error-container)' : 'var(--md-sys-color-on-surface)' }}>
+            <div className="rounded-3xl p-5 border border-[var(--neu-border)]"
+              style={{ background: totalUnpaid > 0 ? 'rgba(248,113,113,0.12)' : 'var(--neu-surface-low)', boxShadow: totalUnpaid > 0 ? 'none' : 'var(--neu-shadow-pressed-sm)' }}>
+              <span className="text-xs font-medium" style={{ color: totalUnpaid > 0 ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-on-surface-variant)', opacity: 0.8 }}>Belum Lunas</span>
+              <p className="text-xl font-bold mt-1" style={{ color: totalUnpaid > 0 ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-on-surface)' }}>
                 {totalUnpaid === 0 ? 'Semua Lunas' : `Rp ${totalUnpaid.toLocaleString('id-ID')}`}
               </p>
             </div>
@@ -82,11 +82,11 @@ export default function OrtuFees() {
                 key={k.id}
                 type="button"
                 onClick={() => setSelectedChild(k.id)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                  selectedChild === k.id
-                    ? 'bg-[var(--md-sys-color-primary)] text-white shadow-sm'
-                    : 'bg-[var(--md-sys-color-surface-container-high)] text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-variant)]'
-                }`}
+                className="px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer border border-[var(--neu-border)]"
+                style={selectedChild === k.id
+                  ? { background: 'var(--neu-accent-grad)', color: '#fff', boxShadow: 'var(--neu-shadow-accent)' }
+                  : { background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat-sm)', color: 'var(--md-sys-color-on-surface-variant)' }
+                }
               >
                 🥋 {k.full_name}
               </button>
@@ -96,20 +96,22 @@ export default function OrtuFees() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Billing list */}
-          <div className="lg:col-span-2 rounded-[var(--md-sys-shape-corner-extra-large)]"
-            style={{ background: 'var(--md-sys-color-surface-container-low)', padding: '24px' }}>
+          <div className="lg:col-span-2 rounded-3xl border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)', padding: '24px' }}>
             <h3 className="font-semibold text-base mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>Tagihan Iuran Aktif</h3>
             {loading ? (
-              <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />)}</div>
+              <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-2xl animate-pulse" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />)}</div>
             ) : filteredFees.length === 0 ? (
               <p className="text-sm py-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Belum ada invoice tagihan diterbitkan untuk anak Anda.</p>
             ) : (
-              <div className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+              <div className="divide-y" style={{ borderColor: 'var(--neu-border)' }}>
                 {filteredFees.map((fee) => (
-                  <div key={fee.id} className="py-4 flex items-center justify-between gap-4">
+                  <div key={fee.id} className="py-4 flex items-center justify-between gap-4 transition-all duration-200 rounded-2xl px-2 -mx-2"
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = ''; }}>
                     <div>
-                      <span className="inline-flex px-2.5 py-1 rounded-[var(--md-sys-shape-corner-full)] text-[10px] font-semibold mb-1.5"
-                        style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                      <span className="inline-flex px-2.5 py-1 rounded-full text-[10px] font-semibold mb-1.5 border border-[var(--neu-border)]"
+                        style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-on-surface-variant)' }}>
                         {getStudentName(fee.student_id)}
                       </span>
                       <h4 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>
@@ -124,13 +126,17 @@ export default function OrtuFees() {
                         </p>
                       )}
                     </div>
-                    <span className="px-3 py-1.5 rounded-[var(--md-sys-shape-corner-full)] text-xs font-semibold flex-shrink-0"
-                      style={fee.status === 'lunas'
-                        ? { background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' }
-                        : { background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }
-                      }>
-                      {fee.status === 'lunas' ? 'Lunas' : 'Belum Lunas'}
-                    </span>
+                    {fee.status === 'lunas' ? (
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold flex-shrink-0"
+                        style={{ background: 'var(--neu-accent-grad)', color: '#fff', boxShadow: '0 2px 8px rgba(255,82,82,0.3)' }}>
+                        Lunas
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold flex-shrink-0 border border-[var(--neu-border)]"
+                        style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        Belum Lunas
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -138,8 +144,8 @@ export default function OrtuFees() {
           </div>
 
           {/* Payment instructions */}
-          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] h-fit space-y-4"
-            style={{ background: 'var(--md-sys-color-surface-container-low)', padding: '24px' }}>
+          <div className="rounded-3xl h-fit space-y-4 border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)', padding: '24px' }}>
             <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Instruksi Pelunasan</h3>
 
             <div className="space-y-4">
@@ -158,10 +164,10 @@ export default function OrtuFees() {
                   body: 'Setelah transfer, kirim bukti pembayaran ke admin dojo untuk ditandai lunas.',
                 },
               ].map(({ title, body, detail }, idx) => (
-                <div key={idx} className={idx > 0 ? 'pt-4' : ''} style={{ borderTop: idx > 0 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}>
+                <div key={idx} className={idx > 0 ? 'pt-4' : ''} style={{ borderTop: idx > 0 ? '1px solid var(--neu-border)' : 'none' }}>
                   <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-5 h-5 rounded-[var(--md-sys-shape-corner-full)] flex items-center justify-center text-[10px] font-bold flex-shrink-0"
-                      style={{ background: 'var(--md-sys-color-primary)', color: 'var(--md-sys-color-on-primary)' }}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                      style={{ background: 'var(--neu-accent-grad)', color: '#fff', boxShadow: '0 2px 6px rgba(211,22,22,0.3)' }}>
                       {idx + 1}
                     </div>
                     <span className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</span>

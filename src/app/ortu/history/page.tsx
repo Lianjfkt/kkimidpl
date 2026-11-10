@@ -48,10 +48,10 @@ export default function OrtuHistory() {
 
   const resultBadge = (result: string) => {
     switch (result) {
-      case 'lulus': return { background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' };
-      case 'tidak_lulus': return { background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' };
-      case 'pending': return { background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' };
-      default: return { background: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)' };
+      case 'lulus': return { background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' };
+      case 'tidak_lulus': return { background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' };
+      case 'pending': return { background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' };
+      default: return { background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)', border: '1px solid var(--neu-border)' };
     }
   };
 
@@ -66,9 +66,11 @@ export default function OrtuHistory() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--md-sys-color-primary)] border-t-transparent animate-spin" />
-      </div>
+      <Navigation>
+        <div className="flex items-center justify-center py-24">
+          <div className="w-8 h-8 rounded-full border-2 border-[var(--md-sys-color-primary)] border-t-transparent animate-spin" />
+        </div>
+      </Navigation>
     );
   }
 
@@ -88,11 +90,14 @@ export default function OrtuHistory() {
         {/* Belt Progress Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {students.map((student: Student) => (
-            <div key={student.id} className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col gap-3"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div key={student.id} className="rounded-3xl p-5 flex flex-col gap-3 border border-[var(--neu-border)] transition-all duration-200"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-flat)'; e.currentTarget.style.transform = ''; }}
+            >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold"
-                  style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-primary)' }}>
                   {student.full_name.charAt(0)}
                 </div>
                 <div>
@@ -100,25 +105,31 @@ export default function OrtuHistory() {
                   <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Status: {student.status === 'active' ? '✅ Aktif' : student.status}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1 px-3 py-2 rounded-2xl border border-[var(--neu-border)]"
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                 <span className="text-lg">🥋</span>
-                <span className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-primary)' }}>{student.current_belt}</span>
+                <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tingkat Sabuk Saat Ini:</span>
+                <span className="text-xs font-bold" style={{ color: 'var(--md-sys-color-primary)' }}>{student.current_belt}</span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex gap-2">
+        {/* Tab Switcher — Neumorphic Segmented Control */}
+        <div
+          className="flex p-1.5 rounded-2xl gap-1 border border-[var(--neu-border)] w-fit"
+          style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed)' }}
+        >
           {(['ujian', 'turnamen'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 cursor-pointer ${
+              className="px-5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer"
+              style={
                 activeTab === tab
-                  ? 'm3-btn-filled'
-                  : 'm3-btn-outlined'
-              }`}
+                  ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)', color: '#fff' }
+                  : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
+              }
             >
               {tab === 'ujian' ? '🥋 Ujian Sabuk' : '🏆 Turnamen'}
             </button>
@@ -127,26 +138,31 @@ export default function OrtuHistory() {
 
         {/* Ujian Tab */}
         {activeTab === 'ujian' && (
-          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
-            style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+          <div className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
+            <div className="px-6 py-4 border-b border-[var(--neu-border)]">
+              <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Histori Ujian Kenaikan Sabuk</h3>
+            </div>
             {examParticipants.length === 0 ? (
               <div className="py-16 text-center flex flex-col items-center justify-center gap-2">
                 <span className="text-4xl">🥋</span>
                 <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Belum ada riwayat ujian</p>
               </div>
             ) : (
-              <div className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+              <div className="divide-y" style={{ borderColor: 'var(--neu-border)' }}>
                 {examParticipants.map((ep: ExamParticipant) => {
                   const exam = getExamInfo(ep.exam_id);
                   const badgeStyle = resultBadge(ep.result);
                   return (
-                    <div key={ep.id} className="p-5 transition-colors hover:bg-[var(--md-sys-color-surface-container)]">
+                    <div key={ep.id} className="p-5 transition-all duration-200"
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="text-lg">🥋</span>
                           <h3 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>{getStudentName(ep.student_id)}</h3>
                         </div>
-                        <span className="px-3 py-1.5 rounded-[var(--md-sys-shape-corner-full)] text-xs font-semibold" style={badgeStyle}>
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold" style={badgeStyle}>
                           {ep.result === 'lulus' ? 'Lulus' : ep.result === 'tidak_lulus' ? 'Tidak Lulus' : 'Pending'}
                         </span>
                       </div>
@@ -173,19 +189,24 @@ export default function OrtuHistory() {
 
         {/* Turnamen Tab */}
         {activeTab === 'turnamen' && (
-          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
-            style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+          <div className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
+            <div className="px-6 py-4 border-b border-[var(--neu-border)]">
+              <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Pencapaian Turnamen</h3>
+            </div>
             {tournamentParticipants.length === 0 ? (
               <div className="py-16 text-center flex flex-col items-center justify-center gap-2">
                 <span className="text-4xl">🏆</span>
                 <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Belum ada riwayat turnamen</p>
               </div>
             ) : (
-              <div className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+              <div className="divide-y" style={{ borderColor: 'var(--neu-border)' }}>
                 {tournamentParticipants.map((tp: TournamentParticipant) => {
                   const tourn = getTournamentInfo(tp.tournament_id);
                   return (
-                    <div key={tp.id} className="p-5 transition-colors hover:bg-[var(--md-sys-color-surface-container)]">
+                    <div key={tp.id} className="p-5 transition-all duration-200"
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{medalEmoji(tp.medal)}</span>
@@ -194,8 +215,8 @@ export default function OrtuHistory() {
                             <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{tourn?.name || '-'}</p>
                           </div>
                         </div>
-                        <span className="text-xs font-semibold px-3 py-1.5 rounded-[var(--md-sys-shape-corner-full)] capitalize"
-                          style={{ background: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        <span className="text-xs font-semibold px-3 py-1 rounded-full capitalize border border-[var(--neu-border)]"
+                          style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-on-surface-variant)' }}>
                           {tp.category}
                         </span>
                       </div>

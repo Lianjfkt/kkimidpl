@@ -17,11 +17,16 @@ import {
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
-      <div className="w-full max-w-lg rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl"
-        style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }} onClick={onClose}>
+      <div className="w-full max-w-lg rounded-3xl animate-fade-in"
+        style={{
+          background: 'var(--neu-surface-high)',
+          padding: '24px',
+          boxShadow: 'var(--neu-shadow-flat-lg), 0 20px 48px rgba(0,0,0,0.5)',
+          border: '1px solid var(--neu-border)',
+        }}
         onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-xl font-semibold mb-5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
+        <h3 className="text-xl font-bold mb-5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
         {children}
       </div>
     </div>
@@ -36,8 +41,14 @@ interface ToastNotification {
   icon?: string;
 }
 
-const inputClass = 'm3-textfield-outlined text-sm';
-const labelClass = 'block text-xs font-medium mb-1.5';
+const inputClass = 'w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all duration-200';
+const neuInputStyle: React.CSSProperties = {
+  background: 'var(--neu-surface-low)',
+  boxShadow: 'var(--neu-shadow-pressed-sm)',
+  border: '1px solid var(--neu-border)',
+  color: 'var(--md-sys-color-on-surface)',
+};
+const labelClass = 'block text-xs font-semibold mb-1.5';
 const fieldWrap = 'flex flex-col';
 
 const months = MONTH_NAMES;
@@ -637,7 +648,7 @@ export default function OwnerFinance() {
             </p>
           </div>
           {activeTab === 'kas' && (
-            <button onClick={openAddTxModal} className="m3-btn-filled px-5 py-2.5 text-sm font-medium cursor-pointer">
+            <button onClick={openAddTxModal} className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer">
               <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
               Tambah Transaksi
             </button>
@@ -645,30 +656,35 @@ export default function OwnerFinance() {
         </div>
 
         {/* 3 Main Tabs */}
-        <div className="flex flex-wrap gap-2 p-1.5 rounded-full bg-[var(--md-sys-color-surface-container-high)] w-fit mb-4">
+        <div
+          className="flex p-1.5 rounded-2xl gap-1 border border-[var(--neu-border)] w-fit mb-4"
+          style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed)' }}
+        >
           <button
             type="button"
             onClick={() => setActiveTab('kas')}
-            className={`px-5 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+            className="px-5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer"
+            style={
               activeTab === 'kas'
-                ? 'bg-[var(--md-sys-color-primary)] text-white shadow-sm'
-                : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
-            }`}
+                ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)', color: '#fff' }
+                : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
+            }
           >
             📋 Pembukuan &amp; Kas
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('penagihan')}
-            className={`px-5 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className="px-5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer flex items-center gap-1.5"
+            style={
               activeTab === 'penagihan'
-                ? 'bg-amber-600 text-white shadow-sm'
-                : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
-            }`}
+                ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)', color: '#fff' }
+                : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
+            }
           >
             <span>⚠️</span> Penagihan &amp; Tunggakan
             {totalUnpaidSelectedMonth > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 text-[10px] bg-red-500 text-white rounded-full font-bold">
+              <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-white text-red-600 rounded-full font-bold">
                 {totalUnpaidSelectedMonth}
               </span>
             )}
@@ -676,11 +692,12 @@ export default function OwnerFinance() {
           <button
             type="button"
             onClick={() => setActiveTab('analytics')}
-            className={`px-5 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+            className="px-5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer"
+            style={
               activeTab === 'analytics'
-                ? 'bg-[var(--md-sys-color-primary)] text-white shadow-sm'
-                : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
-            }`}
+                ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)', color: '#fff' }
+                : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
+            }
           >
             📊 Analytics &amp; Tren
           </button>
@@ -691,21 +708,27 @@ export default function OwnerFinance() {
           <div className="space-y-6 animate-fade-in">
             {/* Finance Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {statCards.map(({ label, value, color, textColor, icon }) => (
-                <div key={label} className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col gap-2"
-                  style={{ background: color }}>
+              {statCards.map(({ label, value, textColor, icon }) => (
+                <div key={label} className="rounded-3xl p-5 flex flex-col gap-2 border border-[var(--neu-border)] transition-all duration-200"
+                  style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-flat)'; e.currentTarget.style.transform = ''; }}
+                >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium" style={{ color: textColor, opacity: 0.8 }}>{label}</span>
-                    <span className="text-lg font-bold" style={{ color: textColor }}>{icon}</span>
+                    <span className="text-xs font-semibold opacity-75" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{label}</span>
+                    <div className="w-10 h-10 rounded-2xl flex items-center justify-center border border-[var(--neu-border)]"
+                      style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                      <span className="text-lg">{icon}</span>
+                    </div>
                   </div>
-                  <p className="text-2xl font-bold" style={{ color: textColor }}>{loading ? '—' : value}</p>
+                  <p className="text-2xl font-bold" style={{ color: textColor || 'var(--md-sys-color-on-surface)' }}>{loading ? '—' : value}</p>
                 </div>
               ))}
             </div>
 
             {/* Tren Keuangan 6 Bulan Terakhir */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)]"
-              style={{ background: 'var(--md-sys-color-surface-container-low)', padding: '24px' }}>
+            <div className="rounded-3xl border border-[var(--neu-border)] p-6"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
                 <div>
                   <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
@@ -751,9 +774,9 @@ export default function OwnerFinance() {
             </div>
 
             {/* Jurnal Transaksi Kas Dojo */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-              <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--md-sys-color-outline-variant)]">
+            <div className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
+              <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--neu-border)]">
                 <div>
                   <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                     Jurnal Transaksi Kas Dojo
@@ -766,7 +789,8 @@ export default function OwnerFinance() {
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Type Filter */}
                   <select
-                    className="m3-textfield-outlined text-xs py-1.5 px-3 rounded-lg"
+                    className="text-xs py-1.5 px-3 rounded-xl outline-none transition-all"
+                    style={neuInputStyle}
                     value={txFilterType}
                     onChange={(e) => setTxFilterType(e.target.value as any)}
                   >
@@ -777,7 +801,8 @@ export default function OwnerFinance() {
 
                   {/* Category Filter */}
                   <select
-                    className="m3-textfield-outlined text-xs py-1.5 px-3 rounded-lg"
+                    className="text-xs py-1.5 px-3 rounded-xl outline-none transition-all"
+                    style={neuInputStyle}
                     value={txFilterCategory}
                     onChange={(e) => setTxFilterCategory(e.target.value)}
                   >
@@ -791,7 +816,7 @@ export default function OwnerFinance() {
                     <option value="umum">Umum</option>
                   </select>
 
-                  <button onClick={exportKasCSV} className="m3-btn-outlined px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer">
+                  <button onClick={exportKasCSV} className="apple-btn-secondary px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer rounded-xl">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -801,18 +826,19 @@ export default function OwnerFinance() {
               </div>
 
               {/* Search Bar Transaksi */}
-              <div className="px-5 py-3 border-b border-[var(--md-sys-color-outline-variant)]">
+              <div className="px-5 py-3 border-b border-[var(--neu-border)]">
                 <input
                   type="text"
                   placeholder="Cari transaksi berdasarkan keterangan atau kategori..."
                   value={txSearch}
                   onChange={(e) => setTxSearch(e.target.value)}
-                  className="m3-textfield-outlined w-full text-xs py-2 px-3 rounded-lg"
+                  className="w-full text-xs py-2.5 px-4 rounded-xl outline-none transition-all"
+                  style={neuInputStyle}
                 />
               </div>
 
               {loading ? (
-                <div className="p-6 space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse rounded-[var(--md-sys-shape-corner-medium)]" style={{ background: 'var(--md-sys-color-surface-container)' }} />)}</div>
+                <div className="p-6 space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse rounded-2xl" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />)}</div>
               ) : sortedTransactions.length === 0 ? (
                 <div className="p-8 text-center text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                   Tidak ada catatan transaksi yang sesuai.
@@ -821,7 +847,7 @@ export default function OwnerFinance() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                      <tr style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                         <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-white/5 select-none"
                           style={{ color: 'var(--md-sys-color-on-surface-variant)' }}
                           onClick={() => handleTxSort('transaction_date')}>
@@ -872,9 +898,9 @@ export default function OwnerFinance() {
                             {tx.type === 'pemasukan' ? '+' : '-'} Rp {Number(tx.amount).toLocaleString('id-ID')}
                           </td>
                           <td className="px-5 py-3.5 text-sm text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => openEditTxModal(tx)} className="m3-btn-text py-1 px-2 font-semibold cursor-pointer">Edit</button>
-                              <button onClick={() => handleDeleteTx(tx.id)} className="m3-btn-text py-1 px-2 font-semibold cursor-pointer" style={{ color: 'var(--md-sys-color-error)' }}>Hapus</button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button onClick={() => openEditTxModal(tx)} className="apple-btn-secondary py-1 px-2.5 text-xs font-semibold cursor-pointer">Edit</button>
+                              <button onClick={() => handleDeleteTx(tx.id)} className="apple-btn-secondary py-1 px-2.5 text-xs font-semibold cursor-pointer" style={{ color: 'var(--md-sys-color-error)', borderColor: 'rgba(255,82,82,0.3)' }}>Hapus</button>
                             </div>
                           </td>
                         </tr>
@@ -892,34 +918,40 @@ export default function OwnerFinance() {
           <div className="space-y-6 animate-fade-in">
             {/* KPI Cards Penagihan */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col justify-between"
-                style={{ background: 'var(--md-sys-color-error-container)' }}>
+              <div className="rounded-3xl p-5 flex flex-col justify-between border border-[var(--neu-border)] transition-all duration-200"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-error-container)' }}>
+                  <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-error)' }}>
                     Belum Lunas ({months[billingMonth - 1]})
                   </span>
-                  <span className="text-base font-bold">⚠️</span>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-[var(--neu-border)]"
+                    style={{ background: 'rgba(248,113,113,0.12)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                    <span className="text-sm">⚠️</span>
+                  </div>
                 </div>
                 <div className="mt-3">
-                  <p className="text-2xl font-black" style={{ color: 'var(--md-sys-color-on-error-container)' }}>
+                  <p className="text-2xl font-black text-red-500">
                     {loading ? '—' : `${totalUnpaidSelectedMonth} Siswa`}
                   </p>
-                  <p className="text-[11px] mt-0.5 opacity-85" style={{ color: 'var(--md-sys-color-on-error-container)' }}>
+                  <p className="text-[11px] mt-0.5 opacity-75" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                     dari total {totalActive} siswa aktif dojo
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col justify-between"
-                style={{ background: 'var(--md-sys-color-surface-container-high)' }}>
+              <div className="rounded-3xl p-5 flex flex-col justify-between border border-[var(--neu-border)] transition-all duration-200"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                     Tertunggak Periode Ini
                   </span>
-                  <span className="text-base font-bold text-amber-500">💰</span>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-[var(--neu-border)]"
+                    style={{ background: 'rgba(251,191,36,0.12)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                    <span className="text-sm">💰</span>
+                  </div>
                 </div>
                 <div className="mt-3">
-                  <p className="text-2xl font-black text-amber-600 dark:text-amber-400">
+                  <p className="text-2xl font-black text-amber-500">
                     {loading ? '—' : `Rp ${totalUnpaidNominalSelectedMonth.toLocaleString('id-ID')}`}
                   </p>
                   <p className="text-[11px] mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -928,31 +960,37 @@ export default function OwnerFinance() {
                 </div>
               </div>
 
-              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col justify-between"
-                style={{ background: 'var(--md-sys-color-tertiary-container)' }}>
+              <div className="rounded-3xl p-5 flex flex-col justify-between border border-[var(--neu-border)] transition-all duration-200"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }}>
+                  <span className="text-xs font-semibold" style={{ color: '#34d399' }}>
                     Kepatuhan Iuran
                   </span>
-                  <span className="text-base font-bold text-emerald-600">✓</span>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-[var(--neu-border)]"
+                    style={{ background: 'rgba(52,211,153,0.12)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                    <span className="text-sm">✓</span>
+                  </div>
                 </div>
                 <div className="mt-3">
-                  <p className="text-2xl font-black" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }}>
+                  <p className="text-2xl font-black text-emerald-500">
                     {loading ? '—' : `${billingComplianceRate}%`}
                   </p>
-                  <p className="text-[11px] mt-0.5 opacity-85" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }}>
+                  <p className="text-[11px] mt-0.5 opacity-75" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                     {totalPaidSelectedMonth} dari {totalActive} siswa lunas
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col justify-between"
-                style={{ background: multiMonthArrearsCount > 0 ? 'rgba(239, 68, 68, 0.15)' : 'var(--md-sys-color-surface-container-high)' }}>
+              <div className="rounded-3xl p-5 flex flex-col justify-between border border-[var(--neu-border)] transition-all duration-200"
+                style={{ background: multiMonthArrearsCount > 0 ? 'rgba(239, 68, 68, 0.08)' : 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold" style={{ color: multiMonthArrearsCount > 0 ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-on-surface)' }}>
                     Nunggak &gt; 1 Bulan
                   </span>
-                  <span className="text-base font-bold text-red-500">🚨</span>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-[var(--neu-border)]"
+                    style={{ background: 'rgba(248,113,113,0.12)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                    <span className="text-sm">🚨</span>
+                  </div>
                 </div>
                 <div className="mt-3">
                   <p className="text-2xl font-black" style={{ color: multiMonthArrearsCount > 0 ? 'var(--md-sys-color-error)' : 'var(--md-sys-color-on-surface)' }}>
@@ -966,15 +1004,16 @@ export default function OwnerFinance() {
             </div>
 
             {/* Filter & Control Bar */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col gap-4"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div className="rounded-3xl p-5 flex flex-col gap-4 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Period Selector */}
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Periode:</span>
                     <select
-                      className="m3-textfield-outlined text-xs py-1.5 px-3 rounded-lg"
+                      className="text-xs py-1.5 px-3 rounded-xl outline-none transition-all"
+                      style={neuInputStyle}
                       value={billingMonth}
                       onChange={(e) => {
                         const m = Number(e.target.value);
@@ -988,7 +1027,8 @@ export default function OwnerFinance() {
                     </select>
                     <input
                       type="number"
-                      className="m3-textfield-outlined text-xs py-1.5 px-2 w-20 rounded-lg"
+                      className="text-xs py-1.5 px-3 w-20 rounded-xl outline-none transition-all"
+                      style={neuInputStyle}
                       value={billingYear}
                       onChange={(e) => {
                         const yr = Number(e.target.value);
@@ -999,37 +1039,43 @@ export default function OwnerFinance() {
                   </div>
 
                   {/* Status Filter */}
-                  <div className="flex items-center gap-1 bg-[var(--md-sys-color-surface-container)] p-1 rounded-lg text-xs font-semibold">
+                  <div
+                    className="flex p-1 rounded-xl gap-1 border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed)' }}
+                  >
                     <button
                       type="button"
                       onClick={() => setBillingStatusFilter('belum_lunas')}
-                      className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
+                      style={
                         billingStatusFilter === 'belum_lunas'
-                          ? 'bg-red-500 text-white shadow-sm'
-                          : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
-                      }`}
+                          ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)', color: '#fff' }
+                          : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
+                      }
                     >
                       Belum Lunas ({totalUnpaidSelectedMonth})
                     </button>
                     <button
                       type="button"
                       onClick={() => setBillingStatusFilter('lunas')}
-                      className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
+                      style={
                         billingStatusFilter === 'lunas'
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
-                      }`}
+                          ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)', color: '#fff' }
+                          : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
+                      }
                     >
                       Lunas ({totalPaidSelectedMonth})
                     </button>
                     <button
                       type="button"
                       onClick={() => setBillingStatusFilter('all')}
-                      className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer"
+                      style={
                         billingStatusFilter === 'all'
-                          ? 'bg-[var(--md-sys-color-primary)] text-white shadow-sm'
-                          : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
-                      }`}
+                          ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)', color: '#fff' }
+                          : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
+                      }
                     >
                       Semua ({totalActive})
                     </button>
@@ -1040,7 +1086,7 @@ export default function OwnerFinance() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleExportBillingCSV}
-                    className="m3-btn-outlined px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+                    className="apple-btn-secondary px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer rounded-xl"
                     title="Unduh data tagihan ke format CSV"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -1052,22 +1098,23 @@ export default function OwnerFinance() {
               </div>
 
               {/* Search & Belt Sub-filter */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-[var(--md-sys-color-outline-variant)]">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-[var(--neu-border)]">
                 <div className="sm:col-span-2 relative">
                   <input
                     type="text"
                     placeholder="Cari nama siswa, orang tua, atau nomor telepon..."
                     value={billingSearch}
                     onChange={(e) => setBillingSearch(e.target.value)}
-                    className="m3-textfield-outlined w-full text-xs py-2 pl-9 pr-3 rounded-lg"
+                    className="w-full text-xs py-2.5 pl-9 pr-3 rounded-xl outline-none transition-all"
+                    style={neuInputStyle}
                   />
-                  <svg className="w-4 h-4 absolute left-3 top-2.5 text-[var(--md-sys-color-on-surface-variant)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <svg className="w-4 h-4 absolute left-3 top-3 text-[var(--md-sys-color-on-surface-variant)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   {billingSearch && (
                     <button
                       onClick={() => setBillingSearch('')}
-                      className="absolute right-3 top-2 text-xs text-[var(--md-sys-color-on-surface-variant)] hover:text-white"
+                      className="absolute right-3 top-2.5 text-xs text-[var(--md-sys-color-on-surface-variant)] hover:text-white"
                     >
                       ✕
                     </button>
@@ -1076,7 +1123,8 @@ export default function OwnerFinance() {
 
                 <div>
                   <select
-                    className="m3-textfield-outlined w-full text-xs py-2 px-3 rounded-lg"
+                    className="w-full text-xs py-2.5 px-3 rounded-xl outline-none transition-all"
+                    style={neuInputStyle}
                     value={billingBeltFilter}
                     onChange={(e) => setBillingBeltFilter(e.target.value)}
                   >
@@ -1090,9 +1138,9 @@ export default function OwnerFinance() {
             </div>
 
             {/* Billing List Table */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden shadow-sm"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-              <div className="px-6 py-4 flex items-center justify-between border-b border-[var(--md-sys-color-outline-variant)]">
+            <div className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
+              <div className="px-6 py-4 flex items-center justify-between border-b border-[var(--neu-border)]">
                 <div>
                   <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                     Daftar Penagihan Siswa ({months[billingMonth - 1]} {billingYear})
@@ -1101,7 +1149,8 @@ export default function OwnerFinance() {
                     Menampilkan {filteredBillingList.length} siswa sesuai kriteria filter.
                   </p>
                 </div>
-                <div className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                <div className="text-xs font-semibold px-3 py-1 rounded-full border border-[var(--neu-border)] flex items-center gap-1.5"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: '#34d399' }}>
                   <span>🏦</span>
                   <span>Rekening: <b>Bank JAGO 501072411966</b></span>
                 </div>
@@ -1314,7 +1363,8 @@ export default function OwnerFinance() {
         {activeTab === 'analytics' && (
           <div className="space-y-6 animate-fade-in">
             {/* Year Selector & Summary Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-[var(--md-sys-shape-corner-extra-large)] bg-[var(--md-sys-color-surface-container-low)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
               <div>
                 <h3 className="font-bold text-lg" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   Performa Finansial &amp; Analisis Dojo
@@ -1329,7 +1379,8 @@ export default function OwnerFinance() {
                   Tahun Analisis:
                 </span>
                 <select
-                  className="m3-textfield-outlined text-xs py-1.5 px-3 rounded-lg font-bold"
+                  className="text-xs py-1.5 px-3 rounded-xl font-bold outline-none transition-all"
+                  style={neuInputStyle}
                   value={analyticsYear}
                   onChange={(e) => {
                     const yr = Number(e.target.value);
@@ -1346,12 +1397,13 @@ export default function OwnerFinance() {
 
             {/* Executive KPI Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-5 rounded-[var(--md-sys-shape-corner-extra-large)] bg-[var(--md-sys-color-surface-container-high)] flex flex-col justify-between">
+              <div className="p-5 rounded-3xl border border-[var(--neu-border)] flex flex-col justify-between transition-all duration-200"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <span className="text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)]">
                   Total Pemasukan ({analyticsYear})
                 </span>
                 <div className="mt-2">
-                  <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                  <p className="text-2xl font-black text-emerald-500">
                     Rp {yearlyTotalIncome.toLocaleString('id-ID')}
                   </p>
                   <p className="text-[11px] text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
@@ -1360,7 +1412,8 @@ export default function OwnerFinance() {
                 </div>
               </div>
 
-              <div className="p-5 rounded-[var(--md-sys-shape-corner-extra-large)] bg-[var(--md-sys-color-surface-container-high)] flex flex-col justify-between">
+              <div className="p-5 rounded-3xl border border-[var(--neu-border)] flex flex-col justify-between transition-all duration-200"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <span className="text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)]">
                   Total Pengeluaran ({analyticsYear})
                 </span>
@@ -1374,12 +1427,13 @@ export default function OwnerFinance() {
                 </div>
               </div>
 
-              <div className="p-5 rounded-[var(--md-sys-shape-corner-extra-large)] bg-[var(--md-sys-color-surface-container-high)] flex flex-col justify-between">
+              <div className="p-5 rounded-3xl border border-[var(--neu-border)] flex flex-col justify-between transition-all duration-200"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <span className="text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)]">
                   Surplus / Net Profit ({analyticsYear})
                 </span>
                 <div className="mt-2">
-                  <p className={`text-2xl font-black ${yearlyNetProfit >= 0 ? 'text-[var(--md-sys-color-primary)]' : 'text-red-500'}`}>
+                  <p className={`text-2xl font-black ${yearlyNetProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                     Rp {yearlyNetProfit.toLocaleString('id-ID')}
                   </p>
                   <p className="text-[11px] text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
@@ -1388,12 +1442,13 @@ export default function OwnerFinance() {
                 </div>
               </div>
 
-              <div className="p-5 rounded-[var(--md-sys-shape-corner-extra-large)] bg-[var(--md-sys-color-surface-container-high)] flex flex-col justify-between">
+              <div className="p-5 rounded-3xl border border-[var(--neu-border)] flex flex-col justify-between transition-all duration-200"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <span className="text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)]">
                   Rata-rata Kepatuhan Iuran
                 </span>
                 <div className="mt-2">
-                  <p className="text-2xl font-black text-blue-500">
+                  <p className="text-2xl font-black text-blue-400">
                     {yearlyAvgCompliance}%
                   </p>
                   <p className="text-[11px] text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
@@ -1404,7 +1459,8 @@ export default function OwnerFinance() {
             </div>
 
             {/* 12-Month Yearly Cash Flow Chart */}
-            <div className="m3-card-elevated p-6">
+            <div className="rounded-3xl p-6 border border-[var(--neu-border)] transition-all duration-200"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
                 <div>
                   <h4 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
@@ -1424,7 +1480,7 @@ export default function OwnerFinance() {
                 </div>
               </div>
 
-              <div className="flex items-end gap-2 sm:gap-3 h-52 pt-4 pb-2 border-b border-[var(--md-sys-color-outline-variant)]">
+              <div className="flex items-end gap-2 sm:gap-3 h-52 pt-4 pb-2 border-b border-[var(--neu-border)]">
                 {yearlyAnalyticsMonths.map((m, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group">
                     <div className="w-full flex items-end justify-center gap-0.5 sm:gap-1 h-40">
@@ -1452,7 +1508,8 @@ export default function OwnerFinance() {
             {/* Income & Expense Breakdown Grids */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Income Categories Breakdown */}
-              <div className="m3-card-elevated p-6">
+              <div className="rounded-3xl p-6 border border-[var(--neu-border)] transition-all duration-200"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <h4 className="font-bold text-base mb-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   Sumber Pemasukan ({analyticsYear})
                 </h4>
@@ -1471,7 +1528,7 @@ export default function OwnerFinance() {
                           Rp {c.amount.toLocaleString('id-ID')} ({c.percent}%)
                         </span>
                       </div>
-                      <div className="w-full h-2 rounded-full bg-[var(--md-sys-color-surface-container)] overflow-hidden">
+                      <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--neu-surface-low)' }}>
                         <div
                           className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                           style={{ width: `${c.percent}%` }}
@@ -1483,7 +1540,8 @@ export default function OwnerFinance() {
               </div>
 
               {/* Expense Categories Breakdown */}
-              <div className="m3-card-elevated p-6">
+              <div className="rounded-3xl p-6 border border-[var(--neu-border)] transition-all duration-200"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <h4 className="font-bold text-base mb-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   Alokasi Pengeluaran ({analyticsYear})
                 </h4>
@@ -1505,7 +1563,7 @@ export default function OwnerFinance() {
                             Rp {c.amount.toLocaleString('id-ID')} ({c.percent}%)
                           </span>
                         </div>
-                        <div className="w-full h-2 rounded-full bg-[var(--md-sys-color-surface-container)] overflow-hidden">
+                        <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--neu-surface-low)' }}>
                           <div
                             className="h-full bg-red-500 rounded-full transition-all duration-500"
                             style={{ width: `${c.percent}%` }}
@@ -1521,7 +1579,8 @@ export default function OwnerFinance() {
             {/* Demographics & Belt Distribution */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Belt Distribution */}
-              <div className="m3-card-elevated p-6">
+              <div className="rounded-3xl p-6 border border-[var(--neu-border)] transition-all duration-200"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <h4 className="font-bold text-base mb-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   Distribusi Sabuk Siswa Aktif
                 </h4>
@@ -1547,7 +1606,8 @@ export default function OwnerFinance() {
               </div>
 
               {/* Gender & Athlete Stats */}
-              <div className="m3-card-elevated p-6 flex flex-col justify-between">
+              <div className="rounded-3xl p-6 border border-[var(--neu-border)] transition-all duration-200 flex flex-col justify-between"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <div>
                   <h4 className="font-bold text-base mb-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                     Demografi &amp; Partisipasi Atlet
@@ -1623,9 +1683,9 @@ export default function OwnerFinance() {
               <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Keterangan *</label>
               <input type="text" required className={inputClass} placeholder="mis. Beli matras latihan baru" value={txDescription} onChange={(e) => setTxDescription(e.target.value)} />
             </div>
-            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="m3-btn-text px-5 py-2.5 text-sm cursor-pointer">Batal</button>
-              <button type="submit" className="m3-btn-filled px-5 py-2.5 text-sm cursor-pointer">Simpan</button>
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--neu-border)]">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer">Batal</button>
+              <button type="submit" className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer">Simpan</button>
             </div>
           </form>
         </M3Dialog>
@@ -1638,27 +1698,28 @@ export default function OwnerFinance() {
         >
           <form onSubmit={handleQuickPaySubmit} className="space-y-4">
             {quickPayMsg && (
-              <div className="p-3 rounded-lg text-xs bg-red-500/20 text-red-400 border border-red-500/30">
+              <div className="p-3 rounded-2xl text-xs bg-red-500/20 text-red-400 border border-red-500/30">
                 {quickPayMsg}
               </div>
             )}
 
-            <div className="p-3 rounded-xl bg-[var(--md-sys-color-surface-container)] space-y-1">
+            <div className="p-3.5 rounded-2xl border border-[var(--neu-border)] space-y-1.5"
+              style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--md-sys-color-on-surface-variant)]">Periode Iuran:</span>
-                <span className="font-semibold text-[var(--md-sys-color-on-surface)]">
+                <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Periode Iuran:</span>
+                <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   {months[billingMonth - 1]} {billingYear}
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--md-sys-color-on-surface-variant)]">Siswa:</span>
-                <span className="font-semibold text-[var(--md-sys-color-on-surface)]">
+                <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Siswa:</span>
+                <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   {quickPayStudent?.full_name} ({quickPayStudent?.current_belt})
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-[var(--md-sys-color-on-surface-variant)]">Orang Tua:</span>
-                <span className="font-semibold text-[var(--md-sys-color-on-surface)]">
+                <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Orang Tua:</span>
+                <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   {quickPayStudent?.parent_name || '-'}
                 </span>
               </div>
@@ -1673,6 +1734,7 @@ export default function OwnerFinance() {
                   type="number"
                   required
                   className={inputClass}
+                  style={neuInputStyle}
                   value={quickPayAmount}
                   onChange={(e) => setQuickPayAmount(Number(e.target.value))}
                 />
@@ -1684,6 +1746,7 @@ export default function OwnerFinance() {
                 </label>
                 <select
                   className={inputClass}
+                  style={neuInputStyle}
                   value={quickPayMethod}
                   onChange={(e) => setQuickPayMethod(e.target.value as 'transfer' | 'tunai' | 'qris')}
                 >
@@ -1702,6 +1765,7 @@ export default function OwnerFinance() {
                 type="date"
                 required
                 className={inputClass}
+                style={neuInputStyle}
                 value={quickPayDate}
                 onChange={(e) => setQuickPayDate(e.target.value)}
               />
@@ -1714,27 +1778,29 @@ export default function OwnerFinance() {
               <input
                 type="text"
                 className={inputClass}
+                style={neuInputStyle}
                 placeholder="mis. Bukti transfer WA terlampir"
                 value={quickPayNotes}
                 onChange={(e) => setQuickPayNotes(e.target.value)}
               />
             </div>
 
-            <div className="text-[11px] text-[var(--md-sys-color-on-surface-variant)] p-2 rounded-lg bg-[var(--md-sys-color-surface-container)]">
+            <div className="text-[11px] p-3 rounded-2xl border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)' }}>
               ℹ️ Pelunasan ini otomatis dicatat ke dalam Jurnal Pemasukan Kas Dojo dan mengirim notifikasi ke akun orang tua.
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t border-[var(--md-sys-color-outline-variant)]">
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--neu-border)]">
               <button
                 type="button"
                 onClick={() => setQuickPayOpen(false)}
-                className="m3-btn-text px-5 py-2.5 text-sm cursor-pointer"
+                className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="m3-btn-filled px-5 py-2.5 text-sm bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer"
+                className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer"
               >
                 Konfirmasi Lunas &amp; Catat Kas
               </button>

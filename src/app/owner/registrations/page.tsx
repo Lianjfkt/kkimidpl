@@ -11,21 +11,34 @@ import { OFFICIAL_BELTS } from '@/lib/constants/belts';
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
       <div
-        className="w-full max-w-lg rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in"
-        style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
+        className="w-full max-w-lg rounded-3xl border border-[var(--neu-border)] p-6 shadow-2xl animate-fade-in"
+        style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-xl font-semibold mb-5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-105"
+            style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-flat-sm)', color: 'var(--md-sys-color-on-surface-variant)' }}
+          >
+            ✕
+          </button>
+        </div>
         {children}
       </div>
     </div>
   );
 }
 
-const inputClass = 'm3-textfield-outlined text-sm';
-const labelClass = 'block text-xs font-medium mb-1.5';
+const inputClass = 'w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all';
+const labelClass = 'block text-xs font-semibold uppercase tracking-wider mb-1.5';
 const fieldWrap = 'flex flex-col';
 
 function RegistrationsContent() {
@@ -438,7 +451,7 @@ function RegistrationsContent() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+            <h2 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
               Pendaftaran Siswa Baru
             </h2>
             <p className="text-sm mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -447,71 +460,89 @@ function RegistrationsContent() {
           </div>
           <button
             onClick={openCreateModal}
-            className="m3-btn-filled text-xs py-2 px-4 flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+            className="apple-btn text-xs py-2.5 px-4.5 flex items-center gap-1.5 self-start sm:self-auto cursor-pointer font-semibold"
           >
             <span>➕</span> Tambah Pendaftaran
           </button>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {(['menunggu', 'disetujui', 'ditolak'] as const).map((status) => {
             const count = registrations.filter((r: Registration) => r.status === status).length;
             const icons = { menunggu: '⏳', disetujui: '✅', ditolak: '❌' };
-            const badgeStyle = statusBadge(status);
+            const isSelected = filter === status;
             return (
               <button
                 key={status}
                 onClick={() => setFilter(f => f === status ? 'semua' : status)}
-                className="m3-card-filled text-left transition-all duration-200 cursor-pointer flex flex-col gap-2"
+                className="text-left transition-all duration-300 cursor-pointer flex flex-col gap-2 rounded-3xl p-5 border"
                 style={{
-                  border: filter === status ? '2px solid var(--md-sys-color-primary)' : '2px solid transparent',
-                  padding: '16px'
+                  background: isSelected ? 'var(--neu-surface-high)' : 'var(--neu-surface)',
+                  boxShadow: isSelected ? 'var(--neu-shadow-pressed)' : 'var(--neu-shadow-flat)',
+                  borderColor: isSelected ? 'var(--md-sys-color-primary)' : 'var(--neu-border)'
                 }}
               >
-                <div className="w-9 h-9 rounded-[var(--md-sys-shape-corner-medium)] flex items-center justify-center text-base"
-                  style={badgeStyle}>
+                <div
+                  className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg"
+                  style={{
+                    background: 'var(--neu-surface-low)',
+                    boxShadow: 'var(--neu-shadow-pressed-sm)',
+                  }}
+                >
                   {icons[status]}
                 </div>
-                <p className="text-2xl font-bold leading-none mt-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>{count}</p>
-                <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{statusLabel(status)}</p>
+                <p className="text-2xl font-extrabold leading-none mt-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>{count}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{statusLabel(status)}</p>
               </button>
             );
           })}
         </div>
 
         {/* Registration List */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
-          style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+        <div
+          className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+        >
           {filtered.length === 0 ? (
             <div className="py-16 text-center flex flex-col items-center gap-3">
               <span className="text-4xl">📋</span>
-              <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              <p className="text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                 {filter === 'semua' ? 'Belum ada pendaftaran' : `Tidak ada pendaftaran berstatus "${statusLabel(filter)}"`}
               </p>
             </div>
           ) : (
-            <div className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+            <div className="divide-y divide-[var(--neu-border)]">
               {filtered.map((reg: Registration) => (
-                <div key={reg.id} className="p-5 transition-colors duration-150"
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--md-sys-color-surface-container)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '')}>
+                <div
+                  key={reg.id}
+                  className="p-6 transition-all duration-200 hover:bg-slate-500/5"
+                >
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                          style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                      <div className="flex items-center gap-3.5 mb-3.5">
+                        <div
+                          className="w-11 h-11 rounded-2xl flex items-center justify-center text-base font-bold flex-shrink-0"
+                          style={{
+                            background: 'var(--neu-surface-high)',
+                            boxShadow: 'var(--neu-shadow-flat-sm)',
+                            color: 'var(--md-sys-color-primary)'
+                          }}
+                        >
                           {reg.full_name.charAt(0)}
                         </div>
                         <div>
-                          <h3 className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{reg.full_name}</h3>
-                          <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          <h3 className="text-base font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>{reg.full_name}</h3>
+                          <p className="text-xs font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                             Lahir: {new Date(reg.dob).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                           </p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:ml-13 pl-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      <div
+                        className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs p-4 rounded-2xl border border-[var(--neu-border)] sm:ml-14"
+                        style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-on-surface-variant)' }}
+                      >
                         <div>
                           <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>Tempat Lahir:</span> {reg.birth_place || '-'}
                         </div>
@@ -519,7 +550,7 @@ function RegistrationsContent() {
                           <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>NIK (KK):</span> {reg.nik || '-'}
                         </div>
                         <div>
-                          <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>Sabuk Saat Ini:</span> <span className="font-bold" style={{ color: 'var(--md-sys-color-primary)' }}>{reg.current_belt || 'Putih'}</span>
+                          <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>Sabuk Saat Ini:</span> <span className="font-bold text-red-400">{reg.current_belt || 'Putih'}</span>
                         </div>
                         <div>
                           <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>Postur:</span> {reg.weight ? `${reg.weight} kg` : '-'} / {reg.height ? `${reg.height} cm` : '-'}
@@ -540,8 +571,14 @@ function RegistrationsContent() {
                     </div>
 
                     <div className="flex items-center gap-3 sm:flex-col sm:items-end flex-shrink-0">
-                      <span className="px-3 py-1.5 rounded-[var(--md-sys-shape-corner-full)] text-xs font-semibold"
-                        style={statusBadge(reg.status)}>
+                      <span
+                        className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider"
+                        style={{
+                          background: 'var(--neu-surface-low)',
+                          boxShadow: 'var(--neu-shadow-pressed-sm)',
+                          color: reg.status === 'disetujui' ? '#4caf50' : reg.status === 'ditolak' ? '#f44336' : 'var(--md-sys-color-primary)'
+                        }}
+                      >
                         {statusLabel(reg.status)}
                       </span>
 
@@ -550,13 +587,13 @@ function RegistrationsContent() {
                           <>
                             <button
                               onClick={() => openApproveModal(reg)}
-                              className="m3-btn-filled text-xs py-1.5 px-3"
+                              className="apple-btn text-xs py-1.5 px-3.5 font-semibold cursor-pointer"
                             >
                               ✓ Setujui
                             </button>
                             <button
                               onClick={() => handleReject(reg)}
-                              className="m3-btn-outlined text-xs py-1.5 px-3"
+                              className="apple-btn-secondary text-xs py-1.5 px-3.5 font-semibold cursor-pointer"
                             >
                               ✕ Tolak
                             </button>
@@ -564,14 +601,14 @@ function RegistrationsContent() {
                         )}
                         <button
                           onClick={() => openEditModal(reg)}
-                          className="m3-btn-tonal text-xs py-1.5 px-2.5"
+                          className="apple-btn-secondary text-xs py-1.5 px-3 font-semibold cursor-pointer"
                           title="Edit Pendaftaran"
                         >
                           ✏️ Edit
                         </button>
                         <button
                           onClick={() => setDeleteTarget(reg)}
-                          className="m3-btn-outlined text-xs py-1.5 px-2.5 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          className="text-xs py-1.5 px-3 font-semibold rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                           title="Hapus Pendaftaran"
                         >
                           🗑️ Hapus
@@ -602,29 +639,37 @@ function RegistrationsContent() {
               Hubungkan <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{approveTarget.full_name}</span> ke akun orang tua siswa.
             </p>
 
-            <div className="rounded-xl p-4 text-xs space-y-1" style={{ background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface-variant)' }}>
-              <p><span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>Wali Pendaftar:</span> {approveTarget.parent_name} {approveTarget.parent_job ? `(${approveTarget.parent_job})` : ''} · {approveTarget.parent_phone}</p>
-              <p><span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>Sabuk Saat Ini:</span> {approveTarget.current_belt || 'Putih'}</p>
+            <div
+              className="rounded-2xl p-4 text-xs space-y-1.5 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-on-surface-variant)' }}
+            >
+              <p><span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>Wali Pendaftar:</span> {approveTarget.parent_name} {approveTarget.parent_job ? `(${approveTarget.parent_job})` : ''} · {approveTarget.parent_phone}</p>
+              <p><span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>Sabuk Saat Ini:</span> {approveTarget.current_belt || 'Putih'}</p>
             </div>
 
             {/* Mode toggle */}
-            <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+            <div
+              className="flex rounded-2xl p-1.5 border border-[var(--neu-border)] gap-1.5"
+              style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+            >
               <button
                 onClick={() => setParentMode('existing')}
-                className="flex-1 py-2.5 text-sm font-semibold transition-colors cursor-pointer"
+                className="flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer"
                 style={{
-                  background: parentMode === 'existing' ? 'var(--md-sys-color-primary)' : 'transparent',
-                  color: parentMode === 'existing' ? 'var(--md-sys-color-on-primary)' : 'var(--md-sys-color-on-surface-variant)'
+                  background: parentMode === 'existing' ? 'var(--neu-accent-grad)' : 'transparent',
+                  boxShadow: parentMode === 'existing' ? 'var(--neu-shadow-accent)' : 'none',
+                  color: parentMode === 'existing' ? 'white' : 'var(--md-sys-color-on-surface-variant)'
                 }}
               >
                 Akun Sudah Ada
               </button>
               <button
                 onClick={() => setParentMode('new')}
-                className="flex-1 py-2.5 text-sm font-semibold transition-colors cursor-pointer"
+                className="flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer"
                 style={{
-                  background: parentMode === 'new' ? 'var(--md-sys-color-primary)' : 'transparent',
-                  color: parentMode === 'new' ? 'var(--md-sys-color-on-primary)' : 'var(--md-sys-color-on-surface-variant)'
+                  background: parentMode === 'new' ? 'var(--neu-accent-grad)' : 'transparent',
+                  boxShadow: parentMode === 'new' ? 'var(--neu-shadow-accent)' : 'none',
+                  color: parentMode === 'new' ? 'white' : 'var(--md-sys-color-on-surface-variant)'
                 }}
               >
                 Buat Akun Baru
@@ -633,7 +678,7 @@ function RegistrationsContent() {
 
             {parentMode === 'existing' ? (
               <div className="space-y-2">
-                <label className="block text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                   Pilih Akun Orang Tua
                 </label>
                 {parentProfiles.length === 0 ? (
@@ -645,6 +690,7 @@ function RegistrationsContent() {
                     value={selectedParentId}
                     onChange={e => setSelectedParentId(e.target.value)}
                     className={inputClass}
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                   >
                     <option value="">-- Pilih orang tua --</option>
                     {parentProfiles.map((p: Profile) => (
@@ -655,7 +701,7 @@ function RegistrationsContent() {
                   </select>
                 )}
                 {selectedParentId && (
-                  <p className="text-xs font-medium" style={{ color: 'var(--md-sys-color-tertiary)' }}>
+                  <p className="text-xs font-bold text-emerald-400">
                     ✅ Siswa akan ditambahkan ke akun orang tua ini
                   </p>
                 )}
@@ -670,6 +716,7 @@ function RegistrationsContent() {
                     onChange={e => setNewParentName(e.target.value)}
                     placeholder="Nama lengkap orang tua"
                     className={inputClass}
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                   />
                 </div>
                 <div className={fieldWrap}>
@@ -680,28 +727,31 @@ function RegistrationsContent() {
                     onChange={e => setNewParentPhone(e.target.value)}
                     placeholder="08xxxxxxxxxx"
                     className={inputClass}
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                   />
                 </div>
 
                 {/* Preview login identifier */}
                 {newParentPhone.trim() && (
-                  <div className="px-3 py-2 rounded-lg text-xs flex items-center gap-2"
-                    style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                  <div
+                    className="px-3.5 py-2.5 rounded-2xl text-xs flex items-center gap-2 border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-primary)' }}
+                  >
                     <span>📱</span>
                     <span>Login menggunakan: <strong>{newParentPhone.trim()}</strong></span>
                   </div>
                 )}
 
-                <div style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)', paddingTop: '12px' }}>
+                <div className="pt-3 border-t border-[var(--neu-border)]">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-primary)' }}>
+                    <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-primary)' }}>
                       🔐 Kata Sandi Akun
                     </p>
                     {newParentPhone.trim() && (
                       <button
                         type="button"
                         onClick={() => setNewParentPassword(newParentPhone.trim())}
-                        className="text-[11px] underline hover:opacity-80 transition-opacity"
+                        className="text-[11px] font-semibold underline hover:opacity-80 transition-opacity"
                         style={{ color: 'var(--md-sys-color-tertiary)' }}
                       >
                         ⚡ Samakan dengan No. HP
@@ -717,7 +767,7 @@ function RegistrationsContent() {
                         onChange={e => setNewParentPassword(e.target.value)}
                         placeholder="Minimal 6 karakter"
                         className={inputClass}
-                        style={{ paddingRight: '44px' }}
+                        style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)', paddingRight: '44px' }}
                       />
                       <button
                         type="button"
@@ -733,30 +783,32 @@ function RegistrationsContent() {
                       </button>
                     </div>
                     {newParentPassword && newParentPassword.length < 6 && (
-                      <p className="text-xs mt-1" style={{ color: 'var(--md-sys-color-error)' }}>Minimal 6 karakter</p>
+                      <p className="text-xs mt-1 text-rose-400">Minimal 6 karakter</p>
                     )}
                   </div>
                 </div>
 
-                <p className="text-xs p-3 rounded-lg" style={{ background: 'var(--md-sys-color-secondary-container)', color: 'var(--md-sys-color-on-secondary-container)' }}>
+                <p
+                  className="text-xs p-3.5 rounded-2xl border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)' }}
+                >
                   💡 <strong>Info Login:</strong> Orang tua dapat login menggunakan <strong>No. HP</strong> sebagai username dan <strong>No. HP</strong> (atau kata sandi di atas) sebagai password.
                 </p>
               </div>
             )}
 
-
-            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--neu-border)]">
               <button
                 onClick={() => setApproveTarget(null)}
                 disabled={approving}
-                className="m3-btn-text px-5 py-2.5 text-sm"
+                className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer"
               >
                 Batal
               </button>
               <button
                 onClick={handleApproveConfirm}
                 disabled={approving}
-                className="m3-btn-filled px-5 py-2.5 text-sm flex items-center gap-2"
+                className="apple-btn px-5 py-2.5 text-sm font-semibold flex items-center gap-2 cursor-pointer"
               >
                 {approving ? (
                   <>
@@ -789,6 +841,7 @@ function RegistrationsContent() {
                 onChange={e => setFormData({ ...formData, full_name: e.target.value })}
                 placeholder="Contoh: Muhammad Ali"
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -800,6 +853,7 @@ function RegistrationsContent() {
                   onChange={e => setFormData({ ...formData, birth_place: e.target.value })}
                   placeholder="Tempat lahir"
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 />
               </div>
               <div className={fieldWrap}>
@@ -809,6 +863,7 @@ function RegistrationsContent() {
                   value={formData.dob || ''}
                   onChange={e => setFormData({ ...formData, dob: e.target.value })}
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 />
               </div>
             </div>
@@ -822,6 +877,7 @@ function RegistrationsContent() {
                   onChange={e => setFormData({ ...formData, nik: e.target.value })}
                   placeholder="NIK atau nomor KK"
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 />
               </div>
               <div className={fieldWrap}>
@@ -830,6 +886,7 @@ function RegistrationsContent() {
                   value={formData.current_belt || 'Putih'}
                   onChange={e => setFormData({ ...formData, current_belt: e.target.value })}
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 >
                   {OFFICIAL_BELTS.map((belt) => (
                     <option key={belt} value={belt}>
@@ -849,6 +906,7 @@ function RegistrationsContent() {
                   onChange={e => setFormData({ ...formData, weight: e.target.value ? Number(e.target.value) : undefined })}
                   placeholder="Misal: 45"
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 />
               </div>
               <div className={fieldWrap}>
@@ -859,12 +917,13 @@ function RegistrationsContent() {
                   onChange={e => setFormData({ ...formData, height: e.target.value ? Number(e.target.value) : undefined })}
                   placeholder="Misal: 155"
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 />
               </div>
             </div>
           </div>
 
-          <div className="space-y-3 pt-3" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+          <div className="space-y-3 pt-3 border-t border-[var(--neu-border)]">
             <h4 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-primary)' }}>
               Data Orang Tua / Wali
             </h4>
@@ -877,6 +936,7 @@ function RegistrationsContent() {
                   onChange={e => setFormData({ ...formData, parent_name: e.target.value })}
                   placeholder="Nama orang tua/wali"
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 />
               </div>
               <div className={fieldWrap}>
@@ -887,6 +947,7 @@ function RegistrationsContent() {
                   onChange={e => setFormData({ ...formData, parent_phone: e.target.value })}
                   placeholder="08xxxxxxxxxx"
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 />
               </div>
             </div>
@@ -899,6 +960,7 @@ function RegistrationsContent() {
                 onChange={e => setFormData({ ...formData, parent_job: e.target.value })}
                 placeholder="Pekerjaan wali"
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
               />
             </div>
 
@@ -910,6 +972,7 @@ function RegistrationsContent() {
                 placeholder="Alamat lengkap rumah"
                 rows={2}
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
               />
             </div>
 
@@ -919,6 +982,7 @@ function RegistrationsContent() {
                 value={formData.status || 'menunggu'}
                 onChange={e => setFormData({ ...formData, status: e.target.value as any })}
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
               >
                 <option value="menunggu">Menunggu</option>
                 <option value="disetujui">Disetujui</option>
@@ -927,18 +991,18 @@ function RegistrationsContent() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--neu-border)]">
             <button
               onClick={() => setFormOpen(false)}
               disabled={saving}
-              className="m3-btn-text px-5 py-2.5 text-sm"
+              className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer"
             >
               Batal
             </button>
             <button
               onClick={handleSaveRegistration}
               disabled={saving}
-              className="m3-btn-filled px-5 py-2.5 text-sm flex items-center gap-2"
+              className="apple-btn px-5 py-2.5 text-sm font-semibold flex items-center gap-2 cursor-pointer"
             >
               {saving ? (
                 <>
@@ -962,23 +1026,22 @@ function RegistrationsContent() {
             <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
               Apakah Anda yakin ingin menghapus pendaftaran untuk <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>{deleteTarget.full_name}</strong>?
             </p>
-            <p className="text-xs p-3 rounded-lg" style={{ background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }}>
+            <p className="text-xs p-3.5 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-400">
               ⚠️ Tindakan ini tidak dapat dibatalkan dan akan menghapus record pendaftaran dari database.
             </p>
 
-            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--neu-border)]">
               <button
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
-                className="m3-btn-text px-5 py-2.5 text-sm"
+                className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer"
               >
                 Batal
               </button>
               <button
                 onClick={handleDeleteConfirm}
                 disabled={deleting}
-                className="m3-btn-filled px-5 py-2.5 text-sm flex items-center gap-2"
-                style={{ background: 'var(--md-sys-color-error)', color: 'var(--md-sys-color-on-error)' }}
+                className="px-5 py-2.5 text-sm font-semibold flex items-center gap-2 rounded-2xl bg-rose-600 text-white shadow-lg hover:bg-rose-700 transition-colors cursor-pointer"
               >
                 {deleting ? (
                   <>

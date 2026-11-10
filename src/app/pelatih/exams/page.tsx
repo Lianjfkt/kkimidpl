@@ -13,19 +13,27 @@ const MEDALS = ['emas', 'perak', 'perunggu', 'none'] as const;
 function M3Dialog({ open, onClose, title, maxWidth = 'max-w-lg', children }: { open: boolean; onClose: () => void; title: string; maxWidth?: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }} onClick={onClose}>
       <div
-        className={`w-full ${maxWidth} rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in max-h-[90vh] flex flex-col`}
-        style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
+        className={`w-full ${maxWidth} rounded-3xl animate-fade-in max-h-[90vh] flex flex-col p-6`}
+        style={{
+          background: 'var(--neu-surface-high)',
+          boxShadow: 'var(--neu-shadow-flat-lg), 0 20px 48px rgba(0,0,0,0.5)',
+          border: '1px solid var(--neu-border)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
-          <h3 className="text-xl font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
+          <h3 className="text-xl font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
           <button
             onClick={onClose}
             type="button"
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-slate-500/10"
-            style={{ color: 'var(--md-sys-color-on-surface-variant)' }}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 border border-[var(--neu-border)] cursor-pointer"
+            style={{
+              color: 'var(--md-sys-color-on-surface-variant)',
+              background: 'var(--neu-surface-low)',
+              boxShadow: 'var(--neu-shadow-pressed-sm)',
+            }}
           >
             ✕
           </button>
@@ -38,8 +46,14 @@ function M3Dialog({ open, onClose, title, maxWidth = 'max-w-lg', children }: { o
   );
 }
 
-const inputClass = 'm3-textfield-outlined text-sm';
-const labelClass = 'block text-xs font-medium mb-1.5';
+const inputClass = 'w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all duration-200';
+const neuInputStyle: React.CSSProperties = {
+  background: 'var(--neu-surface-low)',
+  boxShadow: 'var(--neu-shadow-pressed-sm)',
+  border: '1px solid var(--neu-border)',
+  color: 'var(--md-sys-color-on-surface)',
+};
+const labelClass = 'block text-xs font-semibold mb-1.5';
 const fieldWrap = 'flex flex-col';
 
 export default function PelatihExams() {
@@ -331,26 +345,30 @@ export default function PelatihExams() {
           </div>
           <button
             onClick={() => activeTab === 'ujian' ? handleOpenBatchExamModal() : setRegTournModal(true)}
-            className="m3-btn-filled px-5 py-2.5 text-sm font-semibold cursor-pointer"
+            className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer rounded-2xl flex items-center"
           >
             <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            {activeTab === 'ujian' ? 'Daftarkan Peserta Ujian (Banyak/Satuan)' : 'Daftarkan Peserta'}
+            {activeTab === 'ujian' ? 'Daftarkan Peserta Ujian' : 'Daftarkan Peserta'}
           </button>
         </div>
 
-        {/* Tab switcher */}
-        <div className="flex gap-2">
+        {/* Tab switcher — Neumorphic segmented control */}
+        <div
+          className="flex p-1.5 rounded-2xl gap-1 border border-[var(--neu-border)] w-fit"
+          style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed)' }}
+        >
           {(['ujian', 'turnamen'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 cursor-pointer ${
+              className="px-5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer"
+              style={
                 activeTab === tab
-                  ? 'm3-btn-filled'
-                  : 'm3-btn-outlined'
-              }`}
+                  ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)', color: '#fff' }
+                  : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
+              }
             >
               {tab === 'ujian' ? '🥋 Ujian Sabuk' : '🏆 Turnamen'}
             </button>
@@ -364,14 +382,15 @@ export default function PelatihExams() {
         ) : activeTab === 'ujian' ? (
           <>
             {/* Exam selector */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col sm:flex-row gap-4 sm:items-center"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div className="rounded-3xl p-5 flex flex-col sm:flex-row gap-4 sm:items-center border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
               <div className="flex flex-col w-full sm:w-80">
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Pilih Jadwal Ujian</label>
                 <select
                   value={selExamId}
                   onChange={e => setSelExamId(e.target.value)}
-                  className={inputClass}
+                  className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all duration-200"
+                  style={neuInputStyle}
                 >
                   {exams.length === 0 && <option value="">Belum ada jadwal ujian</option>}
                   {exams.map(ex => <option key={ex.id} value={ex.id}>{ex.exam_date} — {ex.location}</option>)}
@@ -380,9 +399,9 @@ export default function PelatihExams() {
             </div>
 
             {/* Participants list */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-              <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <div className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
+              <div className="px-6 py-4 border-b border-[var(--neu-border)]">
                 <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Daftar Peserta Ujian</h3>
               </div>
               {participants.filter(p => p.exam_id === selExamId).length === 0 ? (
@@ -391,26 +410,28 @@ export default function PelatihExams() {
                   <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Belum ada peserta terdaftar di ujian ini</p>
                 </div>
               ) : (
-                <div className="divide-y animate-fade-in" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                <div className="divide-y animate-fade-in" style={{ borderColor: 'var(--neu-border)' }}>
                   {participants.filter(p => p.exam_id === selExamId).map(part => (
-                    <div key={part.id} className="flex items-center justify-between py-4 px-6 transition-colors hover:bg-[var(--md-sys-color-surface-container)]">
+                    <div key={part.id} className="flex items-center justify-between py-4 px-6 transition-all duration-200"
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
                       <div className="flex-1">
                         <p className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{studentName(part.student_id)}</p>
                         <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{part.current_belt} → <span className="font-semibold" style={{ color: 'var(--md-sys-color-primary)' }}>{part.target_belt}</span></p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="px-2.5 py-1 rounded-[var(--md-sys-shape-corner-full)] text-xs font-semibold"
+                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold"
                           style={
-                            part.result === 'lulus' ? { background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' } :
-                            part.result === 'tidak_lulus' ? { background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' } :
-                            { background: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)' }
+                            part.result === 'lulus' ? { background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)', boxShadow: 'var(--neu-shadow-pressed-sm)' } :
+                            part.result === 'tidak_lulus' ? { background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)', boxShadow: 'var(--neu-shadow-pressed-sm)' } :
+                            { background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)', border: '1px solid var(--neu-border)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
                           }>
                           {part.result === 'lulus' ? 'Lulus' : part.result === 'tidak_lulus' ? 'Tidak Lulus' : 'Tertunda'}
                         </span>
                         {part.result === 'pending' && (
                           <button
                             onClick={() => { setResultModal({ type: 'exam', id: part.id }); setExamResult('lulus'); setExamNotes(''); }}
-                            className="m3-btn-text py-1.5 px-3 text-xs font-semibold"
+                            className="apple-btn-secondary py-1 px-3 text-xs font-semibold rounded-xl cursor-pointer"
                           >
                             Input Hasil
                           </button>
@@ -425,14 +446,15 @@ export default function PelatihExams() {
         ) : (
           <>
             {/* Tournament selector */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col sm:flex-row gap-4 sm:items-center"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div className="rounded-3xl p-5 flex flex-col sm:flex-row gap-4 sm:items-center border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
               <div className="flex flex-col w-full sm:w-80">
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Pilih Turnamen</label>
                 <select
                   value={selTournId}
                   onChange={e => setSelTournId(e.target.value)}
-                  className={inputClass}
+                  className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all duration-200"
+                  style={neuInputStyle}
                 >
                   {tournaments.length === 0 && <option value="">Belum ada turnamen</option>}
                   {tournaments.map(t => <option key={t.id} value={t.id}>{t.name} ({t.tournament_date})</option>)}
@@ -441,9 +463,9 @@ export default function PelatihExams() {
             </div>
 
             {/* Tournament participants list */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-              <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <div className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
+              <div className="px-6 py-4 border-b border-[var(--neu-border)]">
                 <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Daftar Peserta Turnamen</h3>
               </div>
               {tournParticipants.filter(p => p.tournament_id === selTournId).length === 0 ? (
@@ -466,7 +488,7 @@ export default function PelatihExams() {
                         ) : (
                           <button
                             onClick={() => { setResultModal({ type: 'tourn', id: tp.id }); setTournResult(''); setTournMedal('none'); }}
-                            className="m3-btn-text py-1.5 px-3 text-xs font-semibold"
+                            className="apple-btn-secondary py-1.5 px-3 text-xs font-semibold cursor-pointer"
                           >
                             Input Hasil
                           </button>
@@ -627,7 +649,7 @@ export default function PelatihExams() {
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <div className="flex items-center justify-between pt-4 border-t border-[var(--neu-border)]">
               <div className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                 {selectedStudentIds.length} siswa akan didaftarkan
               </div>
@@ -635,14 +657,14 @@ export default function PelatihExams() {
                 <button
                   type="button"
                   onClick={() => setRegExamModal(false)}
-                  className="m3-btn-text px-4 py-2 text-sm"
+                  className="apple-btn-secondary px-4 py-2 text-sm cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingBatchExam || selectedStudentIds.length === 0}
-                  className="m3-btn-filled px-5 py-2 text-sm font-semibold"
+                  className="apple-btn px-5 py-2 text-sm font-semibold cursor-pointer"
                 >
                   {submittingBatchExam ? 'Mendaftarkan...' : `Daftarkan ${selectedStudentIds.length} Peserta`}
                 </button>
@@ -660,32 +682,32 @@ export default function PelatihExams() {
           <form onSubmit={handleRegisterTournParticipant} className="space-y-4">
             <div className={fieldWrap}>
               <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Turnamen</label>
-              <select value={selTournId} onChange={e => setSelTournId(e.target.value)} className={inputClass}>
+              <select value={selTournId} onChange={e => setSelTournId(e.target.value)} className={inputClass} style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}>
                 {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
             <div className={fieldWrap}>
               <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Siswa</label>
-              <select value={selTournStudentId} onChange={e => setSelTournStudentId(e.target.value)} className={inputClass}>
+              <select value={selTournStudentId} onChange={e => setSelTournStudentId(e.target.value)} className={inputClass} style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}>
                 {students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className={fieldWrap}>
                 <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kategori</label>
-                <select value={tournCategory} onChange={e => setTournCategory(e.target.value as 'kata' | 'kumite')} className={inputClass}>
+                <select value={tournCategory} onChange={e => setTournCategory(e.target.value as 'kata' | 'kumite')} className={inputClass} style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}>
                   <option value="kata">Kata</option>
                   <option value="kumite">Kumite</option>
                 </select>
               </div>
               <div className={fieldWrap}>
                 <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kelas Berat</label>
-                <input type="text" placeholder="-40kg" value={tournWeightClass} onChange={e => setTournWeightClass(e.target.value)} className={inputClass} />
+                <input type="text" placeholder="-40kg" value={tournWeightClass} onChange={e => setTournWeightClass(e.target.value)} className={inputClass} style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }} />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
-              <button type="button" onClick={() => setRegTournModal(false)} className="m3-btn-text px-5 py-2.5 text-sm">Batal</button>
-              <button type="submit" className="m3-btn-filled px-5 py-2.5 text-sm">Daftarkan</button>
+            <div className="flex justify-end gap-2 pt-4 border-t border-[var(--neu-border)]">
+              <button type="button" onClick={() => setRegTournModal(false)} className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer">Batal</button>
+              <button type="submit" className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer">Daftarkan</button>
             </div>
           </form>
         </M3Dialog>
@@ -701,13 +723,15 @@ export default function PelatihExams() {
               <div className="space-y-4">
                 <div className={fieldWrap}>
                   <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Hasil</label>
-                  <div className="flex rounded-xl overflow-hidden border" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                  <div className="flex rounded-2xl overflow-hidden border border-[var(--neu-border)] p-1 gap-1" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed)' }}>
                     {(['lulus', 'tidak_lulus'] as const).map(r => (
                       <button key={r} type="button" onClick={() => setExamResult(r)}
-                        className="flex-1 py-2.5 text-sm font-semibold transition-colors cursor-pointer"
+                        className="flex-1 py-2 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer"
                         style={{
-                          background: examResult === r ? (r === 'lulus' ? 'var(--md-sys-color-tertiary)' : 'var(--md-sys-color-error)') : 'transparent',
-                          color: examResult === r ? 'white' : 'var(--md-sys-color-on-surface-variant)'
+                          background: examResult === r ? (r === 'lulus' ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)') : 'transparent',
+                          color: examResult === r ? (r === 'lulus' ? '#34d399' : '#f87171') : 'var(--md-sys-color-on-surface-variant)',
+                          boxShadow: examResult === r ? 'var(--neu-shadow-flat-sm)' : 'none',
+                          border: examResult === r ? `1px solid ${r === 'lulus' ? 'rgba(52,211,153,0.4)' : 'rgba(248,113,113,0.4)'}` : '1px solid transparent'
                         }}>
                         {r === 'lulus' ? '✓ Lulus' : '✕ Tidak Lulus'}
                       </button>
@@ -716,38 +740,53 @@ export default function PelatihExams() {
                 </div>
                 <div className={fieldWrap}>
                   <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Catatan Nilai</label>
-                  <textarea value={examNotes} onChange={e => setExamNotes(e.target.value)} rows={3} placeholder="Catatan penilaian (opsional)" className="m3-textfield-outlined text-sm resize-none" style={{ height: 'auto' }} />
+                  <textarea
+                    value={examNotes}
+                    onChange={e => setExamNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Catatan penilaian (opsional)"
+                    className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all resize-none"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
+                  />
                 </div>
-                <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
-                  <button onClick={() => setResultModal(null)} className="m3-btn-text px-5 py-2.5 text-sm">Batal</button>
-                  <button onClick={handleSubmitExamResult} className="m3-btn-filled px-5 py-2.5 text-sm">Simpan Hasil</button>
+                <div className="flex justify-end gap-2 pt-4 border-t border-[var(--neu-border)]">
+                  <button onClick={() => setResultModal(null)} className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer">Batal</button>
+                  <button onClick={handleSubmitExamResult} className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer">Simpan Hasil</button>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className={fieldWrap}>
                   <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Keterangan Hasil</label>
-                  <input type="text" value={tournResult} onChange={e => setTournResult(e.target.value)} placeholder="mis. Juara 1, Babak Semi-final" className={inputClass} />
+                  <input
+                    type="text"
+                    value={tournResult}
+                    onChange={e => setTournResult(e.target.value)}
+                    placeholder="mis. Juara 1, Babak Semi-final"
+                    className={inputClass}
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-2" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Medali</label>
                   <div className="grid grid-cols-4 gap-2">
                     {MEDALS.map(m => (
                       <button key={m} type="button" onClick={() => setTournMedal(m)}
-                        className="py-2.5 rounded-xl text-sm font-bold border transition-colors cursor-pointer"
+                        className="py-2.5 rounded-2xl text-sm font-bold border transition-all duration-200 cursor-pointer"
                         style={{
-                          borderColor: tournMedal === m ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)',
-                          background: tournMedal === m ? 'var(--md-sys-color-primary-container)' : 'transparent',
-                          color: tournMedal === m ? 'var(--md-sys-color-on-primary-container)' : 'var(--md-sys-color-on-surface-variant)'
+                          borderColor: tournMedal === m ? 'var(--neu-border)' : 'transparent',
+                          background: tournMedal === m ? 'var(--neu-accent-grad)' : 'var(--neu-surface-low)',
+                          boxShadow: tournMedal === m ? 'var(--neu-shadow-accent)' : 'var(--neu-shadow-pressed-sm)',
+                          color: tournMedal === m ? '#ffffff' : 'var(--md-sys-color-on-surface-variant)'
                         }}>
                         {medalEmoji[m]}
                       </button>
                     ))}
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
-                  <button onClick={() => setResultModal(null)} className="m3-btn-text px-5 py-2.5 text-sm">Batal</button>
-                  <button onClick={handleSubmitTournResult} className="m3-btn-filled px-5 py-2.5 text-sm">Simpan Hasil</button>
+                <div className="flex justify-end gap-2 pt-4 border-t border-[var(--neu-border)]">
+                  <button onClick={() => setResultModal(null)} className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer">Batal</button>
+                  <button onClick={handleSubmitTournResult} className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer">Simpan Hasil</button>
                 </div>
               </div>
             )

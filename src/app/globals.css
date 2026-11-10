@@ -1,12 +1,52 @@
 @import "tailwindcss";
 
 :root {
-  /* Material Design 3 Dark Theme Design Tokens (Seed Color: KKI Dojo Crimson Red #b30000) */
-  --md-sys-color-primary: #ff5252; /* Glowing red */
-  --md-sys-color-on-primary: #690005;
+  /* =========================================================
+     NEUMORPHISM DESIGN SYSTEM TOKENS - DARK THEME (DEFAULT)
+     KKI Karate Dojo Palette: Obsidian Clay & Glowing Crimson Red
+     ========================================================= */
+
+  /* Surface & Background Tones (Calibrated for Soft Relief) */
+  --neu-bg: #181514;
+  --neu-surface: #1d1918;
+  --neu-surface-low: #191615;
+  --neu-surface-high: #24201e;
+  --neu-surface-highest: #2b2624;
+
+  /* Specular Highlight & Crevice Shadow Colors */
+  --neu-light: rgba(255, 255, 255, 0.045);
+  --neu-light-bright: rgba(255, 255, 255, 0.08);
+  --neu-dark: rgba(0, 0, 0, 0.65);
+  --neu-dark-deep: rgba(0, 0, 0, 0.85);
+  --neu-border: rgba(255, 255, 255, 0.05);
+  --neu-border-subtle: rgba(255, 255, 255, 0.03);
+
+  /* Neumorphic Dual-Shadow Token Presets */
+  --neu-shadow-flat: -5px -5px 13px var(--neu-light), 6px 6px 15px var(--neu-dark);
+  --neu-shadow-flat-sm: -3px -3px 8px var(--neu-light), 3px 3px 9px var(--neu-dark);
+  --neu-shadow-flat-lg: -8px -8px 20px var(--neu-light), 10px 10px 24px var(--neu-dark-deep);
+  
+  --neu-shadow-hover: -7px -7px 18px var(--neu-light-bright), 8px 8px 20px var(--neu-dark-deep);
+  --neu-shadow-hover-sm: -4px -4px 10px var(--neu-light-bright), 5px 5px 12px var(--neu-dark-deep);
+  
+  --neu-shadow-pressed: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light);
+  --neu-shadow-pressed-sm: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--neu-light);
+  --neu-shadow-pressed-deep: inset 4px 4px 8px var(--neu-dark-deep), inset -4px -4px 8px var(--neu-light-bright);
+
+  /* Primary Accent: KKI Crimson Red Relief */
+  --md-sys-color-primary: #ff5252;
+  --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #b30000;
   --md-sys-color-on-primary-container: #ffdad6;
   
+  --neu-accent-grad: linear-gradient(145deg, #d31616, #9e0a0a);
+  --neu-accent-grad-hover: linear-gradient(145deg, #e52424, #b00d0d);
+  --neu-accent-grad-pressed: linear-gradient(145deg, #8c0808, #ba1414);
+  --neu-shadow-accent: 4px 4px 14px rgba(0, 0, 0, 0.65), -3px -3px 10px rgba(255, 82, 82, 0.22), 0 0 16px rgba(255, 82, 82, 0.28);
+  --neu-shadow-accent-hover: 6px 6px 18px rgba(0, 0, 0, 0.75), -4px -4px 14px rgba(255, 82, 82, 0.32), 0 0 24px rgba(255, 82, 82, 0.45);
+  --neu-shadow-accent-pressed: inset 3px 3px 6px rgba(0, 0, 0, 0.8), inset -2px -2px 5px rgba(255, 100, 100, 0.25);
+
+  /* Functional Accents */
   --md-sys-color-secondary: #e7bdb8;
   --md-sys-color-on-secondary: #442926;
   --md-sys-color-secondary-container: #5d3f3b;
@@ -22,32 +62,105 @@
   --md-sys-color-error-container: #93000a;
   --md-sys-color-on-error-container: #ffdad6;
   
-  /* Rich deep dark background */
-  --md-sys-color-background: #0f0a09; 
+  /* Text and Outlines */
+  --md-sys-color-background: var(--neu-bg); 
   --md-sys-color-on-background: #f0dfdd;
   
-  --md-sys-color-surface: #140d0c;
+  --md-sys-color-surface: var(--neu-surface);
   --md-sys-color-on-surface: #f0dfdd;
-  --md-sys-color-surface-variant: #302220;
-  --md-sys-color-on-surface-variant: #d8c2be;
+  --md-sys-color-surface-variant: #302624;
+  --md-sys-color-on-surface-variant: #d5c2be;
   
   --md-sys-color-outline: #857371;
-  --md-sys-color-outline-variant: #43302f;
+  --md-sys-color-outline-variant: rgba(255, 255, 255, 0.08);
   
-  /* M3 Surface Container Levels (Dark Mode Glassmorphic Tone) */
-  --md-sys-color-surface-container-lowest: #080505;
-  --md-sys-color-surface-container-low: #130a09;
-  --md-sys-color-surface-container: #1b1110;
-  --md-sys-color-surface-container-high: #241817;
-  --md-sys-color-surface-container-highest: #2e201e;
+  --md-sys-color-surface-container-lowest: #120f0e;
+  --md-sys-color-surface-container-low: var(--neu-surface-low);
+  --md-sys-color-surface-container: var(--neu-surface);
+  --md-sys-color-surface-container-high: var(--neu-surface-high);
+  --md-sys-color-surface-container-highest: var(--neu-surface-highest);
+
+  /* Curvature & Shapes */
+  --md-sys-shape-corner-none: 0px;
+  --md-sys-shape-corner-extra-small: 6px;
+  --md-sys-shape-corner-small: 10px;
+  --md-sys-shape-corner-medium: 14px;
+  --md-sys-shape-corner-large: 22px;
+  --md-sys-shape-corner-extra-large: 32px;
+  --md-sys-shape-corner-full: 9999px;
+
+  /* Spring Physics / Micro-interaction Easing Curves */
+  --neu-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --neu-ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  
+  --md-sys-motion-duration-short1: 60ms;
+  --md-sys-motion-duration-short2: 120ms;
+  --md-sys-motion-duration-medium1: 200ms;
+  --md-sys-motion-duration-medium2: 260ms;
+  --md-sys-motion-duration-long1: 320ms;
+
+  /* Fallback aliases */
+  --color-bg: var(--neu-bg);
+  --color-bg-secondary: var(--neu-bg);
+  --color-text-primary: var(--md-sys-color-on-surface);
+  --color-text-secondary: var(--md-sys-color-on-surface-variant);
+  --color-accent-karate: var(--md-sys-color-primary);
+  --color-accent-karate-hover: #ff3333;
+  --color-border-hairline: var(--neu-border);
+  --radius-card: var(--md-sys-shape-corner-large);
+  --radius-button: var(--md-sys-shape-corner-full);
 }
 
 :root.light {
+  /* =========================================================
+     NEUMORPHISM DESIGN SYSTEM TOKENS - LIGHT THEME
+     Soft Warm Stone / Clay Tactile Relief
+     ========================================================= */
+
+  --neu-bg: #e6e1de;
+  --neu-surface: #e6e1de;
+  --neu-surface-low: #ded9d5;
+  --neu-surface-high: #eee8e4;
+  --neu-surface-highest: #f4f0ed;
+
+  /* Specular Highlight & Crevice Shadow Colors */
+  --neu-light: rgba(255, 255, 255, 0.95);
+  --neu-light-bright: rgba(255, 255, 255, 1);
+  --neu-dark: rgba(166, 153, 147, 0.52);
+  --neu-dark-deep: rgba(145, 132, 126, 0.7);
+  --neu-border: rgba(255, 255, 255, 0.65);
+  --neu-border-subtle: rgba(255, 255, 255, 0.4);
+
+  /* Neumorphic Dual-Shadow Token Presets */
+  --neu-shadow-flat: -6px -6px 14px var(--neu-light), 6px 6px 14px var(--neu-dark);
+  --neu-shadow-flat-sm: -3px -3px 8px var(--neu-light), 3px 3px 8px var(--neu-dark);
+  --neu-shadow-flat-lg: -9px -9px 22px var(--neu-light), 10px 10px 22px var(--neu-dark-deep);
+  
+  --neu-shadow-hover: -8px -8px 20px var(--neu-light-bright), 8px 8px 18px var(--neu-dark-deep);
+  --neu-shadow-hover-sm: -4px -4px 10px var(--neu-light-bright), 5px 5px 11px var(--neu-dark-deep);
+  
+  --neu-shadow-pressed: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light);
+  --neu-shadow-pressed-sm: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--neu-light);
+  --neu-shadow-pressed-deep: inset 4px 4px 8px var(--neu-dark-deep), inset -4px -4px 8px var(--neu-light-bright);
+
+  /* Primary Accent: KKI Crimson Red Relief */
   --md-sys-color-primary: #b30000;
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #ffdad6;
   --md-sys-color-on-primary-container: #410002;
   
+  --neu-accent-grad: linear-gradient(145deg, #c71212, #9a0808);
+  --neu-accent-grad-hover: linear-gradient(145deg, #d61b1b, #a80b0b);
+  --neu-accent-grad-pressed: linear-gradient(145deg, #850606, #af1212);
+  --neu-shadow-accent: 4px 4px 14px rgba(160, 130, 125, 0.55), -3px -3px 10px rgba(255, 255, 255, 0.9), 0 0 16px rgba(179, 0, 0, 0.22);
+  --neu-shadow-accent-hover: 6px 6px 18px rgba(160, 130, 125, 0.65), -4px -4px 12px rgba(255, 255, 255, 1), 0 0 22px rgba(179, 0, 0, 0.35);
+  --neu-shadow-accent-pressed: inset 3px 3px 6px rgba(100, 10, 10, 0.6), inset -2px -2px 5px rgba(255, 255, 255, 0.5);
+
+  /* Functional Accents */
   --md-sys-color-secondary: #775652;
   --md-sys-color-on-secondary: #ffffff;
   --md-sys-color-secondary-container: #ffdad6;
@@ -63,58 +176,23 @@
   --md-sys-color-error-container: #ffdad6;
   --md-sys-color-on-error-container: #410002;
   
-  --md-sys-color-background: #fffbff; 
-  --md-sys-color-on-background: #201a19;
+  /* Text and Outlines */
+  --md-sys-color-background: var(--neu-bg); 
+  --md-sys-color-on-background: #231b1a;
   
-  --md-sys-color-surface: #fffbff;
-  --md-sys-color-on-surface: #201a19;
-  --md-sys-color-surface-variant: #f5ddd8;
-  --md-sys-color-on-surface-variant: #534341;
+  --md-sys-color-surface: var(--neu-surface);
+  --md-sys-color-on-surface: #231b1a;
+  --md-sys-color-surface-variant: #ebdcd7;
+  --md-sys-color-on-surface-variant: #554442;
   
-  --md-sys-color-outline: #857370;
-  --md-sys-color-outline-variant: #d8c2be;
+  --md-sys-color-outline: #8c7b79;
+  --md-sys-color-outline-variant: rgba(0, 0, 0, 0.08);
   
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #f7f3f2;
-  --md-sys-color-surface-container: #f1edec;
-  --md-sys-color-surface-container-high: #ebe7e6;
-  --md-sys-color-surface-container-highest: #e5e1e0;
-}
-
-:root {
-  /* M3 Shapes / Corner Radius Scale */
-  --md-sys-shape-corner-none: 0px;
-  --md-sys-shape-corner-extra-small: 4px;
-  --md-sys-shape-corner-small: 8px;
-  --md-sys-shape-corner-medium: 12px;
-  --md-sys-shape-corner-large: 20px; /* Enhanced curvature for premium feel */
-  --md-sys-shape-corner-extra-large: 32px;
-  --md-sys-shape-corner-full: 9999px;
-
-  /* M3 Easing Curves (Emphasized is default) */
-  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
-  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
-  --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
-  --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
-  
-  --md-sys-motion-duration-short1: 50ms;
-  --md-sys-motion-duration-short2: 100ms;
-  --md-sys-motion-duration-medium1: 200ms;
-  --md-sys-motion-duration-medium2: 250ms;
-  --md-sys-motion-duration-long1: 300ms;
-  --md-sys-motion-duration-long2: 350ms;
-
-  /* Fallback aliases for legacy classes compatibility during transition */
-  --color-bg: var(--md-sys-color-background);
-  --color-bg-secondary: var(--md-sys-color-background);
-  --color-text-primary: var(--md-sys-color-on-surface);
-  --color-text-secondary: var(--md-sys-color-on-surface-variant);
-  --color-accent-karate: var(--md-sys-color-primary);
-  --color-accent-karate-hover: #ff3333;
-  --color-border-hairline: var(--md-sys-color-outline-variant);
-  --radius-card: var(--md-sys-shape-corner-large);
-  --radius-button: var(--md-sys-shape-corner-full);
-  --transition-ease-m3: all var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized);
+  --md-sys-color-surface-container-low: var(--neu-surface-low);
+  --md-sys-color-surface-container: var(--neu-surface);
+  --md-sys-color-surface-container-high: #f0ebe7;
+  --md-sys-color-surface-container-highest: #f7f3f0;
 }
 
 @theme {
@@ -159,11 +237,12 @@
   --font-display: "Outfit", "SF Pro Display", sans-serif;
 }
 
-/* Base resets with smooth animations and subtle dark gradient background */
+/* Base Body with Neumorphic Surface Texture */
 body {
-  background-color: var(--md-sys-color-background);
-  background-image: radial-gradient(circle at top right, rgba(179, 0, 0, 0.08), transparent 45%),
-                    radial-gradient(circle at bottom left, rgba(20, 13, 12, 0.5), transparent 50%);
+  background-color: var(--neu-bg);
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(255, 82, 82, 0.05), transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(0, 0, 0, 0.4), transparent 50%);
   color: var(--md-sys-color-on-background);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -174,204 +253,523 @@ body {
   min-height: 100vh;
 }
 
-/* --- MATERIAL DESIGN 3 COMPONENT CLASSES --- */
+/* =========================================================
+   AUTHENTIC NEUMORPHIC CORE COMPONENT CLASSES & ALIASES
+   ========================================================= */
 
-/* M3 Elevated Glassmorphic Card */
-.m3-card-elevated, .apple-card {
-  background-color: var(--md-sys-color-surface-container-low);
-  backdrop-filter: blur(16px);
-  border: 1px solid var(--md-sys-color-outline-variant);
+/* 1. Neumorphic Elevated Card (The Signature Soft Relief Tile) */
+.neu-card,
+.m3-card-elevated,
+.apple-card {
+  background-color: var(--neu-surface);
+  border: 1px solid var(--neu-border);
   border-radius: var(--md-sys-shape-corner-large);
   padding: 24px;
-  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.15);
-  transition: box-shadow var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized),
-              background-color var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized),
-              border-color var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized),
-              transform var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized);
+  box-shadow: var(--neu-shadow-flat);
+  transition: transform 220ms var(--neu-ease-spring),
+              box-shadow 220ms var(--neu-ease-smooth),
+              background-color 220ms var(--neu-ease-smooth);
+  position: relative;
 }
 
-.m3-card-elevated:hover, .apple-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0px 8px 30px rgba(255, 82, 82, 0.06), 0px 4px 20px rgba(0, 0, 0, 0.35);
-  background-color: rgba(36, 24, 23, 0.95);
-  border-color: rgba(255, 82, 82, 0.15);
+.neu-card:hover,
+.m3-card-elevated:hover,
+.apple-card:hover {
+  transform: translateY(-2.5px);
+  box-shadow: var(--neu-shadow-hover);
 }
 
-/* M3 Filled Card */
+/* 2. Neumorphic Filled / Low Card */
+.neu-card-flat,
 .m3-card-filled {
-  background-color: var(--md-sys-color-surface-container);
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  background-color: var(--neu-surface-low);
+  border: 1px solid var(--neu-border-subtle);
   border-radius: var(--md-sys-shape-corner-large);
   padding: 24px;
-  box-shadow: 0px 2px 10px rgba(0,0,0,0.2);
-  transition: background-color var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized),
-              border-color var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized),
-              transform var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized);
+  box-shadow: var(--neu-shadow-flat-sm);
+  transition: transform 200ms var(--neu-ease-spring),
+              box-shadow 200ms var(--neu-ease-smooth);
 }
 
+.neu-card-flat:hover,
 .m3-card-filled:hover {
-  background-color: var(--md-sys-color-surface-container-high);
-  border-color: rgba(255, 82, 82, 0.08);
   transform: translateY(-2px);
+  box-shadow: var(--neu-shadow-hover-sm);
 }
 
-/* M3 Outlined Card */
+/* 3. Neumorphic Sunken / Inset Card (Debossed Wells for Tables, Panels, Stats) */
+.neu-card-inset {
+  background-color: var(--neu-surface-low);
+  border: 1px solid var(--neu-border-subtle);
+  border-radius: var(--md-sys-shape-corner-large);
+  box-shadow: var(--neu-shadow-pressed);
+  padding: 20px;
+}
+
+/* 4. Neumorphic Outlined Card */
+.neu-card-outlined,
 .m3-card-outlined {
   background-color: transparent;
-  border: 1px solid var(--md-sys-color-outline-variant);
+  border: 1.5px solid var(--neu-border);
   border-radius: var(--md-sys-shape-corner-large);
   padding: 24px;
-  transition: border-color var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized),
-              background-color var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized);
+  box-shadow: var(--neu-shadow-flat-sm);
+  transition: all 200ms var(--neu-ease-spring);
 }
 
+.neu-card-outlined:hover,
 .m3-card-outlined:hover {
-  background-color: rgba(255, 255, 255, 0.02);
   border-color: var(--md-sys-color-primary);
+  box-shadow: var(--neu-shadow-hover-sm);
+  transform: translateY(-1.5px);
 }
 
-/* M3 Filled Button (Premium Glowing Accent) */
-.m3-btn-filled, .apple-btn {
-  background-color: var(--md-sys-color-primary);
+/* =========================================================
+   NEUMORPHIC BUTTONS & TACTILE MICRO-INTERACTIONS
+   ========================================================= */
+
+/* 1. Neumorphic Primary Button (Extruded Crimson Relief with Active Sink) */
+.neu-btn-primary,
+.m3-btn-filled,
+.apple-btn {
+  background: var(--neu-accent-grad);
   color: #ffffff;
   border-radius: var(--md-sys-shape-corner-full);
   font-weight: 600;
   font-size: 0.875rem;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.25px;
   padding: 10px 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   cursor: pointer;
-  border: none;
-  box-shadow: 0px 4px 15px rgba(255, 82, 82, 0.3);
-  transition: background-color var(--md-sys-motion-duration-short2) linear,
-              box-shadow var(--md-sys-motion-duration-short2) linear,
-              transform var(--md-sys-motion-duration-medium1) var(--md-sys-motion-easing-emphasized);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: var(--neu-shadow-accent);
+  transition: transform 180ms var(--neu-ease-spring),
+              box-shadow 180ms var(--neu-ease-smooth),
+              background 180ms var(--neu-ease-smooth);
+  user-select: none;
 }
 
-.m3-btn-filled:hover, .apple-btn:hover {
-  background-color: #ff3333;
-  box-shadow: 0px 6px 20px rgba(255, 82, 82, 0.5);
+.neu-btn-primary:hover,
+.m3-btn-filled:hover,
+.apple-btn:hover {
+  background: var(--neu-accent-grad-hover);
+  box-shadow: var(--neu-shadow-accent-hover);
   transform: translateY(-2px);
 }
 
-.m3-btn-filled:active, .apple-btn:active {
-  transform: scale(0.97) translateY(0px);
-  box-shadow: 0px 2px 8px rgba(255, 82, 82, 0.3);
+.neu-btn-primary:active,
+.m3-btn-filled:active,
+.apple-btn:active {
+  background: var(--neu-accent-grad-pressed);
+  box-shadow: var(--neu-shadow-accent-pressed);
+  transform: scale(0.975) translateY(1px);
 }
 
-/* M3 Tonal Button */
-.m3-btn-tonal {
-  background-color: rgba(255, 82, 82, 0.15);
-  color: #ff8a80;
+/* 2. Neumorphic Secondary / Surface Button (Extruded Surface Material) */
+.neu-btn-secondary,
+.m3-btn-outlined,
+.apple-btn-secondary {
+  background-color: var(--neu-surface);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--neu-border);
   border-radius: var(--md-sys-shape-corner-full);
   font-weight: 600;
   font-size: 0.875rem;
-  padding: 10px 24px;
+  padding: 10px 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   cursor: pointer;
-  border: none;
-  transition: background-color var(--md-sys-motion-duration-short2) linear,
-              transform var(--md-sys-motion-duration-medium1) var(--md-sys-motion-easing-emphasized);
+  box-shadow: var(--neu-shadow-flat-sm);
+  transition: transform 180ms var(--neu-ease-spring),
+              box-shadow 180ms var(--neu-ease-smooth),
+              border-color 180ms var(--neu-ease-smooth),
+              color 180ms var(--neu-ease-smooth);
+  user-select: none;
 }
 
-.m3-btn-tonal:hover {
-  background-color: rgba(255, 82, 82, 0.25);
-  transform: translateY(-1px);
+.neu-btn-secondary:hover,
+.m3-btn-outlined:hover,
+.apple-btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--neu-shadow-hover-sm);
+  color: var(--md-sys-color-primary);
+  border-color: rgba(255, 82, 82, 0.3);
 }
 
-/* M3 Outlined Button */
-.m3-btn-outlined, .apple-btn-secondary {
-  background-color: transparent;
-  color: var(--md-sys-color-on-surface);
-  border: 1px solid var(--md-sys-color-outline-variant);
+.neu-btn-secondary:active,
+.m3-btn-outlined:active,
+.apple-btn-secondary:active {
+  transform: scale(0.975) translateY(1px);
+  box-shadow: var(--neu-shadow-pressed-sm);
+}
+
+/* 3. Neumorphic Tonal Button */
+.neu-btn-tonal,
+.m3-btn-tonal {
+  background-color: var(--neu-surface-high);
+  color: var(--md-sys-color-primary);
   border-radius: var(--md-sys-shape-corner-full);
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.875rem;
-  padding: 10px 24px;
+  padding: 10px 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color var(--md-sys-motion-duration-short2) linear,
-              border-color var(--md-sys-motion-duration-short2) linear,
-              transform var(--md-sys-motion-duration-medium1) var(--md-sys-motion-easing-emphasized);
+  border: 1px solid rgba(255, 82, 82, 0.15);
+  box-shadow: var(--neu-shadow-flat-sm);
+  transition: all 180ms var(--neu-ease-spring);
+  user-select: none;
 }
 
-.m3-btn-outlined:hover, .apple-btn-secondary:hover {
-  background-color: rgba(255, 82, 82, 0.08);
-  border-color: var(--md-sys-color-primary);
-  color: #ffffff;
-  transform: translateY(-1px);
+.neu-btn-tonal:hover,
+.m3-btn-tonal:hover {
+  background-color: var(--neu-surface-highest);
+  box-shadow: var(--neu-shadow-hover-sm);
+  transform: translateY(-1.5px);
 }
 
-/* M3 Text Button */
+.neu-btn-tonal:active,
+.m3-btn-tonal:active {
+  box-shadow: var(--neu-shadow-pressed-sm);
+  transform: scale(0.97) translateY(1px);
+}
+
+/* 4. Neumorphic Icon Button Pad (Tactile circular / rounded tile) */
+.neu-btn-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--neu-surface);
+  border: 1px solid var(--neu-border);
+  box-shadow: var(--neu-shadow-flat-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--md-sys-color-on-surface);
+  transition: all 180ms var(--neu-ease-spring);
+}
+
+.neu-btn-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--neu-shadow-hover-sm);
+  color: var(--md-sys-color-primary);
+}
+
+.neu-btn-icon:active {
+  transform: scale(0.95) translateY(1px);
+  box-shadow: var(--neu-shadow-pressed-sm);
+}
+
+/* 5. Neumorphic Text / Ghost Button */
 .m3-btn-text {
   background-color: transparent;
   color: var(--md-sys-color-primary);
   font-weight: 600;
   font-size: 0.875rem;
-  padding: 10px 16px;
+  padding: 8px 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   border: none;
   border-radius: var(--md-sys-shape-corner-full);
-  transition: background-color var(--md-sys-motion-duration-short2) linear;
+  transition: all 180ms var(--neu-ease-smooth);
 }
 
 .m3-btn-text:hover {
-  background-color: rgba(255, 82, 82, 0.1);
+  background-color: var(--neu-surface-high);
+  box-shadow: var(--neu-shadow-flat-sm);
+  transform: translateY(-1px);
 }
 
-/* M3 Outlined TextField Container styling */
-.m3-textfield-outlined {
+.m3-btn-text:active {
+  box-shadow: var(--neu-shadow-pressed-sm);
+  transform: scale(0.97);
+}
+
+/* =========================================================
+   NEUMORPHIC INPUTS, TEXTFIELDS & FORM CONTROLS
+   ========================================================= */
+
+.neu-input,
+.m3-textfield-outlined,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="tel"],
+select,
+textarea {
   width: 100%;
-  padding: 12px 16px;
+  padding: 12px 18px;
   font-size: 0.875rem;
-  background-color: rgba(20, 13, 12, 0.6);
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: var(--md-sys-shape-corner-extra-small);
+  background-color: var(--neu-surface-low);
+  border: 1px solid var(--neu-border);
+  border-radius: var(--md-sys-shape-corner-medium);
   color: var(--md-sys-color-on-surface);
+  box-shadow: var(--neu-shadow-pressed-sm);
   outline: none;
-  transition: border-color var(--md-sys-motion-duration-short2) linear,
-              box-shadow var(--md-sys-motion-duration-short2) linear;
+  transition: border-color 180ms var(--neu-ease-smooth),
+              box-shadow 180ms var(--neu-ease-smooth),
+              background-color 180ms var(--neu-ease-smooth);
 }
 
-.m3-textfield-outlined:focus {
-  border: 2px solid var(--md-sys-color-primary);
-  padding: 11px 15px;
-  box-shadow: 0 0 12px rgba(255, 82, 82, 0.2);
+.neu-input:focus,
+.m3-textfield-outlined:focus,
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="tel"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--md-sys-color-primary);
+  background-color: var(--neu-surface);
+  box-shadow: var(--neu-shadow-pressed), 0 0 12px rgba(255, 82, 82, 0.22);
 }
 
-/* Custom styled scrollbars for premium dark feel */
+/* =========================================================
+   NEUMORPHIC TOGGLE SWITCHES, TABS & SEGMENTED CONTROLS
+   ========================================================= */
+
+/* Tactile Neumorphic Switch */
+.neu-switch,
+.m3-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 54px;
+  height: 30px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.neu-switch input,
+.m3-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.neu-switch-track,
+.m3-switch-track {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--neu-surface-low);
+  border-radius: var(--md-sys-shape-corner-full);
+  box-shadow: var(--neu-shadow-pressed);
+  border: 1px solid var(--neu-border-subtle);
+  transition: all 240ms var(--neu-ease-spring);
+}
+
+.neu-switch-thumb,
+.m3-switch-thumb {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  top: 4px;
+  background-color: var(--neu-surface-high);
+  border: 1px solid var(--neu-border);
+  border-radius: var(--md-sys-shape-corner-full);
+  box-shadow: var(--neu-shadow-flat-sm);
+  transition: all 240ms var(--neu-ease-spring);
+}
+
+input:checked + .neu-switch-track,
+input:checked + .m3-switch-track {
+  background-color: rgba(255, 82, 82, 0.2);
+  border-color: rgba(255, 82, 82, 0.4);
+}
+
+input:checked + .neu-switch-track .neu-switch-thumb,
+input:checked + .m3-switch-track .m3-switch-thumb {
+  transform: translateX(24px);
+  background: var(--neu-accent-grad);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 10px rgba(255, 82, 82, 0.5), var(--neu-shadow-flat-sm);
+}
+
+/* Tactile Segmented Control / Tabs */
+.neu-segmented {
+  display: inline-flex;
+  padding: 4px;
+  background-color: var(--neu-surface-low);
+  border-radius: var(--md-sys-shape-corner-full);
+  box-shadow: var(--neu-shadow-pressed);
+  border: 1px solid var(--neu-border-subtle);
+  gap: 4px;
+}
+
+.neu-segmented-item {
+  padding: 8px 18px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--md-sys-shape-corner-full);
+  color: var(--md-sys-color-on-surface-variant);
+  transition: all 180ms var(--neu-ease-spring);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+
+.neu-segmented-item:hover {
+  color: var(--md-sys-color-on-surface);
+}
+
+.neu-segmented-item.active {
+  background-color: var(--neu-surface);
+  color: var(--md-sys-color-primary);
+  box-shadow: var(--neu-shadow-flat-sm);
+  border: 1px solid var(--neu-border);
+}
+
+/* =========================================================
+   NEUMORPHIC CHIPS, BADGES & STATUS INDICATORS
+   ========================================================= */
+
+.neu-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: var(--md-sys-shape-corner-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: var(--neu-surface);
+  border: 1px solid var(--neu-border);
+  box-shadow: var(--neu-shadow-flat-sm);
+  color: var(--md-sys-color-on-surface);
+  transition: all 180ms var(--neu-ease-spring);
+}
+
+.neu-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--neu-shadow-hover-sm);
+}
+
+.neu-chip-active {
+  background: var(--neu-accent-grad);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--neu-shadow-accent);
+}
+
+/* Pulsing Status Bead */
+.neu-status-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.neu-status-dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.45;
+  animation: neu-pulse 2s infinite ease-out;
+}
+
+@keyframes neu-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  70% { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* =========================================================
+   TABLES, SCROLLBARS & DIALOGS
+   ========================================================= */
+
+/* Neumorphic Dialog Modal */
+.animate-m3-dialog-enter,
+.fixed.inset-0.z-50 > div {
+  background-color: var(--neu-surface-high) !important;
+  border: 1px solid var(--neu-border) !important;
+  box-shadow: var(--neu-shadow-flat-lg), 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Neumorphic Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--md-sys-color-background);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--md-sys-color-surface-variant);
+  background: var(--neu-bg);
+  box-shadow: var(--neu-shadow-pressed-sm);
   border-radius: 4px;
 }
+::-webkit-scrollbar-thumb {
+  background: var(--neu-surface-highest);
+  border-radius: 4px;
+  box-shadow: var(--neu-shadow-flat-sm);
+  border: 1px solid var(--neu-border);
+}
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--md-sys-color-outline);
+  background: var(--md-sys-color-primary);
+  box-shadow: 0 0 10px rgba(255, 82, 82, 0.5);
 }
 
+/* Micro-interaction scaling helper */
+.neu-interactive,
+.m3-interactive {
+  transition: transform 180ms var(--neu-ease-spring),
+              box-shadow 180ms var(--neu-ease-smooth);
+}
+.neu-interactive:hover,
+.m3-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--neu-shadow-hover-sm);
+}
+.neu-interactive:active,
+.m3-interactive:active {
+  transform: scale(0.975) translateY(1px);
+  box-shadow: var(--neu-shadow-pressed-sm);
+}
+
+/* Page enter transition */
+@keyframes neu-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-m3-page-enter {
+  animation: neu-fade-up 280ms var(--neu-ease-spring) forwards;
+}
+
+.animate-fade-in {
+  animation: neu-fade-up 240ms var(--neu-ease-spring) forwards;
+}
+
+/* Typography styles */
 .hero-headline {
   font-family: var(--font-display);
   font-size: clamp(2.25rem, 6vw, 4.5rem);
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: linear-gradient(to bottom right, #ffffff 30%, #ffc4be);
+  background: linear-gradient(135deg, #ffffff 40%, #ff9e9e 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(255, 82, 82, 0.15));
 }
 
 .body-text {
@@ -381,120 +779,7 @@ body {
   color: var(--md-sys-color-on-surface-variant);
 }
 
-/* M3 Switch Component */
-.m3-switch {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  width: 52px;
-  height: 32px;
-  cursor: pointer;
-  /* Define global transition ease */
-  --transition-ease-m3: all var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-emphasized);
-}
-
-.m3-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.m3-switch-track {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: var(--md-sys-color-surface-variant);
-  border: 2px solid var(--md-sys-color-outline);
-  border-radius: var(--md-sys-shape-corner-full);
-  transition: var(--transition-ease-m3);
-}
-
-.m3-switch-thumb {
-  position: absolute;
-  content: "";
-  height: 16px;
-  width: 16px;
-  left: 6px;
-  bottom: 6px;
-  background-color: var(--md-sys-color-outline);
-  border-radius: var(--md-sys-shape-corner-full);
-  transition: var(--transition-ease-m3);
-}
-
-input:checked + .m3-switch-track {
-  background-color: var(--md-sys-color-primary);
-  border-color: var(--md-sys-color-primary);
-}
-
-input:checked + .m3-switch-track .m3-switch-thumb {
-  transform: translateX(20px);
-  background-color: var(--md-sys-color-on-primary);
-  height: 24px;
-  width: 24px;
-  left: 4px;
-  bottom: 2px;
-}
-
-/* --- MATERIAL DESIGN 3 ANIMATION UTILITIES --- */
-
-@keyframes m3-fade-slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes m3-dialog-scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.animate-m3-page-enter {
-  animation: m3-fade-slide-in 280ms var(--md-sys-motion-easing-emphasized) forwards;
-}
-
-.animate-m3-dialog-enter,
-.fixed.inset-0.z-50 > div {
-  animation: m3-dialog-scale-in 260ms var(--md-sys-motion-easing-emphasized-decelerate) forwards;
-}
-
-/* Animate-fade-in helper for modals backdrop */
-.animate-fade-in {
-  animation: m3-fade-slide-in 250ms var(--md-sys-motion-easing-emphasized) forwards;
-}
-
-/* Micro-interaction scaling for interactive elements */
-.m3-interactive {
-  transition: transform 180ms var(--md-sys-motion-easing-standard),
-              box-shadow 180ms var(--md-sys-motion-easing-standard);
-}
-.m3-interactive:hover {
-  transform: scale(1.02);
-}
-.m3-interactive:active {
-  transform: scale(0.98);
-}
-
-/* Reduced motion accessibility */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.001ms !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* ===== BELT LEVEL UP CELEBRATION ANIMATIONS ===== */
-
+/* Belt celebration keyframes (preserved) */
 @keyframes belt-celebration-bg {
   0% { opacity: 0; }
   10% { opacity: 1; }
@@ -557,6 +842,7 @@ input:checked + .m3-switch-track .m3-switch-thumb {
 }
 .belt-celebration-card {
   animation: belt-card-bounce 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+  box-shadow: var(--neu-shadow-flat-lg) !important;
 }
 .belt-spin-icon {
   animation: belt-spin 0.8s ease-in-out 0.6s 2;
@@ -574,3 +860,10 @@ input:checked + .m3-switch-track .m3-switch-thumb {
 .confetti-4 { animation: confetti-fall-4 3.0s ease-in 0.6s forwards; }
 .confetti-5 { animation: confetti-fall-5 2.6s ease-in 0.4s forwards; }
 
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

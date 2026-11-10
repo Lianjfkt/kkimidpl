@@ -80,7 +80,7 @@ export default function ReportsPage() {
     <Navigation>
       <div className="space-y-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+          <h2 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
             Laporan &amp; Ekspor Data
           </h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -90,41 +90,61 @@ export default function ReportsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1: Students */}
-          <div className="m3-card-elevated flex flex-col justify-between h-64">
+          <div
+            className="rounded-3xl border border-[var(--neu-border)] p-6 flex flex-col justify-between h-72 transition-all duration-300 hover:-translate-y-1 group"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <div>
-              <h3 className="font-bold text-lg mb-2" style={{ color: 'var(--md-sys-color-on-surface)' }}>Daftar Siswa Aktif</h3>
-              <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl mb-4"
+                style={{ background: 'var(--neu-surface-high)', boxShadow: 'var(--neu-shadow-flat-sm)' }}
+              >
+                🥋
+              </div>
+              <h3 className="font-bold text-lg mb-2 tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>Daftar Siswa Aktif</h3>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                 Ekspor seluruh data profil siswa karate aktif saat ini beserta tingkatan sabuk dan riwayat bergabung.
               </p>
             </div>
             <button
               onClick={exportStudents}
               disabled={loading || students.length === 0}
-              className="m3-btn-filled w-full mt-4 cursor-pointer"
+              className="apple-btn w-full mt-4 cursor-pointer font-semibold"
             >
               📥 Unduh Data Siswa
             </button>
           </div>
 
           {/* Card 2: Fees */}
-          <div className="m3-card-elevated flex flex-col justify-between h-64">
+          <div
+            className="rounded-3xl border border-[var(--neu-border)] p-6 flex flex-col justify-between h-72 transition-all duration-300 hover:-translate-y-1 group"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <div>
-              <h3 className="font-bold text-lg mb-2" style={{ color: 'var(--md-sys-color-on-surface)' }}>Laporan Iuran Bulanan</h3>
-              <p className="text-xs mb-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl mb-4"
+                style={{ background: 'var(--neu-surface-high)', boxShadow: 'var(--neu-shadow-flat-sm)' }}
+              >
+                💳
+              </div>
+              <h3 className="font-bold text-lg mb-2 tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>Laporan Iuran Bulanan</h3>
+              <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                 Unduh rekapitulasi status pembayaran iuran siswa karate per bulan terpilih.
               </p>
               <div className="flex gap-2">
                 <select
                   value={selectedMonth}
                   onChange={e => setSelectedMonth(Number(e.target.value))}
-                  className="m3-textfield-outlined text-xs flex-1"
+                  className="px-3 py-2 rounded-xl text-xs flex-1 outline-none transition-all"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 >
                   {months.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                 </select>
                 <select
                   value={selectedYear}
                   onChange={e => setSelectedYear(Number(e.target.value))}
-                  className="m3-textfield-outlined text-xs w-24"
+                  className="px-3 py-2 rounded-xl text-xs w-24 outline-none transition-all"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 >
                   {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
@@ -133,31 +153,42 @@ export default function ReportsPage() {
             <button
               onClick={exportFees}
               disabled={loading}
-              className="m3-btn-filled w-full mt-4 cursor-pointer"
+              className="apple-btn w-full mt-4 cursor-pointer font-semibold"
             >
               📥 Unduh Laporan Iuran
             </button>
           </div>
 
           {/* Card 3: Attendance */}
-          <div className="m3-card-elevated flex flex-col justify-between h-64">
+          <div
+            className="rounded-3xl border border-[var(--neu-border)] p-6 flex flex-col justify-between h-72 transition-all duration-300 hover:-translate-y-1 group"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <div>
-              <h3 className="font-bold text-lg mb-2" style={{ color: 'var(--md-sys-color-on-surface)' }}>Laporan Absensi Siswa</h3>
-              <p className="text-xs mb-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl mb-4"
+                style={{ background: 'var(--neu-surface-high)', boxShadow: 'var(--neu-shadow-flat-sm)' }}
+              >
+                📋
+              </div>
+              <h3 className="font-bold text-lg mb-2 tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>Laporan Absensi Siswa</h3>
+              <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                 Unduh rekapitulasi kehadiran (Hadir, Izin, Sakit, Alpha) seluruh siswa karate per bulan terpilih.
               </p>
               <div className="flex gap-2">
                 <select
                   value={selectedMonth}
                   onChange={e => setSelectedMonth(Number(e.target.value))}
-                  className="m3-textfield-outlined text-xs flex-1"
+                  className="px-3 py-2 rounded-xl text-xs flex-1 outline-none transition-all"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 >
                   {months.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                 </select>
                 <select
                   value={selectedYear}
                   onChange={e => setSelectedYear(Number(e.target.value))}
-                  className="m3-textfield-outlined text-xs w-24"
+                  className="px-3 py-2 rounded-xl text-xs w-24 outline-none transition-all"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 >
                   {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
@@ -166,7 +197,7 @@ export default function ReportsPage() {
             <button
               onClick={exportAttendance}
               disabled={loading}
-              className="m3-btn-filled w-full mt-4 cursor-pointer"
+              className="apple-btn w-full mt-4 cursor-pointer font-semibold"
             >
               📥 Unduh Laporan Absensi
             </button>

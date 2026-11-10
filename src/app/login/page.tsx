@@ -15,13 +15,14 @@ import {
   Calendar,
   AlertCircle,
   CheckCircle2,
-  Briefcase
+  Briefcase,
+  Shield,
+  Sparkles
 } from 'lucide-react';
 import { OFFICIAL_BELTS } from '@/lib/constants/belts';
 
 export default function LoginPage() {
   const { signIn, loading: authLoading } = useAuth();
-
 
   const [view, setView] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -48,7 +49,6 @@ export default function LoginPage() {
   // Konversi no HP ke format email internal yang digunakan Supabase Auth
   const resolveLoginIdentifier = (input: string): string => {
     const trimmed = input.trim();
-    // Deteksi jika input adalah nomor HP (hanya angka, atau mulai dengan 0 / +62)
     const isPhone = /^(\+62|62|0)\d{7,}$/.test(trimmed) || /^\d{8,}$/.test(trimmed);
     if (isPhone) {
       const digitsOnly = trimmed.replace(/\D/g, '');
@@ -78,7 +78,7 @@ export default function LoginPage() {
         } else if (role === 'ortu') {
           window.location.href = '/ortu';
         } else {
-          window.location.href = '/owner'; // fallback
+          window.location.href = '/owner';
         }
       }
     } catch (err) {
@@ -147,7 +147,7 @@ export default function LoginPage() {
         created_at: new Date().toISOString(),
       });
 
-      setSuccessMessage('Pendaftaran calon siswa baru berhasil dikirim dan menunggu persetujuan Owner dojo.');
+      setSuccessMessage('Pendaftaran calon siswa baru berhasil dikirim dan menunggu verifikasi Pengurus Dojo.');
       setRegData({
         studentName: '',
         dob: '',
@@ -171,85 +171,201 @@ export default function LoginPage() {
 
   const beltOptions = OFFICIAL_BELTS;
 
-  const inputClass =
-    'w-full pl-10 pr-4 py-3 bg-zinc-950/60 border border-zinc-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm text-white rounded-xl placeholder:text-zinc-600 outline-none transition-all duration-200';
-  const labelClass = 'block text-[10px] font-bold text-zinc-400 tracking-wider uppercase mb-1.5';
+  const neuInputClass =
+    'w-full pl-11 pr-4 py-3.5 bg-[var(--neu-surface-low)] border border-[var(--neu-border)] text-sm text-[var(--md-sys-color-on-surface)] rounded-2xl placeholder:text-[var(--md-sys-color-on-surface-variant)]/60 outline-none transition-all duration-200 focus:border-[var(--md-sys-color-primary)] focus:bg-[var(--neu-surface)] shadow-[var(--neu-shadow-pressed-sm)] focus:shadow-[var(--neu-shadow-pressed)]';
+  const labelClass = 'block text-[11px] font-bold text-[var(--md-sys-color-on-surface-variant)] tracking-wider uppercase mb-1.5';
   const fieldWrap = 'flex flex-col relative';
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-[#0f0a09] text-zinc-100 p-4 sm:p-6 relative overflow-hidden">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-[var(--neu-bg)] text-[var(--md-sys-color-on-surface)] p-4 sm:p-6 relative overflow-hidden transition-colors duration-300">
       
-      {/* Background decoration elements */}
-      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 rounded-full bg-red-900/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 rounded-full bg-zinc-800/15 blur-[100px] pointer-events-none" />
+      {/* Background ambient lighting */}
+      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 rounded-full bg-red-600/10 blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 rounded-full bg-black/40 blur-[120px] pointer-events-none" />
       
-      {/* Back to Home Link */}
+      {/* Back to Home Button */}
       <div className="absolute top-6 left-6 z-20">
-        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-white transition-colors duration-200">
-          <ArrowLeft className="w-4 h-4" /> Kembali ke Awal
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)] transition-all duration-200"
+          style={{
+            backgroundColor: 'var(--neu-surface)',
+            boxShadow: 'var(--neu-shadow-flat-sm)',
+            border: '1px solid var(--neu-border)'
+          }}
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Beranda
         </Link>
       </div>
 
-      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10 my-8">
+      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10 my-10">
         
-        {/* Left Side: Editorial Brand Showcase (Hidden on smaller viewports / beautiful on desktop) */}
-        <div className="hidden lg:flex lg:col-span-5 flex-col justify-between h-full min-h-[500px] p-8 rounded-3xl bg-zinc-950/60 border border-zinc-900 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-red-950/20 to-transparent pointer-events-none" />
-          
+        {/* Left Side: Editorial Brand Showcase Tile */}
+        <div 
+          className="hidden lg:flex lg:col-span-5 flex-col justify-between h-full min-h-[540px] p-8 rounded-3xl border border-[var(--neu-border)] relative overflow-hidden"
+          style={{
+            backgroundColor: 'var(--neu-surface)',
+            boxShadow: 'var(--neu-shadow-flat-lg)'
+          }}
+        >
           <div className="space-y-6">
             {/* Logo area */}
-            <div className="flex items-center space-x-3">
-              <span className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white font-extrabold text-sm shadow-[0_0_15px_rgba(239,68,68,0.4)]">
+            <div className="flex items-center space-x-3.5">
+              <div 
+                className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-extrabold text-sm"
+                style={{
+                  background: 'var(--neu-accent-grad)',
+                  boxShadow: 'var(--neu-shadow-accent)',
+                  border: '1px solid rgba(255,255,255,0.2)'
+                }}
+              >
                 KKI
-              </span>
+              </div>
               <div className="flex flex-col">
-                <span className="font-display font-bold tracking-tight text-white leading-none text-sm">Dojo KKI DPL</span>
-                <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider mt-0.5">Kushin Ryu Indonesia</span>
+                <span className="font-display font-bold tracking-tight text-[var(--md-sys-color-on-surface)] leading-none text-base">
+                  Dojo KKI DPL
+                </span>
+                <span className="text-[10px] text-[var(--md-sys-color-primary)] font-semibold uppercase tracking-wider mt-1">
+                  Kushin Ryu Karate
+                </span>
               </div>
             </div>
 
-            <div className="pt-8">
-              <h2 className="text-3xl font-extrabold text-white tracking-tight leading-snug">
-                Sistem Layanan <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-400">Terpadu Dojo</span>
+            <div className="pt-6">
+              <div 
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold text-[var(--md-sys-color-primary)] border border-[var(--neu-border)] mb-4"
+                style={{
+                  backgroundColor: 'var(--neu-surface-low)',
+                  boxShadow: 'var(--neu-shadow-pressed-sm)'
+                }}
+              >
+                <Sparkles className="w-3 h-3" /> Sistem Terpadu Manajemen
+              </div>
+              <h2 className="text-3xl font-extrabold text-[var(--md-sys-color-on-surface)] tracking-tight leading-snug">
+                Portal Resmi <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-400">
+                  Keluarga Dojo KKI
+                </span>
               </h2>
-              <p className="text-zinc-400 text-sm mt-3 leading-relaxed">
-                Kelola administrasi, iuran bulanan, absensi kehadiran siswa, penjadwalan ujian kenaikan sabuk, hingga pemantauan statistik atlet berprestasi.
+              <p className="text-[var(--md-sys-color-on-surface-variant)] text-xs md:text-sm mt-3 leading-relaxed">
+                Akses terpusat untuk monitoring absensi latihan, iuran bulanan, riwayat ujian sabuk, jadwal turnamen, dan perkembangan atlet karate secara real-time.
               </p>
             </div>
           </div>
 
+          {/* Quote Tile */}
+          <div 
+            className="p-5 rounded-2xl border border-[var(--neu-border)] space-y-2 mt-8"
+            style={{
+              backgroundColor: 'var(--neu-surface-low)',
+              boxShadow: 'var(--neu-shadow-pressed-sm)'
+            }}
+          >
+            <div className="flex items-center gap-2 text-xs font-bold text-[var(--md-sys-color-primary)]">
+              <Shield className="w-4 h-4" /> Prinsip Karate-do
+            </div>
+            <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] italic leading-relaxed">
+              &quot;Karate ni sente nashi — Di dalam karate tidak ada inisiatif untuk menyerang lebih dahulu; karate adalah seni bertahan dan membentuk watak ksatria.&quot;
+            </p>
+          </div>
         </div>
 
-        {/* Right Side: Authentication Forms (Login / Registration) */}
+        {/* Right Side: Authentication Card */}
         <div className="lg:col-span-7 w-full">
-          <div className="apple-card p-6 sm:p-10 bg-zinc-950/40 backdrop-blur-xl border border-zinc-900 rounded-3xl shadow-2xl relative">
-            
+          <div 
+            className="neu-card p-6 sm:p-10 rounded-3xl relative"
+            style={{
+              backgroundColor: 'var(--neu-surface)',
+              boxShadow: 'var(--neu-shadow-flat-lg)'
+            }}
+          >
+            {/* Neumorphic Segmented Tab Switcher (Masuk / Daftar) */}
+            <div 
+              className="flex p-1.5 rounded-full border border-[var(--neu-border)] mb-8"
+              style={{
+                backgroundColor: 'var(--neu-surface-low)',
+                boxShadow: 'var(--neu-shadow-pressed)'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => { setView('login'); setError(null); }}
+                className={`flex-1 py-2.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  view === 'login'
+                    ? 'text-white'
+                    : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
+                }`}
+                style={
+                  view === 'login'
+                    ? {
+                        background: 'var(--neu-accent-grad)',
+                        boxShadow: 'var(--neu-shadow-accent)',
+                        border: '1px solid rgba(255,255,255,0.2)'
+                      }
+                    : { background: 'transparent' }
+                }
+              >
+                Masuk Sistem
+              </button>
+              <button
+                type="button"
+                onClick={() => { setView('register'); setError(null); }}
+                className={`flex-1 py-2.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  view === 'register'
+                    ? 'text-white'
+                    : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
+                }`}
+                style={
+                  view === 'register'
+                    ? {
+                        background: 'var(--neu-accent-grad)',
+                        boxShadow: 'var(--neu-shadow-accent)',
+                        border: '1px solid rgba(255,255,255,0.2)'
+                      }
+                    : { background: 'transparent' }
+                }
+              >
+                Daftar Calon Siswa
+              </button>
+            </div>
+
             {/* Header Content */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold tracking-tight text-white">
-                {view === 'login' ? 'Selamat Datang Kembali' : 'Pendaftaran Calon Siswa'}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold tracking-tight text-[var(--md-sys-color-on-surface)]">
+                {view === 'login' ? 'Selamat Datang Kembali' : 'Pendaftaran Siswa Baru'}
               </h2>
-              <p className="text-xs text-zinc-400 mt-1.5">
+              <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-1.5">
                 {view === 'login' 
                   ? 'Silakan masuk menggunakan kredensial akun Dojo Anda.' 
-                  : 'Lengkapi formulir pendaftaran untuk mengajukan keanggotaan baru.'}
+                  : 'Lengkapi formulir di bawah ini untuk mengajukan pendaftaran.'}
               </p>
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="mb-6 p-4 rounded-xl bg-red-950/30 border border-red-900/30 text-xs text-red-400 flex items-start gap-2.5 animate-m3-page-enter">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
+              <div 
+                className="mb-6 p-4 rounded-2xl text-xs text-red-400 flex items-start gap-2.5 animate-fade-in border border-red-500/30"
+                style={{
+                  backgroundColor: 'var(--neu-surface-low)',
+                  boxShadow: 'var(--neu-shadow-pressed-sm)'
+                }}
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
+                <span className="leading-relaxed">{error}</span>
               </div>
             )}
 
             {/* Success Message */}
             {successMessage && (
-              <div className="mb-6 p-4 rounded-xl bg-emerald-950/30 border border-emerald-900/30 text-xs text-emerald-400 flex items-start gap-2.5 animate-m3-page-enter">
-                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{successMessage}</span>
+              <div 
+                className="mb-6 p-4 rounded-2xl text-xs text-emerald-400 flex items-start gap-2.5 animate-fade-in border border-emerald-500/30"
+                style={{
+                  backgroundColor: 'var(--neu-surface-low)',
+                  boxShadow: 'var(--neu-shadow-pressed-sm)'
+                }}
+              >
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
+                <span className="leading-relaxed">{successMessage}</span>
               </div>
             )}
 
@@ -260,12 +376,12 @@ export default function LoginPage() {
                 <div className={fieldWrap}>
                   <label htmlFor="email" className={labelClass}>Email / No. WhatsApp (Orang Tua)</label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" />
                     <input
                       id="email"
                       type="text"
                       required
-                      className={inputClass}
+                      className={neuInputClass}
                       placeholder="contoh: owner@dojo.com atau 08xxxx..."
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -276,13 +392,13 @@ export default function LoginPage() {
                 <div className={fieldWrap}>
                   <label htmlFor="password" className={labelClass}>Kata Sandi</label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" />
                     <input
                       id="password"
                       type="password"
                       required
-                      className={inputClass}
-                      placeholder="Kata Sandi Anda"
+                      className={neuInputClass}
+                      placeholder="Masukkan kata sandi Anda"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
@@ -292,30 +408,24 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading || authLoading}
-                  className="apple-btn w-full py-3 text-sm font-semibold tracking-wide flex items-center justify-center gap-1.5 shadow-[0_4px_20px_rgba(239,68,68,0.2)]"
+                  className="apple-btn w-full py-3.5 text-sm font-bold tracking-wide flex items-center justify-center gap-2"
                   style={{ opacity: (loading || authLoading) ? 0.7 : 1 }}
                 >
                   {loading ? 'Memverifikasi...' : 'Masuk ke Dashboard'} <ArrowRight className="w-4 h-4" />
                 </button>
-
-
-
-                <div className="text-center pt-2">
-                  <button
-                    type="button"
-                    onClick={() => { setView('register'); setError(null); }}
-                    className="text-xs text-zinc-400 hover:text-white transition-colors duration-200 inline-flex items-center gap-1 font-semibold"
-                  >
-                    Belum punya akun? <span className="text-red-500 hover:underline">Daftarkan Calon Siswa Baru →</span>
-                  </button>
-                </div>
               </form>
             ) : (
-              /* REGISTRATION FORM (Clean, professional multi-step visual style) */
+              /* REGISTRATION FORM */
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
                 
                 <div className="relative py-1 flex items-center justify-center">
-                  <span className="text-[10px] font-mono tracking-widest uppercase text-red-500 font-bold bg-red-950/40 border border-red-900/20 px-3 py-1 rounded-full">
+                  <span 
+                    className="text-[10px] font-mono tracking-widest uppercase text-[var(--md-sys-color-primary)] font-bold px-4 py-1.5 rounded-full border border-[var(--neu-border)]"
+                    style={{
+                      backgroundColor: 'var(--neu-surface-low)',
+                      boxShadow: 'var(--neu-shadow-pressed-sm)'
+                    }}
+                  >
                     Bagian 1: Data Calon Siswa
                   </span>
                 </div>
@@ -323,9 +433,15 @@ export default function LoginPage() {
                 <div className={fieldWrap}>
                   <label className={labelClass}>Nama Calon Siswa *</label>
                   <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-                    <input type="text" required className={inputClass} placeholder="Nama Lengkap Calon Siswa"
-                      value={regData.studentName} onChange={(e) => setRegData({ ...regData, studentName: e.target.value })} />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" />
+                    <input 
+                      type="text" 
+                      required 
+                      className={neuInputClass} 
+                      placeholder="Nama Lengkap Calon Siswa"
+                      value={regData.studentName} 
+                      onChange={(e) => setRegData({ ...regData, studentName: e.target.value })} 
+                    />
                   </div>
                 </div>
 
@@ -333,17 +449,28 @@ export default function LoginPage() {
                   <div className={fieldWrap}>
                     <label className={labelClass}>Tempat Lahir *</label>
                     <div className="relative">
-                      <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-                      <input type="text" required className={inputClass} placeholder="Kota/Kabupaten"
-                        value={regData.birthPlace} onChange={(e) => setRegData({ ...regData, birthPlace: e.target.value })} />
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" />
+                      <input 
+                        type="text" 
+                        required 
+                        className={neuInputClass} 
+                        placeholder="Kota/Kabupaten"
+                        value={regData.birthPlace} 
+                        onChange={(e) => setRegData({ ...regData, birthPlace: e.target.value })} 
+                      />
                     </div>
                   </div>
                   <div className={fieldWrap}>
                     <label className={labelClass}>Tanggal Lahir *</label>
                     <div className="relative">
-                      <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-                      <input type="date" required className="w-full pl-10 pr-4 py-3 bg-zinc-950/60 border border-zinc-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm text-white rounded-xl outline-none"
-                        value={regData.dob} onChange={(e) => setRegData({ ...regData, dob: e.target.value })} />
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" />
+                      <input 
+                        type="date" 
+                        required 
+                        className={neuInputClass}
+                        value={regData.dob} 
+                        onChange={(e) => setRegData({ ...regData, dob: e.target.value })} 
+                      />
                     </div>
                   </div>
                 </div>
@@ -351,34 +478,62 @@ export default function LoginPage() {
                 <div className={fieldWrap}>
                   <label className={labelClass}>NIK (NIK anak pada KK) *</label>
                   <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-                    <input type="text" required maxLength={16} className={inputClass} placeholder="16 Digit Angka NIK"
-                      value={regData.nik} onChange={(e) => setRegData({ ...regData, nik: e.target.value })} />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" />
+                    <input 
+                      type="text" 
+                      required 
+                      maxLength={16} 
+                      className={neuInputClass} 
+                      placeholder="16 Digit Angka NIK"
+                      value={regData.nik} 
+                      onChange={(e) => setRegData({ ...regData, nik: e.target.value })} 
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
                   <div className={fieldWrap}>
                     <label className={labelClass}>Sabuk</label>
-                    <select className="w-full px-3 py-3 bg-zinc-950/60 border border-zinc-800 text-sm text-white rounded-xl outline-none focus:border-red-500" value={regData.currentBelt}
-                      onChange={(e) => setRegData({ ...regData, currentBelt: e.target.value })}>
-                      {beltOptions.map((belt) => <option key={belt} value={belt} className="bg-zinc-950">{belt}</option>)}
+                    <select 
+                      className="w-full px-3 py-3.5 bg-[var(--neu-surface-low)] border border-[var(--neu-border)] text-xs text-[var(--md-sys-color-on-surface)] rounded-2xl outline-none focus:border-[var(--md-sys-color-primary)] shadow-[var(--neu-shadow-pressed-sm)]" 
+                      value={regData.currentBelt}
+                      onChange={(e) => setRegData({ ...regData, currentBelt: e.target.value })}
+                    >
+                      {beltOptions.map((belt) => (
+                        <option key={belt} value={belt} className="bg-[var(--neu-surface-high)]">{belt}</option>
+                      ))}
                     </select>
                   </div>
                   <div className={fieldWrap}>
                     <label className={labelClass}>Berat (kg)</label>
-                    <input type="number" className="w-full px-3 py-3 bg-zinc-950/60 border border-zinc-800 text-sm text-white rounded-xl outline-none focus:border-red-500" placeholder="kg"
-                      value={regData.weight} onChange={(e) => setRegData({ ...regData, weight: e.target.value })} />
+                    <input 
+                      type="number" 
+                      className="w-full px-3 py-3.5 bg-[var(--neu-surface-low)] border border-[var(--neu-border)] text-xs text-[var(--md-sys-color-on-surface)] rounded-2xl outline-none focus:border-[var(--md-sys-color-primary)] shadow-[var(--neu-shadow-pressed-sm)]" 
+                      placeholder="kg"
+                      value={regData.weight} 
+                      onChange={(e) => setRegData({ ...regData, weight: e.target.value })} 
+                    />
                   </div>
                   <div className={fieldWrap}>
                     <label className={labelClass}>Tinggi (cm)</label>
-                    <input type="number" className="w-full px-3 py-3 bg-zinc-950/60 border border-zinc-800 text-sm text-white rounded-xl outline-none focus:border-red-500" placeholder="cm"
-                      value={regData.height} onChange={(e) => setRegData({ ...regData, height: e.target.value })} />
+                    <input 
+                      type="number" 
+                      className="w-full px-3 py-3.5 bg-[var(--neu-surface-low)] border border-[var(--neu-border)] text-xs text-[var(--md-sys-color-on-surface)] rounded-2xl outline-none focus:border-[var(--md-sys-color-primary)] shadow-[var(--neu-shadow-pressed-sm)]" 
+                      placeholder="cm"
+                      value={regData.height} 
+                      onChange={(e) => setRegData({ ...regData, height: e.target.value })} 
+                    />
                   </div>
                 </div>
 
-                <div className="relative py-1 flex items-center justify-center">
-                  <span className="text-[10px] font-mono tracking-widest uppercase text-red-500 font-bold bg-red-950/40 border border-red-900/20 px-3 py-1 rounded-full">
+                <div className="relative py-2 flex items-center justify-center">
+                  <span 
+                    className="text-[10px] font-mono tracking-widest uppercase text-[var(--md-sys-color-primary)] font-bold px-4 py-1.5 rounded-full border border-[var(--neu-border)]"
+                    style={{
+                      backgroundColor: 'var(--neu-surface-low)',
+                      boxShadow: 'var(--neu-shadow-pressed-sm)'
+                    }}
+                  >
                     Bagian 2: Data Orang Tua / Wali
                   </span>
                 </div>
@@ -387,25 +542,42 @@ export default function LoginPage() {
                   <div className={fieldWrap}>
                     <label className={labelClass}>Nama Orang Tua *</label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-                      <input type="text" required className={inputClass} placeholder="Nama Ayah / Ibu"
-                        value={regData.parentName} onChange={(e) => setRegData({ ...regData, parentName: e.target.value })} />
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" />
+                      <input 
+                        type="text" 
+                        required 
+                        className={neuInputClass} 
+                        placeholder="Nama Ayah/Ibu"
+                        value={regData.parentName} 
+                        onChange={(e) => setRegData({ ...regData, parentName: e.target.value })} 
+                      />
                     </div>
                   </div>
                   <div className={fieldWrap}>
-                    <label className={labelClass}>Nomor Telepon/WhatsApp *</label>
+                    <label className={labelClass}>WhatsApp *</label>
                     <div className="relative">
-                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-                      <input type="tel" required className={inputClass} placeholder="contoh: 081234..."
-                        value={regData.parentPhone} onChange={(e) => setRegData({ ...regData, parentPhone: e.target.value })} />
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" />
+                      <input 
+                        type="tel" 
+                        required 
+                        className={neuInputClass} 
+                        placeholder="0812xxxx"
+                        value={regData.parentPhone} 
+                        onChange={(e) => setRegData({ ...regData, parentPhone: e.target.value })} 
+                      />
                     </div>
                   </div>
                   <div className={fieldWrap}>
-                    <label className={labelClass}>Pekerjaan Orang Tua</label>
+                    <label className={labelClass}>Pekerjaan</label>
                     <div className="relative">
-                      <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-                      <input type="text" className={inputClass} placeholder="PNS, Swasta, Wiraswasta, dll"
-                        value={regData.parentJob} onChange={(e) => setRegData({ ...regData, parentJob: e.target.value })} />
+                      <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" />
+                      <input 
+                        type="text" 
+                        className={neuInputClass} 
+                        placeholder="Pekerjaan"
+                        value={regData.parentJob} 
+                        onChange={(e) => setRegData({ ...regData, parentJob: e.target.value })} 
+                      />
                     </div>
                   </div>
                 </div>
@@ -413,24 +585,29 @@ export default function LoginPage() {
                 <div className={fieldWrap}>
                   <label className={labelClass}>Alamat Tempat Tinggal</label>
                   <div className="relative">
-                    <MapPin className="absolute left-3.5 top-5 w-4 h-4 text-zinc-600" />
-                    <textarea rows={2} className="w-full pl-10 pr-4 py-3 bg-zinc-950/60 border border-zinc-800 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm text-white rounded-xl outline-none resize-none transition-all duration-200" placeholder="Alamat lengkap rumah tinggal..."
-                      value={regData.address} onChange={(e) => setRegData({ ...regData, address: e.target.value })} />
+                    <MapPin className="absolute left-4 top-4 w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" />
+                    <textarea 
+                      rows={2} 
+                      className="w-full pl-11 pr-4 py-3 bg-[var(--neu-surface-low)] border border-[var(--neu-border)] focus:border-[var(--md-sys-color-primary)] text-sm text-[var(--md-sys-color-on-surface)] rounded-2xl outline-none resize-none transition-all duration-200 shadow-[var(--neu-shadow-pressed-sm)] focus:shadow-[var(--neu-shadow-pressed)]" 
+                      placeholder="Alamat lengkap tempat tinggal..."
+                      value={regData.address} 
+                      onChange={(e) => setRegData({ ...regData, address: e.target.value })} 
+                    />
                   </div>
                 </div>
 
-                <div className="flex gap-4 pt-2">
+                <div className="flex gap-4 pt-3">
                   <button
                     type="button"
                     onClick={() => { setView('login'); setError(null); }}
-                    className="apple-btn-secondary flex-1 py-3 text-sm font-semibold"
+                    className="apple-btn-secondary flex-1 py-3.5 text-xs font-bold"
                   >
-                    Kembali
+                    Batal
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="apple-btn flex-1 py-3 text-sm font-semibold shadow-[0_4px_20px_rgba(239,68,68,0.2)]"
+                    className="apple-btn flex-1 py-3.5 text-xs font-bold"
                     style={{ opacity: loading ? 0.7 : 1 }}
                   >
                     {loading ? 'Mengirim...' : 'Kirim Pendaftaran'}

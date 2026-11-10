@@ -201,35 +201,42 @@ export default function OwnerStudents() {
           </div>
           <button
             onClick={openAddModal}
-            className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer"
+            className="apple-btn px-4 py-2 text-sm font-semibold cursor-pointer rounded-2xl"
           >
             ＋ Tambah Siswa Baru
           </button>
         </div>
 
         {/* Filters */}
-        <div className="apple-card flex flex-col md:flex-row gap-4">
+        <div
+          className="rounded-3xl p-4 border border-[var(--neu-border)] flex flex-col md:flex-row gap-4"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+        >
           <div className="flex-1">
             <input
               type="text"
               placeholder="Cari nama atau nomor telepon..."
-              className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+              className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
               style={{
-                background: 'var(--md-sys-color-surface-container)',
+                background: 'var(--neu-surface-low)',
+                boxShadow: 'var(--neu-shadow-pressed-sm)',
+                border: '1px solid var(--neu-border)',
                 color: 'var(--md-sys-color-on-surface)',
-                border: '1px solid var(--md-sys-color-outline-variant)',
               }}
+              onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+              onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <div className="w-full md:w-64">
             <select
-              className="w-full px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+              className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
               style={{
-                background: 'var(--md-sys-color-surface-container)',
+                background: 'var(--neu-surface-low)',
+                boxShadow: 'var(--neu-shadow-pressed-sm)',
+                border: '1px solid var(--neu-border)',
                 color: 'var(--md-sys-color-on-surface)',
-                border: '1px solid var(--md-sys-color-outline-variant)',
               }}
               value={beltFilter}
               onChange={(e) => setBeltFilter(e.target.value)}
@@ -245,7 +252,10 @@ export default function OwnerStudents() {
         </div>
 
         {/* Students Table */}
-        <div className="apple-card overflow-x-auto p-0">
+        <div
+          className="rounded-3xl overflow-hidden border border-[var(--neu-border)] overflow-x-auto"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+        >
           {loading ? (
             <p className="p-6 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Memuat data siswa...</p>
           ) : filteredStudents.length === 0 ? (
@@ -253,29 +263,26 @@ export default function OwnerStudents() {
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)', background: 'var(--md-sys-color-surface-container)' }}>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>TTL</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Gender</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Sabuk</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Telepon</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Status</th>
-                  <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-right" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Aksi</th>
+                <tr style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>TTL</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Gender</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Sabuk</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Telepon</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Status</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-right" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredStudents.map((student, idx) => {
+                {filteredStudents.map((student) => {
                   const beltStyle = getBeltStyle(student.current_belt);
                   return (
                     <tr
                       key={student.id}
-                      className="transition-colors"
-                      style={{
-                        borderBottom: '1px solid var(--md-sys-color-outline-variant)',
-                        background: idx % 2 === 0 ? 'var(--md-sys-color-surface-container-low)' : 'var(--md-sys-color-surface-container)',
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--md-sys-color-surface-container-high)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = idx % 2 === 0 ? 'var(--md-sys-color-surface-container-low)' : 'var(--md-sys-color-surface-container)')}
+                      className="transition-all duration-200"
+                      style={{ borderBottom: '1px solid var(--neu-border)' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = ''; }}
                     >
                       <td className="px-6 py-4">
                         <div className="text-sm font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{student.full_name}</div>
@@ -288,39 +295,60 @@ export default function OwnerStudents() {
                       <td className="px-6 py-4 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{student.dob}</td>
                       <td className="px-6 py-4 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{student.gender}</td>
                       <td className="px-6 py-4 text-sm">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${beltStyle.bg} ${beltStyle.text} ${beltStyle.border}`}>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${beltStyle.text}`}
+                          style={{
+                            background: 'var(--neu-surface-low)',
+                            boxShadow: 'var(--neu-shadow-pressed-sm)',
+                            border: '1px solid var(--neu-border)',
+                          }}
+                        >
                           {student.current_belt}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{student.phone}</td>
                       <td className="px-6 py-4 text-sm">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
-                          student.status === 'active'
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                        }`}>
-                          {student.status === 'active' ? 'Aktif' : 'Nonaktif'}
-                        </span>
+                        {student.status === 'active' ? (
+                          <span
+                            className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold"
+                            style={{ background: 'var(--neu-accent-grad)', color: '#fff', boxShadow: '0 2px 8px rgba(255,82,82,0.3)' }}
+                          >
+                            Aktif
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border border-[var(--neu-border)]"
+                            style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-on-surface-variant)' }}
+                          >
+                            Nonaktif
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm text-right space-x-2">
                         <button
                           onClick={() => router.push(`/owner/students/${student.id}`)}
-                          className="text-xs font-semibold hover:underline cursor-pointer transition-colors"
+                          className="text-xs font-semibold cursor-pointer transition-all duration-200 px-2.5 py-1 rounded-xl"
                           style={{ color: 'var(--md-sys-color-primary)' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; e.currentTarget.style.boxShadow = 'var(--neu-shadow-flat-sm)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.boxShadow = ''; }}
                         >
                           Detail
                         </button>
                         <button
                           onClick={() => openEditModal(student)}
-                          className="text-xs font-semibold hover:underline cursor-pointer transition-colors"
+                          className="text-xs font-semibold cursor-pointer transition-all duration-200 px-2.5 py-1 rounded-xl"
                           style={{ color: '#60a5fa' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; e.currentTarget.style.boxShadow = 'var(--neu-shadow-flat-sm)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.boxShadow = ''; }}
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDelete(student.id)}
-                          className="text-xs font-semibold hover:underline cursor-pointer transition-colors"
+                          className="text-xs font-semibold cursor-pointer transition-all duration-200 px-2.5 py-1 rounded-xl"
                           style={{ color: '#f87171' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.boxShadow = 'var(--neu-shadow-flat-sm)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.boxShadow = ''; }}
                         >
                           Hapus
                         </button>
@@ -337,28 +365,32 @@ export default function OwnerStudents() {
         {isModalOpen && (
           <div
             className="fixed inset-0 flex items-center justify-center p-4 z-50"
-            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+            style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
             onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false); }}
           >
             <div
-              className="rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-2xl rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
               style={{
-                background: 'var(--md-sys-color-surface-container-high)',
-                border: '1px solid var(--md-sys-color-outline-variant)',
+                background: 'var(--neu-surface-high)',
+                boxShadow: 'var(--neu-shadow-flat-lg), 0 20px 48px rgba(0,0,0,0.5)',
+                border: '1px solid var(--neu-border)',
               }}
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-5">
                 <h3 className="text-xl font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   {editingStudent ? 'Edit Data Siswa' : 'Tambah Siswa Baru'}
                 </h3>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold cursor-pointer transition-colors"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold cursor-pointer transition-all duration-200 border border-[var(--neu-border)]"
                   style={{
                     color: 'var(--md-sys-color-on-surface-variant)',
-                    background: 'var(--md-sys-color-surface-container)',
+                    background: 'var(--neu-surface-low)',
+                    boxShadow: 'var(--neu-shadow-pressed-sm)',
                   }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-flat-sm)'; e.currentTarget.style.background = 'var(--neu-surface)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; e.currentTarget.style.background = 'var(--neu-surface-low)'; }}
                 >
                   ×
                 </button>
@@ -368,18 +400,21 @@ export default function OwnerStudents() {
                 <div className="grid grid-cols-2 gap-4">
                   {/* Nama Lengkap */}
                   <div className="col-span-2 space-y-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       Nama Lengkap
                     </label>
                     <input
                       type="text"
                       required
-                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--md-sys-color-primary)]"
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
                       style={{
-                        background: 'var(--md-sys-color-surface-container)',
+                        background: 'var(--neu-surface-low)',
+                        boxShadow: 'var(--neu-shadow-pressed-sm)',
+                        border: '1px solid var(--neu-border)',
                         color: 'var(--md-sys-color-on-surface)',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
                       }}
+                      onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                      onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                     />
@@ -387,19 +422,22 @@ export default function OwnerStudents() {
 
                   {/* Tanggal Lahir */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       Tanggal Lahir
                     </label>
                     <input
                       type="date"
                       required
-                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--md-sys-color-primary)]"
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
                       style={{
-                        background: 'var(--md-sys-color-surface-container)',
+                        background: 'var(--neu-surface-low)',
+                        boxShadow: 'var(--neu-shadow-pressed-sm)',
+                        border: '1px solid var(--neu-border)',
                         color: 'var(--md-sys-color-on-surface)',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
                         colorScheme: 'dark',
                       } as React.CSSProperties}
+                      onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                      onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
                       value={dob}
                       onChange={(e) => setDob(e.target.value)}
                     />
@@ -407,15 +445,16 @@ export default function OwnerStudents() {
 
                   {/* Gender */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       Gender
                     </label>
                     <select
-                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--md-sys-color-primary)]"
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
                       style={{
-                        background: 'var(--md-sys-color-surface-container)',
+                        background: 'var(--neu-surface-low)',
+                        boxShadow: 'var(--neu-shadow-pressed-sm)',
+                        border: '1px solid var(--neu-border)',
                         color: 'var(--md-sys-color-on-surface)',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
                       }}
                       value={gender}
                       onChange={(e) => setGender(e.target.value)}
@@ -427,18 +466,21 @@ export default function OwnerStudents() {
 
                   {/* Alamat */}
                   <div className="col-span-2 space-y-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       Alamat Rumah
                     </label>
                     <input
                       type="text"
                       required
-                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--md-sys-color-primary)]"
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
                       style={{
-                        background: 'var(--md-sys-color-surface-container)',
+                        background: 'var(--neu-surface-low)',
+                        boxShadow: 'var(--neu-shadow-pressed-sm)',
+                        border: '1px solid var(--neu-border)',
                         color: 'var(--md-sys-color-on-surface)',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
                       }}
+                      onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                      onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                     />
@@ -446,18 +488,21 @@ export default function OwnerStudents() {
 
                   {/* Telepon */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       No. Telepon
                     </label>
                     <input
                       type="tel"
                       required
-                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--md-sys-color-primary)]"
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
                       style={{
-                        background: 'var(--md-sys-color-surface-container)',
+                        background: 'var(--neu-surface-low)',
+                        boxShadow: 'var(--neu-shadow-pressed-sm)',
+                        border: '1px solid var(--neu-border)',
                         color: 'var(--md-sys-color-on-surface)',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
                       }}
+                      onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                      onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                     />
@@ -465,17 +510,20 @@ export default function OwnerStudents() {
 
                   {/* Nama Orang Tua */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       Nama Orang Tua
                     </label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--md-sys-color-primary)]"
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
                       style={{
-                        background: 'var(--md-sys-color-surface-container)',
+                        background: 'var(--neu-surface-low)',
+                        boxShadow: 'var(--neu-shadow-pressed-sm)',
+                        border: '1px solid var(--neu-border)',
                         color: 'var(--md-sys-color-on-surface)',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
                       }}
+                      onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                      onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
                       value={parentName}
                       onChange={(e) => setParentName(e.target.value)}
                     />
@@ -483,17 +531,20 @@ export default function OwnerStudents() {
 
                   {/* Pekerjaan Orang Tua */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       Pekerjaan Orang Tua
                     </label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--md-sys-color-primary)]"
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
                       style={{
-                        background: 'var(--md-sys-color-surface-container)',
+                        background: 'var(--neu-surface-low)',
+                        boxShadow: 'var(--neu-shadow-pressed-sm)',
+                        border: '1px solid var(--neu-border)',
                         color: 'var(--md-sys-color-on-surface)',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
                       }}
+                      onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+                      onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
                       value={parentJob}
                       onChange={(e) => setParentJob(e.target.value)}
                     />
@@ -501,15 +552,16 @@ export default function OwnerStudents() {
 
                   {/* Kelas Latihan */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       Kelas Latihan
                     </label>
                     <select
-                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--md-sys-color-primary)]"
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
                       style={{
-                        background: 'var(--md-sys-color-surface-container)',
+                        background: 'var(--neu-surface-low)',
+                        boxShadow: 'var(--neu-shadow-pressed-sm)',
+                        border: '1px solid var(--neu-border)',
                         color: 'var(--md-sys-color-on-surface)',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
                       }}
                       value={selectedClassId}
                       onChange={(e) => setSelectedClassId(e.target.value)}
@@ -525,15 +577,16 @@ export default function OwnerStudents() {
 
                   {/* Tingkat Sabuk */}
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       Tingkat Sabuk
                     </label>
                     <select
-                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--md-sys-color-primary)]"
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
                       style={{
-                        background: 'var(--md-sys-color-surface-container)',
+                        background: 'var(--neu-surface-low)',
+                        boxShadow: 'var(--neu-shadow-pressed-sm)',
+                        border: '1px solid var(--neu-border)',
                         color: 'var(--md-sys-color-on-surface)',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
                       }}
                       value={currentBelt}
                       onChange={(e) => setCurrentBelt(e.target.value)}
@@ -548,15 +601,16 @@ export default function OwnerStudents() {
 
                   {/* Status */}
                   <div className="col-span-2 space-y-1">
-                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       Status
                     </label>
                     <select
-                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--md-sys-color-primary)]"
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
                       style={{
-                        background: 'var(--md-sys-color-surface-container)',
+                        background: 'var(--neu-surface-low)',
+                        boxShadow: 'var(--neu-shadow-pressed-sm)',
+                        border: '1px solid var(--neu-border)',
                         color: 'var(--md-sys-color-on-surface)',
-                        border: '1px solid var(--md-sys-color-outline-variant)',
                       }}
                       value={status}
                       onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
@@ -569,17 +623,12 @@ export default function OwnerStudents() {
 
                 <div
                   className="pt-4 flex justify-end gap-3"
-                  style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}
+                  style={{ borderTop: '1px solid var(--neu-border)' }}
                 >
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-5 py-2.5 rounded-full text-sm font-semibold cursor-pointer transition-colors"
-                    style={{
-                      background: 'var(--md-sys-color-surface-container)',
-                      color: 'var(--md-sys-color-on-surface)',
-                      border: '1px solid var(--md-sys-color-outline-variant)',
-                    }}
+                    className="apple-btn-secondary px-5 py-2.5 text-sm font-semibold cursor-pointer"
                   >
                     Batal
                   </button>

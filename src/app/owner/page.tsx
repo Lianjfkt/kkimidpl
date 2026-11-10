@@ -12,10 +12,17 @@ const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)' }} onClick={onClose}>
-      <div className="w-full max-w-md rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in"
-        style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
-        onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }} onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-3xl animate-fade-in"
+        style={{
+          background: 'var(--neu-surface-high)',
+          padding: '28px',
+          boxShadow: 'var(--neu-shadow-flat-lg), 0 20px 48px rgba(0,0,0,0.5)',
+          border: '1px solid var(--neu-border)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-xl font-bold mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
         {children}
       </div>
@@ -29,19 +36,28 @@ function StatCard({ label, value, sub, color, icon }: {
   label: string; value: string; sub?: string;
   color?: string; icon: React.ReactNode;
 }) {
+  const [hovered, setHovered] = React.useState(false);
   return (
-    <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col gap-3"
-      style={{ background: color || 'var(--md-sys-color-surface-container-low)' }}>
+    <div
+      className="rounded-3xl p-5 flex flex-col gap-3 border border-[var(--neu-border)] transition-all duration-200 cursor-default"
+      style={{
+        background: 'var(--neu-surface)',
+        boxShadow: hovered ? 'var(--neu-shadow-hover)' : 'var(--neu-shadow-flat)',
+        transform: hovered ? 'translateY(-2px)' : '',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium opacity-70" style={{ color: 'var(--md-sys-color-on-surface)' }}>{label}</span>
-        <div className="w-9 h-9 rounded-[var(--md-sys-shape-corner-medium)] flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.12)' }}>
+        <span className="text-xs font-semibold opacity-75" style={{ color: 'var(--md-sys-color-on-surface)' }}>{label}</span>
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center border border-[var(--neu-border)]"
+          style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
           {icon}
         </div>
       </div>
       <div>
         <p className="text-2xl font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{value}</p>
-        {sub && <p className="text-xs mt-0.5 opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>{sub}</p>}
+        {sub && <p className="text-xs mt-0.5 opacity-60">{sub}</p>}
       </div>
     </div>
   );
@@ -184,8 +200,8 @@ export default function OwnerDashboard() {
                 Dashboard Pengurus Dojo
               </h2>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                style={{ background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' }}>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                style={{ background: 'rgba(52, 211, 153, 0.15)', color: '#34d399' }}>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 Real-Time Live
               </span>
             </div>
@@ -199,14 +215,14 @@ export default function OwnerDashboard() {
             </p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => loadData()} className="m3-btn-outlined px-3 py-2 text-xs font-medium flex items-center gap-1.5 cursor-pointer">
+            <button onClick={() => loadData()} className="apple-btn-secondary px-3 py-2 text-xs font-medium flex items-center gap-1.5 cursor-pointer rounded-2xl">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
               Refresh Data
             </button>
-            <Link href="/owner/students" className="m3-btn-tonal px-4 py-2 text-sm font-medium">
+            <Link href="/owner/students" className="apple-btn-secondary px-4 py-2 text-sm font-medium rounded-2xl">
               + Tambah Siswa
             </Link>
-            <Link href="/owner/finance" className="m3-btn-filled px-4 py-2 text-sm font-medium">
+            <Link href="/owner/finance" className="apple-btn px-4 py-2 text-sm font-medium rounded-2xl">
               Keuangan
             </Link>
           </div>
@@ -218,15 +234,13 @@ export default function OwnerDashboard() {
             label="Siswa Aktif"
             value={loading ? '—' : String(activeStudents.length)}
             sub="terdaftar & aktif berlatih"
-            color="var(--md-sys-color-primary-container)"
-            icon={<svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-on-primary-container)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" /></svg>}
+            icon={<svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" /></svg>}
           />
           <StatCard
             label="Kehadiran Bulan Ini"
             value={loading ? '—' : `${attendanceRate}%`}
             sub={`${thisMonthAtt.filter(a => a.status === 'hadir').length} dari ${thisMonthAtt.length} sesi`}
-            color="var(--md-sys-color-tertiary-container)"
-            icon={<svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+            icon={<svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
           />
           <StatCard
             label="Pemasukan Bulan Ini"
@@ -238,7 +252,6 @@ export default function OwnerDashboard() {
             label="Tunggakan Iuran"
             value={loading ? '—' : `Rp ${totalUnpaid.toLocaleString('id-ID')}`}
             sub={`${fees.filter(f => f.status !== 'lunas').length} tagihan belum lunas`}
-            color={totalUnpaid > 0 ? 'var(--md-sys-color-error-container)' : undefined}
             icon={<svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-error)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
           />
         </div>
@@ -252,15 +265,15 @@ export default function OwnerDashboard() {
             {/* 2 Chart Column */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Iuran chart */}
-              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-                style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+              <div className="rounded-3xl p-5 border border-[var(--neu-border)]"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                     Pemasukan Iuran (6 Bln Terakhir)
                   </h3>
                 </div>
                 {loading ? (
-                  <div className="h-32 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                  <div className="h-32 rounded-2xl animate-pulse" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />
                 ) : (
                   <>
                     <div className="flex items-end gap-2 h-28">
@@ -269,13 +282,16 @@ export default function OwnerDashboard() {
                           <p className="text-[8px] font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                             {m.lunas > 0 ? `${(m.lunas / 1000).toFixed(0)}k` : ''}
                           </p>
-                          <div className="w-full rounded-t-[var(--md-sys-shape-corner-extra-small)] transition-all duration-700"
+                          <div className="w-full rounded-t-sm transition-all duration-700"
                             style={{
                               height: `${(m.lunas / feeChartMax) * 100}%`,
                               minHeight: m.lunas > 0 ? '6px' : '2px',
                               background: m.month === currentMonth && m.year === currentYear
-                                ? 'var(--md-sys-color-primary)'
-                                : 'var(--md-sys-color-tertiary)'
+                                ? 'var(--neu-accent-grad)'
+                                : 'var(--neu-surface-high)',
+                              border: m.month === currentMonth && m.year === currentYear
+                                ? 'none'
+                                : '1px solid var(--neu-border)',
                             }} />
                           <span className="text-[9px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{m.label}</span>
                         </div>
@@ -289,15 +305,15 @@ export default function OwnerDashboard() {
               </div>
 
               {/* Tren Pendaftaran Siswa Baru */}
-              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-                style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+              <div className="rounded-3xl p-5 border border-[var(--neu-border)]"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                     Pendaftaran Siswa Baru (6 Bln Terakhir)
                   </h3>
                 </div>
                 {loading ? (
-                  <div className="h-32 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                  <div className="h-32 rounded-2xl animate-pulse" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />
                 ) : (
                   <>
                     <div className="flex items-end gap-2 h-28">
@@ -315,13 +331,16 @@ export default function OwnerDashboard() {
                             <p className="text-[8px] font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                               {count > 0 ? `${count} org` : ''}
                             </p>
-                            <div className="w-full rounded-t-[var(--md-sys-shape-corner-extra-small)] transition-all duration-700"
+                            <div className="w-full rounded-t-sm transition-all duration-700"
                               style={{
                                 height: `${(count / maxCount) * 100}%`,
                                 minHeight: count > 0 ? '6px' : '2px',
                                 background: m.month === currentMonth && m.year === currentYear
-                                  ? 'var(--md-sys-color-secondary)'
-                                  : 'var(--md-sys-color-outline-variant)'
+                                  ? 'var(--neu-accent-grad)'
+                                  : 'var(--neu-surface-high)',
+                                border: m.month === currentMonth && m.year === currentYear
+                                  ? 'none'
+                                  : '1px solid var(--neu-border)',
                               }} />
                             <span className="text-[9px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{m.label}</span>
                           </div>
@@ -337,16 +356,16 @@ export default function OwnerDashboard() {
             </div>
 
             {/* Status iuran bulan ini */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-6"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div className="rounded-3xl p-6 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   Status Iuran — {months[currentMonth - 1]} {currentYear}
                 </h3>
-                <Link href="/owner/finance" className="m3-btn-outlined px-3 py-1.5 text-xs font-medium">Kelola</Link>
+                <Link href="/owner/finance" className="apple-btn-secondary px-3 py-1.5 text-xs font-medium rounded-2xl">Kelola</Link>
               </div>
               {loading ? (
-                <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 animate-pulse rounded-[var(--md-sys-shape-corner-medium)]" style={{ background: 'var(--md-sys-color-surface-container)' }} />)}</div>
+                <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 animate-pulse rounded-2xl" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />)}</div>
               ) : thisMonthFees.length === 0 ? (
                 <p className="text-sm py-4 text-center" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                   Belum ada tagihan untuk bulan ini. <Link href="/owner/finance" className="underline" style={{ color: 'var(--md-sys-color-primary)' }}>Generate sekarang</Link>
@@ -359,14 +378,14 @@ export default function OwnerDashboard() {
                       <span>{thisMonthLunas} Lunas</span>
                       <span>{thisMonthBelum} Belum Lunas</span>
                     </div>
-                    <div className="h-2 rounded-full" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                    <div className="h-2 rounded-full" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                       <div className="h-2 rounded-full transition-all duration-700"
-                        style={{ width: `${Math.round((thisMonthLunas / (thisMonthLunas + thisMonthBelum)) * 100)}%`, background: 'var(--md-sys-color-tertiary)' }} />
+                        style={{ width: `${Math.round((thisMonthLunas / (thisMonthLunas + thisMonthBelum)) * 100)}%`, background: 'var(--neu-accent-grad)' }} />
                     </div>
                   </div>
                   {/* Unpaid list */}
                   {unpaidFees.length > 0 ? (
-                    <div className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                    <div className="divide-y" style={{ borderColor: 'var(--neu-border)' }}>
                       {unpaidFees.map(fee => {
                         const s = students.find(s => s.id === fee.student_id);
                         return (
@@ -377,8 +396,8 @@ export default function OwnerDashboard() {
                                 {months[(fee.period_month || 1) - 1]} {fee.period_year} · Rp {Number(fee.amount).toLocaleString('id-ID')}
                               </p>
                             </div>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                              style={{ background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }}>
+                            <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
+                              style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--md-sys-color-error)', color: 'var(--md-sys-color-error)' }}>
                               Belum Lunas
                             </span>
                           </div>
@@ -387,7 +406,7 @@ export default function OwnerDashboard() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 py-2">
-                      <svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-tertiary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       <p className="text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>Semua iuran bulan ini sudah lunas!</p>
                     </div>
                   )}
@@ -400,13 +419,13 @@ export default function OwnerDashboard() {
           <div className="space-y-6">
 
             {/* Distribusi Sabuk */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div className="rounded-3xl p-5 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
               <h3 className="font-semibold text-base mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                 Distribusi Sabuk
               </h3>
               {loading ? (
-                <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-6 animate-pulse rounded" style={{ background: 'var(--md-sys-color-surface-container)' }} />)}</div>
+                <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-6 animate-pulse rounded-xl" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />)}</div>
               ) : (
                 <div className="space-y-2">
                   {beltEntries.map(([belt, count]) => (
@@ -415,7 +434,7 @@ export default function OwnerDashboard() {
                       <div className="flex-1 flex items-center justify-between gap-2">
                         <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface)' }}>{belt}</span>
                         <div className="flex items-center gap-1.5">
-                          <div className="w-16 h-1.5 rounded-full" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                          <div className="w-16 h-1.5 rounded-full" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                             <div className="h-1.5 rounded-full" style={{ width: `${(count / activeStudents.length) * 100}%`, background: beltColor(belt) }} />
                           </div>
                           <span className="text-xs font-semibold w-3" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{count}</span>
@@ -428,17 +447,17 @@ export default function OwnerDashboard() {
             </div>
 
             {/* Jadwal Kelas */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div className="rounded-3xl p-5 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
               <h3 className="font-semibold text-base mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                 Jadwal Latihan
               </h3>
               <div className="space-y-3">
                 {classes.map(cls => (
-                  <div key={cls.id} className="flex items-start gap-3 p-3 rounded-[var(--md-sys-shape-corner-large)]"
-                    style={{ background: 'var(--md-sys-color-surface-container)' }}>
-                    <div className="w-9 h-9 rounded-[var(--md-sys-shape-corner-medium)] flex items-center justify-center flex-shrink-0 text-xs font-bold"
-                      style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                  <div key={cls.id} className="flex items-start gap-3 p-3 rounded-2xl"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)' }}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-xs font-bold border border-[var(--neu-border)]"
+                      style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-primary)' }}>
                       {dayNames[cls.day_of_week]?.slice(0, 3)}
                     </div>
                     <div>
@@ -453,8 +472,8 @@ export default function OwnerDashboard() {
             </div>
 
             {/* Menu Cepat */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div className="rounded-3xl p-5 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
               <h3 className="font-semibold text-base mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>Menu Cepat</h3>
               <div className="space-y-1">
                 {[
@@ -466,10 +485,10 @@ export default function OwnerDashboard() {
                   { href: '/owner/import', label: 'Import Data Siswa' },
                 ].map(({ href, label }) => (
                   <Link key={href} href={href}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-[var(--md-sys-shape-corner-large)] transition-colors"
+                    className="flex items-center justify-between rounded-2xl px-3 py-2.5 border border-[var(--neu-border)] transition-all duration-200"
                     style={{ color: 'var(--md-sys-color-on-surface)' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--md-sys-color-surface-container)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; e.currentTarget.style.boxShadow = 'var(--neu-shadow-flat-sm)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = ''; e.currentTarget.style.boxShadow = ''; }}>
                     <span className="text-sm">{label}</span>
                     <svg className="w-4 h-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -482,34 +501,37 @@ export default function OwnerDashboard() {
         </div>
 
         {/* Siswa Terbaru */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
-          style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-          <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
+        <div className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
+          <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--neu-border)' }}>
             <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Siswa Terdaftar Terbaru</h3>
             <Link href="/owner/students" className="text-xs font-medium" style={{ color: 'var(--md-sys-color-primary)' }}>
               Lihat Semua ({activeStudents.length}) →
             </Link>
           </div>
           {loading ? (
-            <div className="p-6 space-y-3">{[1,2,3].map(i => <div key={i} className="h-12 animate-pulse rounded-[var(--md-sys-shape-corner-medium)]" style={{ background: 'var(--md-sys-color-surface-container)' }} />)}</div>
+            <div className="p-6 space-y-3">{[1,2,3].map(i => <div key={i} className="h-12 animate-pulse rounded-2xl" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />)}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr style={{ background: 'var(--md-sys-color-surface-container)' }}>
-                    {['Nama Siswa', 'Tgl Lahir', 'Sabuk', 'Spesialis', 'Wali', 'Bergabung'].map((h, i) => (
-                      <th key={h} className="px-5 py-3 text-xs font-semibold uppercase tracking-wider"
+                  <tr style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                    {['Nama Siswa', 'Tgl Lahir', 'Sabuk', 'Spesialis', 'Wali', 'Bergabung'].map((h) => (
+                      <th key={h} className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-left"
                         style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {recentStudents.map((s, idx) => (
-                    <tr key={s.id} style={{ borderBottom: idx < recentStudents.length - 1 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}>
+                    <tr key={s.id}
+                      style={{ borderBottom: idx < recentStudents.length - 1 ? '1px solid var(--neu-border)' : 'none' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = ''; }}>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                            style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                            style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-primary)' }}>
                             {s.full_name.charAt(0)}
                           </div>
                           <span className="text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>{s.full_name}</span>
@@ -542,30 +564,30 @@ export default function OwnerDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Ujian Sabuk */}
             {(upcomingExams.length > 0 || pastExams.length > 0) && (
-              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-                style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+              <div className="rounded-3xl p-5 border border-[var(--neu-border)]"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Ujian Kenaikan Sabuk</h3>
                   <Link href="/owner/exams" className="text-xs font-medium" style={{ color: 'var(--md-sys-color-primary)' }}>Semua →</Link>
                 </div>
                 <div className="space-y-3">
                   {[...upcomingExams, ...pastExams].slice(0, 3).map(exam => (
-                    <div key={exam.id} className="flex items-center gap-3 p-3 rounded-[var(--md-sys-shape-corner-large)]"
-                      style={{ background: 'var(--md-sys-color-tertiary-container)' }}>
-                      <div className="w-10 h-10 rounded-[var(--md-sys-shape-corner-medium)] flex items-center justify-center flex-shrink-0"
-                        style={{ background: 'rgba(0,0,0,0.1)' }}>
-                        <svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                    <div key={exam.id} className="flex items-center gap-3 p-3 rounded-2xl"
+                      style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)' }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border border-[var(--neu-border)]"
+                        style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                        <svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }}>{exam.location}</p>
-                        <p className="text-xs" style={{ color: 'var(--md-sys-color-on-tertiary-container)', opacity: 0.75 }}>
+                        <p className="font-semibold text-sm truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>{exam.location}</p>
+                        <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                           {new Date(exam.exam_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </p>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0"
-                        style={{ background: 'rgba(0,0,0,0.15)', color: 'var(--md-sys-color-on-tertiary-container)' }}>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0 border border-[var(--neu-border)]"
+                        style={{ background: 'var(--neu-surface)', color: 'var(--md-sys-color-on-surface-variant)' }}>
                         {exam.status === 'selesai' ? 'Selesai' : 'Terjadwal'}
                       </span>
                     </div>
@@ -576,30 +598,30 @@ export default function OwnerDashboard() {
 
             {/* Turnamen */}
             {tournaments.length > 0 && (
-              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-                style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+              <div className="rounded-3xl p-5 border border-[var(--neu-border)]"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Turnamen / Kejuaraan</h3>
                   <Link href="/owner/tournaments" className="text-xs font-medium" style={{ color: 'var(--md-sys-color-primary)' }}>Semua →</Link>
                 </div>
                 <div className="space-y-3">
                   {tournaments.slice(0, 3).map(t => (
-                    <div key={t.id} className="flex items-center gap-3 p-3 rounded-[var(--md-sys-shape-corner-large)]"
-                      style={{ background: 'var(--md-sys-color-primary-container)' }}>
-                      <div className="w-10 h-10 rounded-[var(--md-sys-shape-corner-medium)] flex items-center justify-center flex-shrink-0"
-                        style={{ background: 'rgba(0,0,0,0.1)' }}>
-                        <svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-on-primary-container)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                    <div key={t.id} className="flex items-center gap-3 p-3 rounded-2xl"
+                      style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)' }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border border-[var(--neu-border)]"
+                        style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                        <svg className="w-5 h-5" style={{ color: 'var(--md-sys-color-primary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                         </svg>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate" style={{ color: 'var(--md-sys-color-on-primary-container)' }}>{t.name}</p>
-                        <p className="text-xs" style={{ color: 'var(--md-sys-color-on-primary-container)', opacity: 0.75 }}>
+                        <p className="font-semibold text-sm truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>{t.name}</p>
+                        <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                           {new Date(t.tournament_date || t.start_date || Date.now()).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} · {t.location}
                         </p>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize flex-shrink-0"
-                        style={{ background: 'rgba(0,0,0,0.15)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize flex-shrink-0 border border-[var(--neu-border)]"
+                        style={{ background: 'var(--neu-surface)', color: 'var(--md-sys-color-on-surface-variant)' }}>
                         {t.level || 'lokal'}
                       </span>
                     </div>
@@ -612,28 +634,28 @@ export default function OwnerDashboard() {
 
         {/* Pendaftaran menunggu */}
         {!loading && pendingRegs.length > 0 && (
-          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-6"
-            style={{ background: 'var(--md-sys-color-error-container)' }}>
+          <div className="rounded-3xl p-6"
+            style={{ background: 'var(--neu-surface)', border: '1.5px solid var(--md-sys-color-error)', boxShadow: 'var(--neu-shadow-flat), 0 0 20px rgba(255,82,82,0.15)' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-error-container)' }}>
+                <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   {pendingRegs.length} Pendaftaran Menunggu Persetujuan
                 </h3>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-error-container)', opacity: 0.75 }}>Segera tinjau dan proses pendaftaran calon siswa baru</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Segera tinjau dan proses pendaftaran calon siswa baru</p>
               </div>
-              <Link href="/owner/registrations" className="m3-btn-filled px-4 py-2 text-sm font-medium">Tinjau</Link>
+              <Link href="/owner/registrations" className="apple-btn px-4 py-2 text-sm font-medium rounded-2xl">Tinjau</Link>
             </div>
             <div className="space-y-2">
               {pendingRegs.slice(0, 3).map(reg => (
-                <div key={reg.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-[var(--md-sys-shape-corner-large)]"
-                  style={{ background: 'rgba(0,0,0,0.1)' }}>
+                <div key={reg.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-error-container)' }}>{reg.full_name}</p>
-                    <p className="text-xs" style={{ color: 'var(--md-sys-color-on-error-container)', opacity: 0.75 }}>Ortu: {reg.parent_name}{reg.parent_job ? ` (${reg.parent_job})` : ''} · {reg.parent_phone}</p>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{reg.full_name}</p>
+                    <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Ortu: {reg.parent_name}{reg.parent_job ? ` (${reg.parent_job})` : ''} · {reg.parent_phone}</p>
                   </div>
                   <div className="flex gap-1.5">
-                    <Link href={`/owner/registrations?approve=${reg.id}`} className="m3-btn-tonal px-3 py-1 text-xs font-semibold">Setujui</Link>
-                    <button onClick={() => handleRejectRegistration(reg)} className="m3-btn-text px-3 py-1 text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-error-container)' }}>Tolak</button>
+                    <Link href={`/owner/registrations?approve=${reg.id}`} className="apple-btn-secondary px-3 py-1 text-xs font-semibold rounded-xl">Setujui</Link>
+                    <button onClick={() => handleRejectRegistration(reg)} className="apple-btn px-3 py-1 text-xs font-semibold rounded-xl cursor-pointer">Tolak</button>
                   </div>
                 </div>
               ))}
@@ -647,8 +669,8 @@ export default function OwnerDashboard() {
           Apakah Anda yakin ingin menolak pendaftaran calon siswa <strong>{rejectingReg?.full_name}</strong>? Tindakan ini tidak dapat dibatalkan.
         </p>
         <div className="flex justify-end space-x-2">
-          <button type="button" onClick={() => setRejectingReg(null)} className="m3-btn-text text-sm px-4 py-2">Batal</button>
-          <button type="button" onClick={confirmRejectRegistration} className="m3-btn-filled text-sm px-4 py-2" style={{ background: 'var(--md-sys-color-error)' }}>Tolak Pendaftaran</button>
+          <button type="button" onClick={() => setRejectingReg(null)} className="apple-btn-secondary text-sm px-4 py-2 rounded-2xl cursor-pointer">Batal</button>
+          <button type="button" onClick={confirmRejectRegistration} className="apple-btn text-sm px-4 py-2 rounded-2xl cursor-pointer">Tolak Pendaftaran</button>
         </div>
       </M3Dialog>
     </Navigation>

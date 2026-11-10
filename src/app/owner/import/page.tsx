@@ -360,7 +360,7 @@ export default function ImportPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+            <h2 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
               Import Data Dojo
             </h2>
             <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -369,7 +369,7 @@ export default function ImportPage() {
           </div>
           <button
             onClick={downloadTemplate}
-            className="m3-btn-outlined px-5 py-2.5 text-sm font-semibold flex items-center gap-2 cursor-pointer w-fit"
+            className="apple-btn-secondary px-5 py-2.5 text-sm font-semibold flex items-center gap-2 cursor-pointer w-fit"
           >
             📋 Unduh Template Excel
           </button>
@@ -377,28 +377,40 @@ export default function ImportPage() {
 
         {/* Tipe Import Selector */}
         {status === 'idle' && (
-          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-fit">
+          <div
+            className="flex gap-1.5 p-1.5 rounded-2xl border border-[var(--neu-border)] w-fit"
+            style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+          >
             <button
               onClick={() => setImportType('students')}
-              className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${
-                importType === 'students' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className="px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              style={{
+                background: importType === 'students' ? 'var(--neu-accent-grad)' : 'transparent',
+                boxShadow: importType === 'students' ? 'var(--neu-shadow-accent)' : 'none',
+                color: importType === 'students' ? 'white' : 'var(--md-sys-color-on-surface-variant)'
+              }}
             >
               👤 Data Siswa
             </button>
             <button
               onClick={() => setImportType('attendance')}
-              className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${
-                importType === 'attendance' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className="px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              style={{
+                background: importType === 'attendance' ? 'var(--neu-accent-grad)' : 'transparent',
+                boxShadow: importType === 'attendance' ? 'var(--neu-shadow-accent)' : 'none',
+                color: importType === 'attendance' ? 'white' : 'var(--md-sys-color-on-surface-variant)'
+              }}
             >
               📅 Absensi Siswa
             </button>
             <button
               onClick={() => setImportType('fees')}
-              className={`px-4 py-2 text-sm font-semibold rounded-md transition-all ${
-                importType === 'fees' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className="px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              style={{
+                background: importType === 'fees' ? 'var(--neu-accent-grad)' : 'transparent',
+                boxShadow: importType === 'fees' ? 'var(--neu-shadow-accent)' : 'none',
+                color: importType === 'fees' ? 'white' : 'var(--md-sys-color-on-surface-variant)'
+              }}
             >
               💰 Iuran Bulanan
             </button>
@@ -413,15 +425,18 @@ export default function ImportPage() {
                                 (status === 'importing' || status === 'done' ? 'active' : 'pending');
             return (
               <React.Fragment key={step}>
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  stepStatus === 'active' ? 'bg-[var(--md-sys-color-primary)] text-white' :
-                  stepStatus === 'done' ? 'bg-[var(--md-sys-color-tertiary-container)] text-[var(--md-sys-color-on-tertiary-container)]' :
-                  'bg-gray-100 text-gray-400'
-                }`}>
+                <div
+                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+                  style={{
+                    background: stepStatus === 'active' ? 'var(--neu-accent-grad)' : stepStatus === 'done' ? 'rgba(76, 175, 80, 0.2)' : 'var(--neu-surface-low)',
+                    boxShadow: stepStatus === 'active' ? 'var(--neu-shadow-accent)' : 'var(--neu-shadow-pressed-sm)',
+                    color: stepStatus === 'active' ? 'white' : stepStatus === 'done' ? '#4caf50' : 'var(--md-sys-color-on-surface-variant)'
+                  }}
+                >
                   <span>{stepStatus === 'done' ? '✓' : i + 1}</span>
                   <span>{step}</span>
                 </div>
-                {i < 2 && <span className="text-gray-300 text-xs">→</span>}
+                {i < 2 && <span className="opacity-30 text-xs">→</span>}
               </React.Fragment>
             );
           })}
@@ -434,9 +449,12 @@ export default function ImportPage() {
             onDragLeave={() => setDragOver(false)}
             onDrop={onDrop}
             onClick={() => fileRef.current?.click()}
-            className={`rounded-[var(--md-sys-shape-corner-extra-large)] border-2 border-dashed cursor-pointer transition-all duration-200 py-16 text-center ${
-              dragOver ? 'border-[var(--md-sys-color-primary)] bg-[var(--md-sys-color-primary-container)]/20' : 'border-[var(--md-sys-color-outline-variant)] hover:border-gray-400 hover:bg-gray-50/50'
-            }`}
+            className="rounded-3xl border-2 border-dashed cursor-pointer transition-all duration-300 py-20 text-center"
+            style={{
+              background: dragOver ? 'rgba(255, 82, 82, 0.08)' : 'var(--neu-surface-low)',
+              boxShadow: dragOver ? 'var(--neu-shadow-accent)' : 'var(--neu-shadow-pressed)',
+              borderColor: dragOver ? 'var(--md-sys-color-primary)' : 'var(--neu-border)'
+            }}
           >
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={onFileChange} />
             {status === 'parsing' ? (
@@ -458,10 +476,14 @@ export default function ImportPage() {
 
         {/* Info panduan */}
         {status === 'idle' && (
-          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 space-y-3"
-            style={{ background: 'var(--md-sys-color-secondary-container)', color: 'var(--md-sys-color-on-secondary-container)' }}>
-            <h3 className="text-sm font-bold">💡 Panduan Import ({importType === 'students' ? 'Siswa' : importType === 'attendance' ? 'Absensi' : 'Iuran'})</h3>
-            <ul className="text-xs space-y-1.5 list-disc list-inside opacity-90">
+          <div
+            className="rounded-3xl p-6 space-y-3 border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
+            <h3 className="text-sm font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+              💡 Panduan Import ({importType === 'students' ? 'Siswa' : importType === 'attendance' ? 'Absensi' : 'Iuran'})
+            </h3>
+            <ul className="text-xs space-y-1.5 list-disc list-inside opacity-90" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
               <li>Unduh template Excel di atas untuk format yang sudah siap dipakai</li>
               <li>File boleh memiliki nama kolom berbeda — Anda bisa petakan di langkah berikutnya</li>
               {importType === 'students' && (
@@ -490,69 +512,74 @@ export default function ImportPage() {
         {/* ── STEP 2: Column Mapping + Preview ── */}
         {status === 'preview' && (
           <>
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-6 space-y-4"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-              <div className="flex items-center justify-between pb-3" style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <div
+              className="rounded-3xl p-6 space-y-5 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--neu-border)]">
                 <div>
-                  <h3 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>Petakan Kolom</h3>
+                  <h3 className="font-bold text-base tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>Petakan Kolom</h3>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                     File: <strong>{fileName}</strong> · {rows.length} baris ditemukan
                   </p>
                 </div>
-                <button onClick={reset} className="text-xs font-semibold hover:underline" style={{ color: 'var(--md-sys-color-error)' }}>
+                <button onClick={reset} className="text-xs font-semibold hover:underline cursor-pointer" style={{ color: 'var(--md-sys-color-error)' }}>
                   ✕ Ganti File
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {activeFieldMap.map(field => (
                   <div key={field.key} className="flex flex-col">
-                    <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                       {field.label}
                       {field.required && <span className="text-red-500 ml-1">*</span>}
                     </label>
                     <select
                       value={colMapping[field.key] || ''}
                       onChange={e => setColMapping(prev => ({ ...prev, [field.key]: e.target.value }))}
-                      className="m3-textfield-outlined text-sm"
+                      className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
+                      style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                     >
                       <option value="">— Tidak digunakan —</option>
                       {fileHeaders.map(h => <option key={h} value={h}>{h}</option>)}
                     </select>
-                    {field.hint && <p className="text-[10px] mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)', opacity: 0.8 }}>{field.hint}</p>}
+                    {field.hint && <p className="text-[10px] mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)', opacity: 0.8 }}>{field.hint}</p>}
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Preview table */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-              <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
-                <h3 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+            <div
+              className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
+              <div className="px-6 py-4 border-b border-[var(--neu-border)]">
+                <h3 className="font-bold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   Preview Data (5 baris pertama dari {rows.length} total)
                 </h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left">
                   <thead>
-                    <tr style={{ background: 'var(--md-sys-color-surface-container)' }}>
-                      <th className="px-4 py-2.5 font-bold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>#</th>
+                    <tr style={{ background: 'var(--neu-surface-high)' }}>
+                      <th className="px-4 py-3 font-bold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>#</th>
                       {activeFieldMap.filter(f => colMapping[f.key]).map(f => (
-                        <th key={f.key} className="px-4 py-2.5 font-bold whitespace-nowrap" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{f.label}</th>
+                        <th key={f.key} className="px-4 py-3 font-bold whitespace-nowrap" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{f.label}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                  <tbody className="divide-y divide-[var(--neu-border)]">
                     {previewRows.map((row, i) => {
                       return (
-                        <tr key={i}>
-                          <td className="px-4 py-2.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{i + 2}</td>
+                        <tr key={i} className="hover:bg-slate-500/5 transition-colors">
+                          <td className="px-4 py-3 font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{i + 2}</td>
                           {activeFieldMap.filter(f => colMapping[f.key]).map(f => (
-                            <td key={f.key} className="px-4 py-2.5 whitespace-nowrap max-w-[160px] truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                            <td key={f.key} className="px-4 py-3 whitespace-nowrap max-w-[160px] truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                               {f.key === 'dob' || f.key === 'join_date' || f.key === 'session_date' || f.key === 'paid_date'
                                 ? normalizeDate(row[colMapping[f.key]] || '')
-                                : row[colMapping[f.key]] || <span className="text-gray-400 italic">kosong</span>}
+                                : row[colMapping[f.key]] || <span className="opacity-40 italic">kosong</span>}
                             </td>
                           ))}
                         </tr>
@@ -562,20 +589,20 @@ export default function ImportPage() {
                 </table>
               </div>
               {rows.length > 5 && (
-                <p className="text-xs p-3 text-center" style={{ color: 'var(--md-sys-color-on-surface-variant)', borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+                <p className="text-xs p-3.5 text-center border-t border-[var(--neu-border)]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                   + {rows.length - 5} baris lainnya tidak ditampilkan
                 </p>
               )}
             </div>
 
             <div className="flex gap-3 justify-end">
-              <button onClick={reset} className="m3-btn-outlined px-5 py-2.5 text-sm font-semibold cursor-pointer">
+              <button onClick={reset} className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer">
                 Batal
               </button>
               <button
                 onClick={handleImport}
                 disabled={!colMapping[importType === 'students' ? 'full_name' : importType === 'attendance' ? 'student_name' : 'student_name']}
-                className="m3-btn-filled px-6 py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="apple-btn px-6 py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 🚀 Import {rows.length} Baris
               </button>
@@ -585,8 +612,10 @@ export default function ImportPage() {
 
         {/* ── STEP 3: Importing progress ── */}
         {status === 'importing' && (
-          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] py-16 text-center space-y-4"
-            style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+          <div
+            className="rounded-3xl py-16 text-center space-y-4 border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <div className="w-12 h-12 rounded-full border-2 border-[var(--md-sys-color-primary)] border-t-transparent animate-spin mx-auto" />
             <p className="text-base font-bold animate-pulse" style={{ color: 'var(--md-sys-color-on-surface)' }}>Sedang mengimpor data...</p>
             <p className="text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Mohon tunggu, jangan tutup halaman ini</p>
@@ -596,26 +625,39 @@ export default function ImportPage() {
         {/* ── STEP 4: Result ── */}
         {status === 'done' && (
           <div className="space-y-4">
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-6 space-y-4"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div
+              className="rounded-3xl p-6 space-y-5 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
               <h3 className="font-bold text-lg" style={{ color: 'var(--md-sys-color-on-surface)' }}>✅ Import Selesai</h3>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="rounded-xl p-4" style={{ background: 'var(--md-sys-color-tertiary-container)' }}>
-                  <p className="text-3xl font-bold" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }}>{importResult.success}</p>
-                  <p className="text-xs font-semibold mt-1" style={{ color: 'var(--md-sys-color-on-tertiary-container)' }}>Berhasil Diimpor</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <div
+                  className="rounded-2xl p-4 border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                >
+                  <p className="text-3xl font-extrabold text-emerald-400">{importResult.success}</p>
+                  <p className="text-xs font-semibold mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Berhasil Diimpor</p>
                 </div>
-                <div className="rounded-xl p-4" style={{ background: 'var(--md-sys-color-secondary-container)' }}>
-                  <p className="text-3xl font-bold" style={{ color: 'var(--md-sys-color-on-secondary-container)' }}>{importResult.skipped}</p>
-                  <p className="text-xs font-semibold mt-1" style={{ color: 'var(--md-sys-color-on-secondary-container)' }}>Dilewati / Duplikat</p>
+                <div
+                  className="rounded-2xl p-4 border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                >
+                  <p className="text-3xl font-extrabold text-amber-400">{importResult.skipped}</p>
+                  <p className="text-xs font-semibold mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Dilewati / Duplikat</p>
                 </div>
-                <div className="rounded-xl p-4" style={{ background: 'var(--md-sys-color-error-container)' }}>
-                  <p className="text-3xl font-bold" style={{ color: 'var(--md-sys-color-on-error-container)' }}>{importResult.errors.length}</p>
-                  <p className="text-xs font-semibold mt-1" style={{ color: 'var(--md-sys-color-on-error-container)' }}>Gagal</p>
+                <div
+                  className="rounded-2xl p-4 border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                >
+                  <p className="text-3xl font-extrabold text-rose-400">{importResult.errors.length}</p>
+                  <p className="text-xs font-semibold mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Gagal</p>
                 </div>
               </div>
 
               {importResult.errors.length > 0 && (
-                <div className="rounded-xl p-4 space-y-1 max-h-60 overflow-y-auto" style={{ background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }}>
+                <div
+                  className="rounded-2xl p-4 space-y-1.5 max-h-60 overflow-y-auto border border-rose-500/30 bg-rose-500/10 text-rose-400"
+                >
                   <p className="text-xs font-bold">Detail Error:</p>
                   {importResult.errors.map((err, i) => (
                     <p key={i} className="text-xs">{err}</p>
@@ -624,10 +666,10 @@ export default function ImportPage() {
               )}
 
               <div className="flex gap-3 pt-2">
-                <button onClick={reset} className="flex-1 m3-btn-outlined py-2.5 text-sm font-semibold cursor-pointer">
+                <button onClick={reset} className="flex-1 apple-btn-secondary py-2.5 text-sm cursor-pointer">
                   Import File Lain
                 </button>
-                <a href="/owner/students" className="flex-1 m3-btn-filled py-2.5 text-sm font-semibold text-center">
+                <a href="/owner/students" className="flex-1 apple-btn py-2.5 text-sm font-semibold text-center">
                   Lihat Data Siswa
                 </a>
               </div>

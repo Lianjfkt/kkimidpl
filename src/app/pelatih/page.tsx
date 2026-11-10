@@ -9,9 +9,9 @@ import { getBeltHex, getBeltStyle, OFFICIAL_BELTS } from '@/lib/constants/belts'
 const DAYS = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 const CATEGORY_STYLE: Record<string, React.CSSProperties> = {
-  kompetisi: { background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' },
-  remaja: { background: 'var(--md-sys-color-secondary-container)', color: 'var(--md-sys-color-on-secondary-container)' },
-  anak: { background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' },
+  kompetisi: { background: 'rgba(211,22,22,0.15)', color: 'var(--md-sys-color-primary)', border: '1px solid rgba(211,22,22,0.3)' },
+  remaja:    { background: 'rgba(96,165,250,0.15)', color: '#60a5fa',                    border: '1px solid rgba(96,165,250,0.3)' },
+  anak:      { background: 'rgba(52,211,153,0.15)', color: '#34d399',                    border: '1px solid rgba(52,211,153,0.3)' },
 };
 
 // ─── Student Attendance Tracker ────────────────────────────────────────────────
@@ -45,40 +45,74 @@ function StudentAttendanceTracker({ students, recentAttendance }: { students: St
 
   return (
     <div className="space-y-3">
-      <div className="flex rounded-lg p-0.5 gap-1" style={{ background: 'var(--md-sys-color-surface-container-high)' }}>
+      {/* Tab switcher */}
+      <div
+        className="flex p-1.5 rounded-2xl gap-1 border border-[var(--neu-border)]"
+        style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed)' }}
+      >
         <button
           type="button"
           onClick={() => setActiveTab('rajin')}
-          className={`flex-1 text-xs py-1.5 font-medium rounded-md transition-colors cursor-pointer ${activeTab === 'rajin' ? 'bg-emerald-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-300'}`}>
+          className="flex-1 text-xs py-1.5 font-medium rounded-xl transition-all duration-200 cursor-pointer"
+          style={
+            activeTab === 'rajin'
+              ? { background: 'rgba(52,211,153,0.2)', color: '#34d399', boxShadow: 'var(--neu-shadow-flat-sm)', fontWeight: 600 }
+              : { color: 'var(--md-sys-color-on-surface-variant)' }
+          }
+        >
           🌟 Paling Rajin
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('perhatian')}
-          className={`flex-1 text-xs py-1.5 font-medium rounded-md transition-colors cursor-pointer ${activeTab === 'perhatian' ? 'bg-rose-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-300'}`}>
+          className="flex-1 text-xs py-1.5 font-medium rounded-xl transition-all duration-200 cursor-pointer"
+          style={
+            activeTab === 'perhatian'
+              ? { background: 'rgba(248,113,113,0.2)', color: '#f87171', boxShadow: 'var(--neu-shadow-flat-sm)', fontWeight: 600 }
+              : { color: 'var(--md-sys-color-on-surface-variant)' }
+          }
+        >
           ⚠️ Perlu Perhatian
         </button>
       </div>
 
       <div className="space-y-2">
         {(activeTab === 'rajin' ? ranking.diligent : ranking.infrequent).map((student, idx) => (
-          <div key={student.id || idx} className="flex items-center justify-between p-2.5 rounded-xl border"
-            style={{ background: 'var(--md-sys-color-surface-container)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+          <div
+            key={student.id || idx}
+            className="flex items-center justify-between p-2.5 border border-[var(--neu-border)] rounded-2xl transition-all duration-200"
+            style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+          >
             <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${activeTab === 'rajin' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+              {/* Rank badge */}
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                style={
+                  activeTab === 'rajin'
+                    ? { background: 'rgba(52,211,153,0.2)', color: '#34d399', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid rgba(52,211,153,0.3)' }
+                    : { background: 'rgba(248,113,113,0.2)', color: '#f87171', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid rgba(248,113,113,0.3)' }
+                }
+              >
                 #{idx + 1}
               </div>
               <div className="truncate">
                 <p className="text-xs font-bold truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   {student.full_name}
                 </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                <p className="text-[10px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                   Sabuk: {student.current_belt || 'Putih'}
                 </p>
               </div>
             </div>
             <div className="text-right flex-shrink-0">
-              <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${activeTab === 'rajin' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'}`}>
+              <span
+                className="text-xs font-extrabold px-2 py-0.5 rounded-full"
+                style={
+                  activeTab === 'rajin'
+                    ? { background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }
+                    : { background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }
+                }
+              >
                 {student.rate}% Hadir
               </span>
               <p className="text-[10px] mt-0.5 opacity-70" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -118,7 +152,7 @@ function AttendanceDonut({ hadir, izin, sakit, alpha }: { hadir: number; izin: n
   return (
     <div className="flex items-center gap-4">
       <svg viewBox="0 0 100 100" className="w-24 h-24 -rotate-90 flex-shrink-0">
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--md-sys-color-surface-container-high)" strokeWidth={strokeW} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--neu-surface-low)" strokeWidth={strokeW} />
         {segments.map(seg => {
           if (seg.value === 0) return null;
           const dash = (seg.value / total) * circumference;
@@ -165,12 +199,16 @@ function StatCard({ label, value, sub, icon, accent }: {
   icon: React.ReactNode; accent?: string;
 }) {
   return (
-    <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col gap-3 animate-fade-in"
-      style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+    <div
+      className="rounded-3xl p-5 flex flex-col gap-3 animate-fade-in border border-[var(--neu-border)] transition-all duration-200"
+      style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+    >
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{label}</span>
-        <span className="w-9 h-9 rounded-[var(--md-sys-shape-corner-medium)] flex items-center justify-center"
-          style={{ background: accent || 'var(--md-sys-color-primary-container)', color: accent ? 'white' : 'var(--md-sys-color-on-primary-container)' }}>
+        <span
+          className="w-9 h-9 rounded-2xl flex items-center justify-center border border-[var(--neu-border)]"
+          style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: accent || 'var(--md-sys-color-primary)' }}
+        >
           {icon}
         </span>
       </div>
@@ -331,8 +369,10 @@ export default function PelatihDashboard() {
               <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                 Halo, Sempai {coach ? (coach.full_name.split(' ')[1] || coach.full_name.split(' ')[0]) : 'Pelatih'} 👋
               </h2>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                style={{ background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' }}>
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border border-[var(--neu-border)]"
+                style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+              >
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                 Live Real-Time
               </span>
@@ -346,7 +386,7 @@ export default function PelatihDashboard() {
           </div>
           <button
             onClick={loadData}
-            className="m3-btn-outlined px-3 py-2 text-xs font-medium flex items-center gap-1.5 cursor-pointer w-fit flex-shrink-0"
+            className="apple-btn-secondary px-3 py-2 text-xs font-medium flex items-center gap-1.5 cursor-pointer w-fit flex-shrink-0 rounded-2xl transition-all duration-200"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -359,8 +399,8 @@ export default function PelatihDashboard() {
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-24 rounded-[var(--md-sys-shape-corner-extra-large)] animate-pulse"
-                style={{ background: 'var(--md-sys-color-surface-container)' }} />
+              <div key={i} className="h-24 rounded-3xl animate-pulse border border-[var(--neu-border)]"
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />
             ))}
           </div>
         ) : (
@@ -395,21 +435,22 @@ export default function PelatihDashboard() {
         )}
 
         {/* ── Quick Actions ── */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-          style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+        <div
+          className="rounded-3xl p-5 border border-[var(--neu-border)]"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+        >
           <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
             Aksi Cepat
           </h3>
           <div className="flex flex-wrap gap-2">
             {[
-              { label: 'Isi Absensi Hari Ini', href: '/pelatih/attendance', color: 'var(--md-sys-color-primary)', icon: '📋' },
-              { label: 'Ujian & Turnamen', href: '/pelatih/exams', color: 'var(--md-sys-color-secondary)', icon: '🏆' },
-            ].map(({ label, href, color, icon }) => (
+              { label: 'Isi Absensi Hari Ini', href: '/pelatih/attendance', icon: '📋' },
+              { label: 'Ujian & Turnamen', href: '/pelatih/exams', icon: '🏆' },
+            ].map(({ label, href, icon }) => (
               <a
                 key={href}
                 href={href}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[var(--md-sys-shape-corner-full)] text-sm font-semibold transition-all hover:opacity-90 cursor-pointer"
-                style={{ background: color, color: 'white' }}
+                className="apple-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold transition-all duration-200 cursor-pointer"
               >
                 <span>{icon}</span>
                 {label}
@@ -435,11 +476,11 @@ export default function PelatihDashboard() {
               </h3>
 
               {loading ? (
-                <div className="h-36 rounded-[var(--md-sys-shape-corner-extra-large)] animate-pulse"
-                  style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                <div className="h-36 rounded-3xl animate-pulse border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />
               ) : todayClasses.length === 0 ? (
-                <div className="p-8 rounded-[var(--md-sys-shape-corner-extra-large)] border border-dashed flex flex-col items-center justify-center text-center gap-2"
-                  style={{ borderColor: 'var(--md-sys-color-outline-variant)', background: 'var(--md-sys-color-surface-container-lowest)' }}>
+                <div className="p-8 rounded-3xl border border-dashed flex flex-col items-center justify-center text-center gap-2"
+                  style={{ borderColor: 'var(--neu-border)', background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                   <span className="text-3xl">🌙</span>
                   <p className="text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                     Tidak ada jadwal kelas hari ini. Waktunya istirahat!
@@ -454,9 +495,13 @@ export default function PelatihDashboard() {
                     const isExpanded = expandedClass === cls.id;
 
                     return (
-                      <div key={cls.id}
-                        className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden border"
-                        style={{ borderColor: 'var(--md-sys-color-primary)', background: 'var(--md-sys-color-surface-container-high)' }}>
+                      <div
+                        key={cls.id}
+                        className="rounded-3xl overflow-hidden border border-[var(--neu-border)] transition-all duration-200"
+                        style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat-sm)' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--neu-shadow-hover)'; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--neu-shadow-flat-sm)'; (e.currentTarget as HTMLDivElement).style.transform = ''; }}
+                      >
                         {/* Class card header */}
                         <div className="p-5 flex flex-col gap-3">
                           <div className="flex items-start justify-between gap-2">
@@ -482,20 +527,22 @@ export default function PelatihDashboard() {
                                   <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>/{classStudents.length} hadir</span>
                                   <div className="flex gap-1 mt-1 justify-end">
                                     {classAtt.filter(a => a.status === 'alpha').length > 0 && (
-                                      <span className="px-1.5 py-0.5 rounded-full text-xs" style={{ background: '#fef2f2', color: '#dc2626' }}>
+                                      <span className="px-1.5 py-0.5 rounded-full text-xs" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
                                         {classAtt.filter(a => a.status === 'alpha').length} alpha
                                       </span>
                                     )}
                                     {classAtt.filter(a => a.status === 'izin').length > 0 && (
-                                      <span className="px-1.5 py-0.5 rounded-full text-xs" style={{ background: '#fffbeb', color: '#d97706' }}>
+                                      <span className="px-1.5 py-0.5 rounded-full text-xs" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>
                                         {classAtt.filter(a => a.status === 'izin').length} izin
                                       </span>
                                     )}
                                   </div>
                                 </div>
                               ) : (
-                                <span className="text-xs px-2 py-1 rounded-full"
-                                  style={{ background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                                <span
+                                  className="text-xs px-2 py-1 rounded-full border border-[var(--neu-border)]"
+                                  style={{ background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                                >
                                   Belum diisi
                                 </span>
                               )}
@@ -506,8 +553,8 @@ export default function PelatihDashboard() {
                           <div className="flex items-center justify-between">
                             <button
                               onClick={() => setExpandedClass(isExpanded ? null : cls.id)}
-                              className="text-xs flex items-center gap-1 font-medium cursor-pointer hover:underline"
-                              style={{ color: 'var(--md-sys-color-secondary)' }}>
+                              className="text-xs flex items-center gap-1 font-medium cursor-pointer hover:underline transition-all duration-200"
+                              style={{ color: 'var(--md-sys-color-primary)' }}>
                               👥 {classStudents.length} siswa terdaftar
                               <svg className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -516,8 +563,8 @@ export default function PelatihDashboard() {
                             </button>
                             <a
                               href={`/pelatih/attendance?classId=${cls.id}`}
-                              className="m3-btn-filled py-2 px-4 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-                              style={{ background: 'var(--md-sys-color-primary)' }}>
+                              className="apple-btn py-2 px-4 text-xs font-semibold flex items-center gap-1.5 cursor-pointer rounded-2xl transition-all duration-200"
+                            >
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                               </svg>
@@ -529,7 +576,7 @@ export default function PelatihDashboard() {
                         {/* Expandable student list */}
                         {isExpanded && classStudents.length > 0 && (
                           <div className="border-t animate-fade-in"
-                            style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                            style={{ borderColor: 'var(--neu-border)' }}>
                             <div className="max-h-48 overflow-y-auto">
                               {classStudents.map(s => {
                                 const beltStyle = getBeltStyle(s.current_belt);
@@ -539,11 +586,14 @@ export default function PelatihDashboard() {
                                 };
                                 return (
                                   <div key={s.id}
-                                    className="flex items-center justify-between px-5 py-3 hover:bg-[var(--md-sys-color-surface-container)] transition-colors"
-                                    style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
+                                    className="flex items-center justify-between px-5 py-3 transition-colors duration-200"
+                                    style={{ borderBottom: '1px solid var(--neu-border)' }}
+                                    onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--neu-surface-high)'; }}
+                                    onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = ''; }}
+                                  >
                                     <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                                        style={{ background: beltStyle.hex + '33', color: 'var(--md-sys-color-on-surface)' }}>
+                                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 border border-[var(--neu-border)]"
+                                        style={{ background: beltStyle.hex + '33', color: 'var(--md-sys-color-on-surface)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                                         {s.full_name.charAt(0)}
                                       </div>
                                       <div>
@@ -584,9 +634,13 @@ export default function PelatihDashboard() {
                   {otherClasses.map(cls => {
                     const classStudents = classStudentMap[cls.id] || [];
                     return (
-                      <div key={cls.id}
-                        className="rounded-[var(--md-sys-shape-corner-extra-large)] p-4 flex flex-col gap-3"
-                        style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+                      <div
+                        key={cls.id}
+                        className="rounded-3xl p-4 flex flex-col gap-3 border border-[var(--neu-border)] transition-all duration-200"
+                        style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat-sm)' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--neu-shadow-hover)'; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--neu-shadow-flat-sm)'; (e.currentTarget as HTMLDivElement).style.transform = ''; }}
+                      >
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <h4 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>{cls.name}</h4>
@@ -597,8 +651,11 @@ export default function PelatihDashboard() {
                               </span>
                             </div>
                           </div>
-                          <span className="text-xs font-medium px-2 py-1 rounded-lg flex-shrink-0"
-                            style={{ background: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          {/* Day badge — pressed well */}
+                          <span
+                            className="text-xs font-medium px-2 py-1 rounded-xl flex-shrink-0 border border-[var(--neu-border)]"
+                            style={{ background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                          >
                             {DAYS[cls.day_of_week]}
                           </span>
                         </div>
@@ -608,7 +665,8 @@ export default function PelatihDashboard() {
                         </div>
                         <a
                           href={`/pelatih/attendance?classId=${cls.id}`}
-                          className="m3-btn-outlined py-1.5 text-xs font-semibold text-center flex items-center justify-center cursor-pointer">
+                          className="apple-btn-secondary py-1.5 text-xs font-semibold text-center flex items-center justify-center cursor-pointer rounded-2xl transition-all duration-200"
+                        >
                           Lihat / Edit Absensi
                         </a>
                       </div>
@@ -623,13 +681,16 @@ export default function PelatihDashboard() {
           <div className="space-y-5">
 
             {/* Today's Attendance Donut */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div
+              className="rounded-3xl p-5 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
               <h4 className="text-sm font-semibold mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                 📊 Absensi Hari Ini
               </h4>
               {loading ? (
-                <div className="h-24 rounded-xl animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                <div className="h-24 rounded-xl animate-pulse border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />
               ) : (
                 <AttendanceDonut
                   hadir={todayStats.hadir}
@@ -640,16 +701,19 @@ export default function PelatihDashboard() {
               )}
             </div>
 
-            {/* Belt Distribution */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            {/* Student Attendance Tracking */}
+            <div
+              className="rounded-3xl p-5 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
               <h4 className="text-sm font-semibold mb-4" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                 📈 Tracking Kehadiran Siswa
               </h4>
               {loading ? (
                 <div className="space-y-2">
                   {[1,2,3,4].map(i => (
-                    <div key={i} className="h-5 rounded-full animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                    <div key={i} className="h-5 rounded-full animate-pulse border border-[var(--neu-border)]"
+                      style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />
                   ))}
                 </div>
               ) : (
@@ -658,17 +722,20 @@ export default function PelatihDashboard() {
             </div>
 
             {/* Upcoming Exams */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div
+              className="rounded-3xl p-5 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   📅 Ujian Mendatang
                 </h4>
-                <a href="/pelatih/exams" className="text-xs font-medium cursor-pointer"
+                <a href="/pelatih/exams" className="text-xs font-medium cursor-pointer transition-all duration-200 hover:underline"
                   style={{ color: 'var(--md-sys-color-primary)' }}>Lihat semua →</a>
               </div>
               {loading ? (
-                <div className="h-20 rounded-xl animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                <div className="h-20 rounded-xl animate-pulse border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />
               ) : upcomingExams.length === 0 ? (
                 <p className="text-xs py-4 text-center" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                   Belum ada jadwal ujian
@@ -678,8 +745,11 @@ export default function PelatihDashboard() {
                   {upcomingExams.slice(0, 3).map(exam => {
                     const partCount = examParticipants.filter(p => p.exam_id === exam.id).length;
                     return (
-                      <div key={exam.id} className="flex items-start justify-between gap-2 py-2"
-                        style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
+                      <div
+                        key={exam.id}
+                        className="flex items-start justify-between gap-2 p-3 rounded-2xl border border-[var(--neu-border)]"
+                        style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                      >
                         <div>
                           <p className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                             {new Date(exam.exam_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
@@ -688,8 +758,10 @@ export default function PelatihDashboard() {
                             {exam.location}
                           </p>
                         </div>
-                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0"
-                          style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                        <span
+                          className="px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0"
+                          style={{ background: 'rgba(211,22,22,0.15)', color: 'var(--md-sys-color-primary)', border: '1px solid rgba(211,22,22,0.3)' }}
+                        >
                           {partCount} peserta
                         </span>
                       </div>
@@ -700,17 +772,20 @@ export default function PelatihDashboard() {
             </div>
 
             {/* Upcoming Tournaments */}
-            <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-              style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+            <div
+              className="rounded-3xl p-5 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   🏆 Turnamen Mendatang
                 </h4>
-                <a href="/pelatih/exams" className="text-xs font-medium cursor-pointer"
+                <a href="/pelatih/exams" className="text-xs font-medium cursor-pointer transition-all duration-200 hover:underline"
                   style={{ color: 'var(--md-sys-color-primary)' }}>Lihat semua →</a>
               </div>
               {loading ? (
-                <div className="h-20 rounded-xl animate-pulse" style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                <div className="h-20 rounded-xl animate-pulse border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />
               ) : upcomingTournaments.length === 0 ? (
                 <p className="text-xs py-4 text-center" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                   Belum ada jadwal turnamen
@@ -723,8 +798,11 @@ export default function PelatihDashboard() {
                       lokal: '#60a5fa', regional: '#a78bfa', nasional: '#f87171'
                     };
                     return (
-                      <div key={t.id} className="flex items-start justify-between gap-2 py-2"
-                        style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
+                      <div
+                        key={t.id}
+                        className="flex items-start justify-between gap-2 p-3 rounded-2xl border border-[var(--neu-border)]"
+                        style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                      >
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                             {t.name}
@@ -739,8 +817,10 @@ export default function PelatihDashboard() {
                             </span>
                           </div>
                         </div>
-                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0"
-                          style={{ background: 'var(--md-sys-color-secondary-container)', color: 'var(--md-sys-color-on-secondary-container)' }}>
+                        <span
+                          className="px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0"
+                          style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.3)' }}
+                        >
                           {partCount} peserta
                         </span>
                       </div>
@@ -752,35 +832,53 @@ export default function PelatihDashboard() {
 
             {/* Coach info */}
             {coach && (
-              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5"
-                style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+              <div
+                className="rounded-3xl p-5 border border-[var(--neu-border)]"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+              >
                 <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   🥋 Profil Saya
                 </h4>
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0"
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0"
                     style={{
-                      background: getBeltHex(coach.belt_level) + '44',
+                      background: getBeltHex(coach.belt_level) + '33',
                       color: 'var(--md-sys-color-on-surface)',
-                      border: `2px solid ${getBeltHex(coach.belt_level)}`
-                    }}>
+                      border: `2px solid ${getBeltHex(coach.belt_level)}`,
+                      boxShadow: 'var(--neu-shadow-pressed-sm)',
+                    }}
+                  >
                     {coach.full_name.charAt(0)}
                   </div>
                   <div>
                     <p className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>{coach.full_name}</p>
+                    {/* Belt badge — pressed-sm pill */}
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: getBeltHex(coach.belt_level) }} />
-                      <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Sabuk {coach.belt_level}</span>
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full border border-[var(--neu-border)]"
+                        style={{ background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                      >
+                        Sabuk {coach.belt_level}
+                      </span>
                     </div>
                   </div>
                 </div>
+                {/* Stats cells */}
                 <div className="grid grid-cols-2 gap-3 mt-4">
-                  <div className="text-center p-3 rounded-xl" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                  <div
+                    className="text-center p-3 rounded-2xl border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
                     <p className="text-lg font-bold" style={{ color: 'var(--md-sys-color-primary)' }}>{classes.length}</p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kelas</p>
                   </div>
-                  <div className="text-center p-3 rounded-xl" style={{ background: 'var(--md-sys-color-surface-container)' }}>
-                    <p className="text-lg font-bold" style={{ color: 'var(--md-sys-color-secondary)' }}>{students.length}</p>
+                  <div
+                    className="text-center p-3 rounded-2xl border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
+                    <p className="text-lg font-bold" style={{ color: 'var(--md-sys-color-primary)' }}>{students.length}</p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Siswa</p>
                   </div>
                 </div>

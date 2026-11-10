@@ -9,19 +9,23 @@ import { getBeltEmoji } from '@/lib/constants/belts';
 function M3Dialog({ open, onClose, title, maxWidth = 'max-w-lg', children }: { open: boolean; onClose: () => void; title: string; maxWidth?: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
       <div
-        className={`w-full ${maxWidth} rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in max-h-[90vh] flex flex-col`}
-        style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
+        className={`w-full ${maxWidth} rounded-3xl border border-[var(--neu-border)] p-6 shadow-2xl animate-fade-in max-h-[90vh] flex flex-col`}
+        style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
-          <h3 className="text-xl font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
+          <h3 className="text-xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
           <button
             onClick={onClose}
             type="button"
-            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-slate-500/10"
-            style={{ color: 'var(--md-sys-color-on-surface-variant)' }}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-105"
+            style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-flat-sm)', color: 'var(--md-sys-color-on-surface-variant)' }}
           >
             ✕
           </button>
@@ -34,8 +38,8 @@ function M3Dialog({ open, onClose, title, maxWidth = 'max-w-lg', children }: { o
   );
 }
 
-const inputClass = 'm3-textfield-outlined text-sm';
-const labelClass = 'block text-xs font-medium mb-1.5';
+const inputClass = 'w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all';
+const labelClass = 'block text-xs font-semibold uppercase tracking-wider mb-1.5';
 const fieldWrap = 'flex flex-col';
 
 export default function OwnerTournaments() {
@@ -459,7 +463,7 @@ export default function OwnerTournaments() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+            <h2 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
               Kejuaraan & Turnamen
             </h2>
             <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -468,9 +472,9 @@ export default function OwnerTournaments() {
           </div>
           <button
             onClick={handleOpenCreateTourney}
-            className="m3-btn-filled px-5 py-2.5 text-sm font-semibold cursor-pointer"
+            className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer inline-flex items-center gap-2"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             Tambah Event Turnamen
@@ -479,8 +483,10 @@ export default function OwnerTournaments() {
 
         {/* Event Select Cards & KPI Banner */}
         {tournaments.length === 0 ? (
-          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-8 text-center border"
-            style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+          <div
+            className="rounded-3xl p-10 text-center border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
             <div className="text-4xl mb-2">🏆</div>
             <h3 className="font-bold text-lg" style={{ color: 'var(--md-sys-color-on-surface)' }}>Belum Ada Event Turnamen</h3>
             <p className="text-xs mt-1 mb-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -488,15 +494,15 @@ export default function OwnerTournaments() {
             </p>
             <button
               onClick={() => setIsTourneyModalOpen(true)}
-              className="m3-btn-filled px-5 py-2.5 text-sm font-semibold cursor-pointer"
+              className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer"
             >
               + Tambah Event Turnamen Baru
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Horizontal Tournament Selection Cards */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                   Pilih Event Turnamen Aktif ({tournaments.length})
@@ -505,7 +511,7 @@ export default function OwnerTournaments() {
                   Klik kartu untuk beralih event
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {tournaments.map((t) => {
                   const isSelected = t.id === selectedTourneyId;
                   const partCount = participants.filter(p => p.tournament_id === t.id).length;
@@ -513,29 +519,32 @@ export default function OwnerTournaments() {
                     <div
                       key={t.id}
                       onClick={() => setSelectedTourneyId(t.id)}
-                      className={`p-4 rounded-2xl cursor-pointer transition-all border text-left flex flex-col justify-between gap-3 ${
+                      className={`p-5 rounded-3xl cursor-pointer transition-all duration-300 border text-left flex flex-col justify-between gap-4 ${
                         isSelected
-                          ? 'ring-2 ring-[var(--md-sys-color-primary)] shadow-lg'
-                          : 'hover:border-[var(--md-sys-color-outline)]'
+                          ? 'border-[var(--md-sys-color-primary)] ring-2 ring-[var(--md-sys-color-primary)]/40 shadow-lg'
+                          : 'border-[var(--neu-border)] hover:-translate-y-1'
                       }`}
                       style={{
                         background: isSelected
-                          ? 'linear-gradient(135deg, rgba(255,82,82,0.12) 0%, rgba(20,13,12,0.95) 100%)'
-                          : 'var(--md-sys-color-surface-container-low)',
-                        borderColor: isSelected ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)'
+                          ? 'linear-gradient(135deg, rgba(255,82,82,0.15) 0%, var(--neu-surface) 100%)'
+                          : 'var(--neu-surface)',
+                        boxShadow: isSelected ? 'var(--neu-shadow-hover)' : 'var(--neu-shadow-flat)'
                       }}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full inline-block"
+                          <div className="flex items-center gap-2 mb-2">
+                            <span
+                              className="text-xs font-bold px-3 py-1 rounded-full inline-block"
                               style={{
-                                background: isSelected ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
+                                background: isSelected ? 'var(--neu-accent-grad)' : 'var(--neu-surface-high)',
+                                boxShadow: isSelected ? 'var(--neu-shadow-accent)' : 'var(--neu-shadow-flat-sm)',
                                 color: isSelected ? 'white' : 'var(--md-sys-color-on-surface)'
-                              }}>
+                              }}
+                            >
                               📅 {t.tournament_date || t.start_date || 'Tanggal TBD'}
                             </span>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase" style={levelBadgeStyle(t.level || 'lokal')}>
+                            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase" style={levelBadgeStyle(t.level || 'lokal')}>
                               {t.level || 'lokal'}
                             </span>
                           </div>
@@ -548,8 +557,9 @@ export default function OwnerTournaments() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-xs pt-2 border-t"
-                        style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                      <div
+                        className="flex items-center justify-between text-xs pt-3 border-t border-[var(--neu-border)]"
+                      >
                         <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                           Kontingen: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>{partCount} Atlet</strong>
                         </span>
@@ -565,15 +575,17 @@ export default function OwnerTournaments() {
 
             {/* Selected Tourney Metric Banner & Primary Action */}
             {currentTourney && (
-              <div className="rounded-3xl p-6 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 border"
+              <div
+                className="rounded-3xl p-6 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 border border-[var(--neu-border)]"
                 style={{
-                  background: 'linear-gradient(135deg, var(--md-sys-color-surface-container-high) 0%, var(--md-sys-color-surface-container) 100%)',
-                  borderColor: 'var(--md-sys-color-outline-variant)'
-                }}>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">🏆</span>
-                    <h3 className="text-xl font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  background: 'var(--neu-surface)',
+                  boxShadow: 'var(--neu-shadow-flat)'
+                }}
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">🏆</span>
+                    <h3 className="text-xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                       {currentTourney.name}
                     </h3>
                   </div>
@@ -582,17 +594,16 @@ export default function OwnerTournaments() {
                   </p>
 
                   {/* Action Edit & Hapus Event Turnamen */}
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-2 pt-1.5">
                     <button
                       onClick={(e) => handleOpenEditTourney(currentTourney, e)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-semibold border hover:bg-slate-500/10 transition-colors flex items-center gap-1 cursor-pointer"
-                      style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+                      className="apple-btn-secondary px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer"
                     >
                       ✏️ Edit Turnamen
                     </button>
                     <button
                       onClick={(e) => handleDeleteTourney(currentTourney.id, currentTourney.name, e)}
-                      className="px-2.5 py-1 rounded-lg text-xs font-semibold border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-3 py-1 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-1 cursor-pointer"
                     >
                       🗑️ Hapus Turnamen
                     </button>
@@ -601,32 +612,40 @@ export default function OwnerTournaments() {
 
                 {/* 4 Medals & Athletes Metric Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 max-w-xl">
-                  <div className="p-3 rounded-2xl text-center border"
-                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
-                    <div className="text-xs font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Total Atlet</div>
-                    <div className="text-xl font-black mt-0.5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{tourneyStats.total}</div>
+                  <div
+                    className="p-3 rounded-2xl text-center border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
+                    <div className="text-[11px] font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Total Atlet</div>
+                    <div className="text-xl font-extrabold mt-0.5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{tourneyStats.total}</div>
                   </div>
-                  <div className="p-3 rounded-2xl text-center border"
-                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
-                    <div className="text-xs font-medium text-amber-400">🥇 Emas</div>
-                    <div className="text-xl font-black mt-0.5 text-amber-400">{tourneyStats.emas}</div>
+                  <div
+                    className="p-3 rounded-2xl text-center border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
+                    <div className="text-[11px] font-medium text-amber-400">🥇 Emas</div>
+                    <div className="text-xl font-extrabold mt-0.5 text-amber-400">{tourneyStats.emas}</div>
                   </div>
-                  <div className="p-3 rounded-2xl text-center border"
-                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
-                    <div className="text-xs font-medium text-slate-300">🥈 Perak</div>
-                    <div className="text-xl font-black mt-0.5 text-slate-300">{tourneyStats.perak}</div>
+                  <div
+                    className="p-3 rounded-2xl text-center border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
+                    <div className="text-[11px] font-medium text-slate-300">🥈 Perak</div>
+                    <div className="text-xl font-extrabold mt-0.5 text-slate-300">{tourneyStats.perak}</div>
                   </div>
-                  <div className="p-3 rounded-2xl text-center border"
-                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
-                    <div className="text-xs font-medium text-amber-600">🥉 Perunggu</div>
-                    <div className="text-xl font-black mt-0.5 text-amber-600">{tourneyStats.perunggu}</div>
+                  <div
+                    className="p-3 rounded-2xl text-center border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >
+                    <div className="text-[11px] font-medium text-amber-600">🥉 Perunggu</div>
+                    <div className="text-xl font-extrabold mt-0.5 text-amber-600">{tourneyStats.perunggu}</div>
                   </div>
                 </div>
 
                 {/* Action button */}
                 <button
                   onClick={handleOpenBatchRegister}
-                  className="m3-btn-filled px-6 py-3 text-sm font-bold cursor-pointer whitespace-nowrap shadow-lg hover:scale-102 transition-transform"
+                  className="apple-btn px-6 py-3 text-sm font-bold cursor-pointer whitespace-nowrap"
                 >
                   + Daftarkan Atlet Kontingen
                 </button>
@@ -636,12 +655,14 @@ export default function OwnerTournaments() {
         )}
 
         {/* Competitors List with Live Search & Filter */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden border"
-          style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
-          
+        <div
+          className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+        >
           {/* Table Header & Toolbar */}
-          <div className="p-5 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between border-b"
-            style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+          <div
+            className="p-5 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between border-b border-[var(--neu-border)]"
+          >
             <div>
               <h3 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                 Daftar Kontingen Atlet ({filteredActiveParticipants.length}/{activeParticipants.length})
@@ -658,15 +679,15 @@ export default function OwnerTournaments() {
                 placeholder="Cari atlet..."
                 value={tableSearch}
                 onChange={(e) => setTableSearch(e.target.value)}
-                className="text-xs px-3 py-2 rounded-xl border bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+                className="text-xs px-3.5 py-2 rounded-xl outline-none"
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
               />
 
               <select
                 value={tableCategoryFilter}
                 onChange={(e) => setTableCategoryFilter(e.target.value as any)}
-                className="text-xs px-3 py-2 rounded-xl border bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+                className="text-xs px-3.5 py-2 rounded-xl outline-none"
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
               >
                 <option value="all">Semua Kategori</option>
                 <option value="kata">Kata (Jurus)</option>
@@ -676,8 +697,8 @@ export default function OwnerTournaments() {
               <select
                 value={tableMedalFilter}
                 onChange={(e) => setTableMedalFilter(e.target.value as any)}
-                className="text-xs px-3 py-2 rounded-xl border bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+                className="text-xs px-3.5 py-2 rounded-xl outline-none"
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
               >
                 <option value="all">Semua Medali</option>
                 <option value="emas">🥇 Emas ({tourneyStats.emas})</option>
@@ -691,8 +712,11 @@ export default function OwnerTournaments() {
           {loading ? (
             <div className="p-6 space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-12 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse"
-                  style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                <div
+                  key={i}
+                  className="h-12 rounded-2xl animate-pulse"
+                  style={{ background: 'var(--neu-surface-low)' }}
+                />
               ))}
             </div>
           ) : activeParticipants.length === 0 ? (
@@ -707,7 +731,7 @@ export default function OwnerTournaments() {
               {selectedTourneyId && (
                 <button
                   onClick={handleOpenBatchRegister}
-                  className="m3-btn-filled px-5 py-2.5 text-sm cursor-pointer"
+                  className="apple-btn px-5 py-2.5 text-sm cursor-pointer"
                 >
                   + Daftarkan Atlet Kontingen Sekarang
                 </button>
@@ -721,7 +745,7 @@ export default function OwnerTournaments() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                  <tr style={{ background: 'var(--neu-surface-high)' }}>
                     {['Nama Atlet', 'Kategori Tanding', 'Kelas Berat', 'Keterangan Hasil', 'Perolehan Medali'].map((h, idx) => (
                       <th key={h} className={`px-5 py-3.5 text-xs font-semibold uppercase tracking-wider ${idx === 4 ? 'text-right' : ''}`}
                         style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
@@ -730,7 +754,7 @@ export default function OwnerTournaments() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                <tbody className="divide-y divide-[var(--neu-border)]">
                   {filteredActiveParticipants.map((part) => {
                     const student = students.find(s => s.id === part.student_id);
                     const studentName = student?.full_name || 'Siswa';
@@ -750,7 +774,7 @@ export default function OwnerTournaments() {
                           </div>
                         </td>
                         <td className="px-5 py-4">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
                             part.category === 'kata'
                               ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
                               : 'bg-red-500/15 text-red-400 border border-red-500/30'
@@ -769,11 +793,11 @@ export default function OwnerTournaments() {
                             <select
                               className="px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer transition-all focus:ring-2 focus:ring-red-500"
                               style={{
-                                borderColor: 'var(--md-sys-color-outline-variant)',
+                                borderColor: 'var(--neu-border)',
                                 background: currentMedal === 'emas' ? 'rgba(255, 193, 7, 0.2)' :
                                             currentMedal === 'perak' ? 'rgba(158, 158, 158, 0.2)' :
                                             currentMedal === 'perunggu' ? 'rgba(205, 127, 50, 0.2)' :
-                                            'var(--md-sys-color-surface-container)',
+                                            'var(--neu-surface-low)',
                                 color: currentMedal === 'emas' ? '#ffd700' :
                                        currentMedal === 'perak' ? '#e0e0e0' :
                                        currentMedal === 'perunggu' ? '#ffab40' :
@@ -790,7 +814,7 @@ export default function OwnerTournaments() {
                             <button
                               onClick={() => handleDeleteParticipant(part.id, studentName)}
                               title="Hapus atlet dari kontingen turnamen ini"
-                              className="w-7 h-7 rounded-lg flex items-center justify-center border border-rose-500/20 text-rose-400 hover:bg-rose-500/10 transition-colors text-xs cursor-pointer ml-1"
+                              className="w-7 h-7 rounded-xl flex items-center justify-center border border-rose-500/20 text-rose-400 hover:bg-rose-500/10 transition-colors text-xs cursor-pointer ml-1"
                             >
                               ✕
                             </button>
@@ -819,6 +843,7 @@ export default function OwnerTournaments() {
                 required
                 placeholder="mis. Sirkuit Karate Jabar Ke-3"
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -829,6 +854,7 @@ export default function OwnerTournaments() {
                 type="date"
                 required
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 value={tourneyDate}
                 onChange={(e) => setTourneyDate(e.target.value)}
               />
@@ -840,6 +866,7 @@ export default function OwnerTournaments() {
                 required
                 placeholder="mis. GOR Pajajaran Bandung"
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -849,6 +876,7 @@ export default function OwnerTournaments() {
                 <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tingkat</label>
                 <select
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                   value={level}
                   onChange={(e) => setLevel(e.target.value as any)}
                 >
@@ -861,6 +889,7 @@ export default function OwnerTournaments() {
                 <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Status Event</label>
                 <select
                   className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                 >
@@ -878,20 +907,21 @@ export default function OwnerTournaments() {
                 required
                 placeholder="mis. Forki Jabar"
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 value={organizer}
                 onChange={(e) => setOrganizer(e.target.value)}
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--neu-border)]">
               <button
                 type="button"
                 onClick={() => setIsTourneyModalOpen(false)}
-                className="m3-btn-text px-5 py-2.5 text-sm"
+                className="apple-btn-secondary px-5 py-2.5 text-sm cursor-pointer"
               >
                 Batal
               </button>
-              <button type="submit" disabled={submittingTourney} className="m3-btn-filled px-5 py-2.5 text-sm font-semibold">
+              <button type="submit" disabled={submittingTourney} className="apple-btn px-5 py-2.5 text-sm font-semibold cursor-pointer">
                 {submittingTourney ? 'Menyimpan...' : editingTourneyId ? 'Simpan Perubahan' : 'Simpan Turnamen'}
               </button>
             </div>
@@ -916,6 +946,7 @@ export default function OwnerTournaments() {
                 type="text"
                 placeholder="Cari nama atlet..."
                 className={inputClass}
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
                 value={searchStudent}
                 onChange={(e) => setSearchStudent(e.target.value)}
               />
@@ -940,10 +971,9 @@ export default function OwnerTournaments() {
 
             {/* Athletes List */}
             <div
-              className="border rounded-[var(--md-sys-shape-corner-medium)] max-h-72 overflow-y-auto divide-y"
+              className="border border-[var(--neu-border)] rounded-2xl max-h-72 overflow-y-auto divide-y divide-[var(--neu-border)]"
               style={{
-                borderColor: 'var(--md-sys-color-outline-variant)',
-                background: 'var(--md-sys-color-surface-container-low)'
+                background: 'var(--neu-surface-low)'
               }}
             >
               {filteredStudents.length === 0 ? (
@@ -960,8 +990,8 @@ export default function OwnerTournaments() {
                   return (
                     <div
                       key={st.id}
-                      className={`p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
-                        isChecked ? 'bg-primary/5' : 'hover:bg-slate-500/5'
+                      className={`p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                        isChecked ? 'bg-primary/10' : 'hover:bg-slate-500/5'
                       }`}
                     >
                       <label className="flex items-center gap-3 cursor-pointer flex-1">
@@ -975,9 +1005,9 @@ export default function OwnerTournaments() {
                           <div className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                             {st.full_name}
                           </div>
-                          <div className="text-xs flex items-center gap-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          <div className="text-xs flex items-center gap-1.5 mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                             <span>Sabuk:</span>
-                            <span className="font-medium text-red-400">
+                            <span className="font-semibold text-red-400">
                               {getBeltEmoji(st.current_belt)} {st.current_belt || 'Putih'}
                             </span>
                           </div>
@@ -996,11 +1026,11 @@ export default function OwnerTournaments() {
                               [st.id]: { category: cat, weightClass: cat === 'kata' ? '' : cfg.weightClass }
                             }));
                           }}
-                          className="text-xs px-2.5 py-1.5 rounded-lg border focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                          className="text-xs px-2.5 py-1.5 rounded-xl border focus:ring-2 focus:ring-red-500 disabled:opacity-50"
                           style={{
-                            background: isChecked ? 'var(--md-sys-color-surface)' : 'var(--md-sys-color-surface-container)',
+                            background: isChecked ? 'var(--neu-surface)' : 'var(--neu-surface-high)',
                             color: 'var(--md-sys-color-on-surface)',
-                            borderColor: 'var(--md-sys-color-outline-variant)'
+                            borderColor: 'var(--neu-border)'
                           }}
                         >
                           <option value="kata">Kata (Jurus)</option>
@@ -1020,11 +1050,11 @@ export default function OwnerTournaments() {
                                 [st.id]: { ...cfg, weightClass: wc }
                               }));
                             }}
-                            className="w-20 text-xs px-2.5 py-1.5 rounded-lg border focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                            className="w-20 text-xs px-2.5 py-1.5 rounded-xl border focus:ring-2 focus:ring-red-500 disabled:opacity-50"
                             style={{
-                              background: isChecked ? 'var(--md-sys-color-surface)' : 'var(--md-sys-color-surface-container)',
+                              background: isChecked ? 'var(--neu-surface)' : 'var(--neu-surface-high)',
                               color: 'var(--md-sys-color-on-surface)',
-                              borderColor: 'var(--md-sys-color-outline-variant)'
+                              borderColor: 'var(--neu-border)'
                             }}
                           />
                         )}
@@ -1036,22 +1066,22 @@ export default function OwnerTournaments() {
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
-              <div className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+            <div className="flex items-center justify-between pt-4 border-t border-[var(--neu-border)]">
+              <div className="text-xs font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                 {selectedStudentIds.length} atlet akan didaftarkan
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setIsRegModalOpen(false)}
-                  className="m3-btn-text px-4 py-2 text-sm"
+                  className="apple-btn-secondary px-4 py-2 text-sm cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingCompetitor || selectedStudentIds.length === 0}
-                  className="m3-btn-filled px-5 py-2 text-sm font-semibold"
+                  className="apple-btn px-5 py-2 text-sm font-semibold cursor-pointer disabled:opacity-50"
                 >
                   {submittingCompetitor ? 'Mendaftarkan...' : `Daftarkan ${selectedStudentIds.length} Atlet`}
                 </button>

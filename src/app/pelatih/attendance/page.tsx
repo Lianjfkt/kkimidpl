@@ -9,9 +9,13 @@ import { useSearchParams } from 'next/navigation';
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)' }} onClick={onClose}>
-      <div className="w-full max-w-md rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in"
-        style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }} onClick={onClose}>
+      <div className="w-full max-w-md rounded-3xl animate-fade-in p-6"
+        style={{
+          background: 'var(--neu-surface-high)',
+          boxShadow: 'var(--neu-shadow-flat-lg), 0 20px 48px rgba(0,0,0,0.5)',
+          border: '1px solid var(--neu-border)',
+        }}
         onClick={(e) => e.stopPropagation()}>
         <h3 className="text-xl font-bold mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
         {children}
@@ -19,6 +23,13 @@ function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: 
     </div>
   );
 }
+
+const neuInputStyle: React.CSSProperties = {
+  background: 'var(--neu-surface-low)',
+  boxShadow: 'var(--neu-shadow-pressed-sm)',
+  border: '1px solid var(--neu-border)',
+  color: 'var(--md-sys-color-on-surface)',
+};
 
 function AttendanceFormContent() {
   const searchParams = useSearchParams();
@@ -276,12 +287,13 @@ function AttendanceFormContent() {
 
       {/* Class and Date Selector */}
       <form onSubmit={checkAndSubmit} className="space-y-6">
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] grid grid-cols-1 md:grid-cols-2 gap-4"
-          style={{ background: 'var(--md-sys-color-surface-container-low)', padding: '20px' }}>
+        <div className="rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-4 border border-[var(--neu-border)] p-5"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
           <div className="flex flex-col">
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kelas Latihan</label>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kelas Latihan</label>
             <select
-              className="m3-textfield-outlined text-sm"
+              className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all duration-200"
+              style={neuInputStyle}
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
               disabled={loading}
@@ -293,11 +305,12 @@ function AttendanceFormContent() {
           </div>
 
           <div className="flex flex-col">
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tanggal Latihan</label>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tanggal Latihan</label>
             <input
               type="date"
               required
-              className="m3-textfield-outlined text-sm"
+              className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all duration-200"
+              style={neuInputStyle}
               value={sessionDate}
               onChange={(e) => setSessionDate(e.target.value)}
               disabled={loading}
@@ -306,50 +319,58 @@ function AttendanceFormContent() {
         </div>
 
         {/* Student Grid */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)]"
-          style={{ background: 'var(--md-sys-color-surface-container-low)', padding: '24px' }}>
-          <div className="pb-4 mb-4" style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
+        <div className="rounded-3xl border border-[var(--neu-border)] p-6"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
+          <div className="pb-4 mb-4 border-b border-[var(--neu-border)] flex items-center justify-between">
             <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
               Daftar Kehadiran Siswa
             </h3>
+            <span className="text-xs px-2.5 py-1 rounded-full border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+              {students.length} Siswa Terdaftar
+            </span>
           </div>
 
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-14 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse"
-                  style={{ background: 'var(--md-sys-color-surface-container)' }} />
+                <div key={i} className="h-14 rounded-2xl animate-pulse"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />
               ))}
             </div>
           ) : students.length === 0 ? (
-            <p className="text-sm py-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tidak ada siswa terdaftar pada kelas ini.</p>
+            <p className="text-sm py-4 text-center" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tidak ada siswa terdaftar pada kelas ini.</p>
           ) : (
-            <div className="divide-y animate-fade-in" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+            <div className="divide-y animate-fade-in" style={{ borderColor: 'var(--neu-border)' }}>
               {students.map((student) => (
-                <div key={student.id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div key={student.id}
+                  className="py-4 px-3 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all duration-200"
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                >
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
-                      style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border border-[var(--neu-border)]"
+                      style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-primary)' }}>
                       {student.full_name.charAt(0)}
                     </div>
                     <div>
                       <h4 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>{student.full_name}</h4>
-                      <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{student.current_belt}</p>
+                      <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>🥋 Sabuk {student.current_belt || 'Putih'}</p>
                     </div>
                   </div>
 
-                  {/* Attendance toggle buttons */}
-                  <div className="flex space-x-1 p-1 rounded-xl w-fit"
-                    style={{ background: 'var(--md-sys-color-surface-container-high)' }}>
+                  {/* Attendance tactile toggle buttons */}
+                  <div className="flex space-x-1.5 p-1.5 rounded-2xl w-fit border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed)' }}>
                     {(['hadir', 'izin', 'sakit', 'alpha'] as const).map((status) => {
                       const isActive = attendanceState[student.id] === status;
                       const getStatusStyle = () => {
-                        if (!isActive) return { color: 'var(--md-sys-color-on-surface-variant)', background: 'transparent' };
+                        if (!isActive) return { color: 'var(--md-sys-color-on-surface-variant)', background: 'transparent', boxShadow: 'none' };
                         switch (status) {
-                          case 'hadir': return { background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)', fontWeight: 'bold' };
-                          case 'izin': return { background: 'var(--md-sys-color-secondary-container)', color: 'var(--md-sys-color-on-secondary-container)', fontWeight: 'bold' };
-                          case 'sakit': return { background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)', fontWeight: 'bold' };
-                          case 'alpha': return { background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)', fontWeight: 'bold' };
+                          case 'hadir': return { background: 'rgba(52,211,153,0.2)', border: '1px solid rgba(52,211,153,0.5)', color: '#34d399', boxShadow: 'var(--neu-shadow-flat-sm)', fontWeight: 'bold' };
+                          case 'izin': return { background: 'rgba(96,165,250,0.2)', border: '1px solid rgba(96,165,250,0.5)', color: '#60a5fa', boxShadow: 'var(--neu-shadow-flat-sm)', fontWeight: 'bold' };
+                          case 'sakit': return { background: 'rgba(251,191,36,0.2)', border: '1px solid rgba(251,191,36,0.5)', color: '#fbbf24', boxShadow: 'var(--neu-shadow-flat-sm)', fontWeight: 'bold' };
+                          case 'alpha': return { background: 'rgba(248,113,113,0.2)', border: '1px solid rgba(248,113,113,0.5)', color: '#f87171', boxShadow: 'var(--neu-shadow-flat-sm)', fontWeight: 'bold' };
                         }
                       };
 
@@ -358,7 +379,7 @@ function AttendanceFormContent() {
                           key={status}
                           type="button"
                           onClick={() => handleStatusChange(student.id, status)}
-                          className="px-3.5 py-1.5 rounded-lg text-xs capitalize transition-all cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-xl text-xs capitalize transition-all duration-200 cursor-pointer"
                           style={getStatusStyle()}
                         >
                           {status}
@@ -371,13 +392,13 @@ function AttendanceFormContent() {
             </div>
           )}
 
-          <div className="pt-6 border-t mt-6 flex justify-end" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+          <div className="pt-6 border-t mt-6 flex justify-end" style={{ borderColor: 'var(--neu-border)' }}>
             <button
               type="submit"
               disabled={submitLoading || loading || students.length === 0}
-              className="m3-btn-filled px-6 py-2.5 font-semibold text-sm cursor-pointer"
+              className="apple-btn px-6 py-2.5 font-semibold text-sm cursor-pointer"
             >
-              {submitLoading ? 'Menyimpan...' : 'Simpan Absensi Sesi'}
+              {submitLoading ? 'Menyimpan...' : '💾 Simpan Absensi Sesi'}
             </button>
           </div>
         </div>
@@ -389,8 +410,8 @@ function AttendanceFormContent() {
           Absensi untuk kelas ini pada tanggal <strong>{sessionDate}</strong> sudah pernah diinput sebelumnya. Apakah Anda ingin menimpanya?
         </p>
         <div className="flex justify-end space-x-2">
-          <button type="button" onClick={() => setShowDuplicateDialog(false)} className="m3-btn-text text-sm px-4 py-2">Batal</button>
-          <button type="button" onClick={performSubmit} className="m3-btn-filled text-sm px-4 py-2" style={{ background: 'var(--md-sys-color-error)' }}>Timpah Data</button>
+          <button type="button" onClick={() => setShowDuplicateDialog(false)} className="apple-btn-secondary text-sm px-4 py-2 cursor-pointer">Batal</button>
+          <button type="button" onClick={performSubmit} className="apple-btn text-sm px-4 py-2 cursor-pointer" style={{ background: 'linear-gradient(145deg, #e53935, #b71c1c)' }}>Timpah Data</button>
         </div>
       </M3Dialog>
     </div>

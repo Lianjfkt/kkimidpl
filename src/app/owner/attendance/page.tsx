@@ -42,16 +42,7 @@ function formatWANumber(phone?: string | null) {
 
 function buildWAMessage(studentName: string, parentName: string | undefined, dates: string[]) {
   const dateList = dates.map(d => `- ${d}`).join('\n');
-  return `Assalamu'alaikum Bpk/Ibu ${parentName || 'Orang Tua'} 🙏
-
-Kami dari Pengurus Dojo Karate KKI DPL ingin menginformasikan bahwa ananda *${studentName}* tercatat tidak hadir latihan pada tanggal berikut:
-
-${dateList}
-
-Mohon informasikan alasan ketidakhadiran ananda agar dapat kami catat. Kehadiran rutin sangat penting untuk perkembangan teknik dan kenaikan sabuk ananda.
-
-Terima kasih atas perhatian dan kerja samanya. 🥋
-_OSS! Salam Karate._`;
+  return `Assalamu'alaikum Bpk/Ibu ${parentName || 'Orang Tua'} 🙏\n\nKami dari Pengurus Dojo Karate KKI DPL ingin menginformasikan bahwa ananda *${studentName}* tercatat tidak hadir latihan pada tanggal berikut:\n\n${dateList}\n\nMohon informasikan alasan ketidakhadiran ananda agar dapat kami catat. Kehadiran rutin sangat penting untuk perkembangan teknik dan kenaikan sabuk ananda.\n\nTerima kasih atas perhatian dan kerja samanya. 🥋\n_OSS! Salam Karate._`;
 }
 
 export default function OwnerAttendanceMonitor() {
@@ -226,8 +217,14 @@ export default function OwnerAttendanceMonitor() {
                 Pantau kedisiplinan latihan seluruh atlet karate dojo secara real-time.
               </p>
               {lastUpdated && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full"
-                  style={{ background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                <span
+                  className="text-[11px] px-2.5 py-0.5 rounded-full border border-[var(--neu-border)]"
+                  style={{
+                    background: 'var(--neu-surface-low)',
+                    boxShadow: 'var(--neu-shadow-pressed-sm)',
+                    color: 'var(--md-sys-color-on-surface-variant)',
+                  }}
+                >
                   {refreshing ? '🔄 Memperbarui…' : `✓ ${lastUpdated.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`}
                 </span>
               )}
@@ -238,7 +235,7 @@ export default function OwnerAttendanceMonitor() {
               onClick={() => loadData(false)}
               disabled={refreshing}
               title="Refresh data sekarang"
-              className="p-2 rounded-full transition-all cursor-pointer hover:bg-[var(--md-sys-color-surface-container)] disabled:opacity-50"
+              className="apple-btn-secondary p-2.5 rounded-2xl transition-all duration-200 cursor-pointer disabled:opacity-50"
             >
               <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} style={{ color: 'var(--md-sys-color-on-surface-variant)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -246,7 +243,7 @@ export default function OwnerAttendanceMonitor() {
             </button>
             <button
               onClick={exportCSV}
-              className="m3-btn-outlined px-4 py-2 text-xs font-semibold flex items-center gap-2 cursor-pointer"
+              className="apple-btn-secondary px-4 py-2 text-xs font-semibold flex items-center gap-2 rounded-2xl cursor-pointer transition-all duration-200"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -268,30 +265,72 @@ export default function OwnerAttendanceMonitor() {
         )}
 
         {/* Filter Bar */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"
-          style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+        <div
+          className="rounded-3xl p-4 border border-[var(--neu-border)] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+        >
           <div className="flex flex-col">
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kelas</label>
-            <select className="m3-textfield-outlined text-sm" value={classFilter} onChange={e => setClassFilter(e.target.value)}>
+            <select
+              className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all duration-200"
+              style={{
+                background: 'var(--neu-surface-low)',
+                boxShadow: 'var(--neu-shadow-pressed-sm)',
+                border: '1px solid var(--neu-border)',
+                color: 'var(--md-sys-color-on-surface)',
+              }}
+              value={classFilter}
+              onChange={e => setClassFilter(e.target.value)}
+            >
               <option value="">Semua Kelas</option>
               {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="flex flex-col">
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Bulan</label>
-            <select className="m3-textfield-outlined text-sm" value={monthFilter} onChange={e => setMonthFilter(Number(e.target.value))}>
+            <select
+              className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all duration-200"
+              style={{
+                background: 'var(--neu-surface-low)',
+                boxShadow: 'var(--neu-shadow-pressed-sm)',
+                border: '1px solid var(--neu-border)',
+                color: 'var(--md-sys-color-on-surface)',
+              }}
+              value={monthFilter}
+              onChange={e => setMonthFilter(Number(e.target.value))}
+            >
               {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </select>
           </div>
           <div className="flex flex-col">
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tahun</label>
-            <select className="m3-textfield-outlined text-sm" value={yearFilter} onChange={e => setYearFilter(Number(e.target.value))}>
+            <select
+              className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all duration-200"
+              style={{
+                background: 'var(--neu-surface-low)',
+                boxShadow: 'var(--neu-shadow-pressed-sm)',
+                border: '1px solid var(--neu-border)',
+                color: 'var(--md-sys-color-on-surface)',
+              }}
+              value={yearFilter}
+              onChange={e => setYearFilter(Number(e.target.value))}
+            >
               {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
           <div className="flex flex-col">
             <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Sabuk</label>
-            <select className="m3-textfield-outlined text-sm" value={beltFilter} onChange={e => setBeltFilter(e.target.value)}>
+            <select
+              className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all duration-200"
+              style={{
+                background: 'var(--neu-surface-low)',
+                boxShadow: 'var(--neu-shadow-pressed-sm)',
+                border: '1px solid var(--neu-border)',
+                color: 'var(--md-sys-color-on-surface)',
+              }}
+              value={beltFilter}
+              onChange={e => setBeltFilter(e.target.value)}
+            >
               <option value="">Semua Sabuk</option>
               {OFFICIAL_BELTS.map((b) => (
                 <option key={b} value={b}>{b}</option>
@@ -310,7 +349,15 @@ export default function OwnerAttendanceMonitor() {
             placeholder="Cari nama siswa atau nama orang tua..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="m3-textfield-outlined w-full pl-10 pr-4 py-2.5 text-sm"
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl text-sm outline-none transition-all duration-200"
+            style={{
+              background: 'var(--neu-surface-low)',
+              boxShadow: 'var(--neu-shadow-pressed-sm)',
+              border: '1px solid var(--neu-border)',
+              color: 'var(--md-sys-color-on-surface)',
+            }}
+            onFocus={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm), 0 0 0 2px var(--md-sys-color-primary)'; }}
+            onBlur={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-pressed-sm)'; }}
           />
         </div>
 
@@ -322,61 +369,74 @@ export default function OwnerAttendanceMonitor() {
               value: loading ? '—' : `${avgPct}%`,
               sub: `${MONTHS[monthFilter - 1]} ${yearFilter}`,
               icon: '📊',
-              color: 'var(--md-sys-color-primary-container)',
-              textColor: 'var(--md-sys-color-on-primary-container)',
             },
             {
               label: 'Total Sesi Latihan',
               value: loading ? '—' : `${totalSessions} Sesi`,
               sub: classFilter ? classes.find(c => c.id === classFilter)?.name : 'Semua Kelas',
               icon: '📅',
-              color: 'var(--md-sys-color-tertiary-container)',
-              textColor: 'var(--md-sys-color-on-tertiary-container)',
             },
             {
               label: 'Atlet Kritis / Jarang Hadir',
               value: loading ? '—' : `${atRiskCount} Siswa`,
               sub: 'Kehadiran < 60% atau alpha ≥ 2×',
               icon: '⚠️',
-              color: atRiskCount > 0 ? 'var(--md-sys-color-error-container)' : 'var(--md-sys-color-surface-container-high)',
-              textColor: atRiskCount > 0 ? 'var(--md-sys-color-on-error-container)' : 'var(--md-sys-color-on-surface)',
+              isRisk: atRiskCount > 0,
             },
             {
               label: 'Kehadiran Sempurna',
               value: loading ? '—' : `${perfectCount} Siswa`,
               sub: '100% hadir di semua sesi',
               icon: '🏆',
-              color: 'var(--md-sys-color-surface-container-high)',
-              textColor: 'var(--md-sys-color-on-surface)',
             },
-          ].map(({ label, value, sub, icon, color, textColor }) => (
-            <div key={label} className="rounded-[var(--md-sys-shape-corner-extra-large)] p-5 flex flex-col gap-2"
-              style={{ background: color }}>
+          ].map(({ label, value, sub, icon, isRisk }) => (
+            <div
+              key={label}
+              className="rounded-3xl p-5 flex flex-col gap-2 border border-[var(--neu-border)]"
+              style={{
+                background: isRisk ? 'rgba(248,113,113,0.08)' : 'var(--neu-surface)',
+                boxShadow: 'var(--neu-shadow-flat)',
+              }}
+            >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium opacity-80" style={{ color: textColor }}>{label}</span>
-                <span className="text-lg">{icon}</span>
+                <span className="text-xs font-medium opacity-80" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{label}</span>
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                >
+                  <span className="text-base">{icon}</span>
+                </div>
               </div>
-              <p className="text-2xl font-black" style={{ color: textColor }}>{value}</p>
-              {sub && <p className="text-[11px] opacity-75 leading-tight" style={{ color: textColor }}>{sub}</p>}
+              <p className="text-2xl font-black" style={{ color: isRisk ? '#f87171' : 'var(--md-sys-color-on-surface)' }}>{value}</p>
+              {sub && <p className="text-[11px] opacity-75 leading-tight" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{sub}</p>}
             </div>
           ))}
         </div>
 
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-2 p-1.5 rounded-full bg-[var(--md-sys-color-surface-container-high)] w-fit">
+        {/* Tabs — Neumorphic segmented control */}
+        <div
+          className="flex p-1.5 rounded-2xl gap-1 border border-[var(--neu-border)] w-fit"
+          style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed)' }}
+        >
           <button
             onClick={() => setActiveTab('matrix')}
-            className={`px-5 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'matrix' ? 'bg-[var(--md-sys-color-primary)] text-white shadow-sm' : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
-            }`}
+            className="px-5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer"
+            style={
+              activeTab === 'matrix'
+                ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)', color: '#fff' }
+                : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
+            }
           >
             📅 Matriks Sesi Harian
           </button>
           <button
             onClick={() => setActiveTab('alert')}
-            className={`px-5 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'alert' ? 'bg-red-500 text-white shadow-sm' : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
-            }`}
+            className="px-5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer flex items-center gap-1.5"
+            style={
+              activeTab === 'alert'
+                ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)', color: '#fff' }
+                : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
+            }
           >
             ⚠️ Peringatan Atlet
             {atRiskCount > 0 && (
@@ -385,9 +445,12 @@ export default function OwnerAttendanceMonitor() {
           </button>
           <button
             onClick={() => setActiveTab('recap')}
-            className={`px-5 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'recap' ? 'bg-[var(--md-sys-color-primary)] text-white shadow-sm' : 'text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]'
-            }`}
+            className="px-5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer"
+            style={
+              activeTab === 'recap'
+                ? { background: 'var(--neu-accent-grad)', boxShadow: 'var(--neu-shadow-accent)', color: '#fff' }
+                : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
+            }
           >
             📊 Rekap Bulanan
           </button>
@@ -396,17 +459,19 @@ export default function OwnerAttendanceMonitor() {
         {loading && (
           <div className="space-y-3">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-12 animate-pulse rounded-[var(--md-sys-shape-corner-medium)]"
-                style={{ background: 'var(--md-sys-color-surface-container)' }} />
+              <div key={i} className="h-12 animate-pulse rounded-2xl"
+                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }} />
             ))}
           </div>
         )}
 
         {/* TAB 1: MATRIKS SESI HARIAN */}
         {!loading && activeTab === 'matrix' && (
-          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden shadow-sm"
-            style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-            <div className="px-6 py-4 border-b border-[var(--md-sys-color-outline-variant)]">
+          <div
+            className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
+            <div className="px-6 py-4 border-b border-[var(--neu-border)]">
               <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                 Matriks Kehadiran Harian — {MONTHS[monthFilter - 1]} {yearFilter}
               </h3>
@@ -424,7 +489,10 @@ export default function OwnerAttendanceMonitor() {
                   </span>
                 ))}
                 <span className="flex items-center gap-1 text-[11px] font-medium">
-                  <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface-variant)]">—</span>
+                  <span
+                    className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold"
+                    style={{ background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                  >—</span>
                   <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tidak Ada Catatan</span>
                 </span>
               </div>
@@ -442,9 +510,11 @@ export default function OwnerAttendanceMonitor() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse" style={{ minWidth: `${Math.max(600, sessionDates.length * 48 + 300)}px` }}>
                   <thead>
-                    <tr style={{ background: 'var(--md-sys-color-surface-container)' }}>
-                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider sticky left-0 z-10"
-                        style={{ color: 'var(--md-sys-color-on-surface-variant)', background: 'var(--md-sys-color-surface-container)', minWidth: '200px' }}>
+                    <tr style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                      <th
+                        className="px-5 py-3 text-xs font-semibold uppercase tracking-wider sticky left-0 z-10"
+                        style={{ color: 'var(--md-sys-color-on-surface-variant)', background: 'var(--neu-surface-low)', minWidth: '200px' }}
+                      >
                         Siswa / Sabuk
                       </th>
                       {sessionDates.map(d => {
@@ -468,14 +538,24 @@ export default function OwnerAttendanceMonitor() {
                   </thead>
                   <tbody>
                     {filtered.map((s, idx) => (
-                      <tr key={s.student.id}
-                        style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}
-                        className="hover:bg-white/5 transition-colors">
+                      <tr
+                        key={s.student.id}
+                        style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--neu-border)' : 'none' }}
+                        className="transition-all duration-200"
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+                      >
                         <td className="px-5 py-3 sticky left-0 z-10"
-                          style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+                          style={{ background: 'var(--neu-surface)' }}>
                           <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0"
-                              style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                            <div
+                              className="w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0"
+                              style={{
+                                background: 'var(--neu-surface-low)',
+                                boxShadow: 'var(--neu-shadow-pressed-sm)',
+                                color: 'var(--md-sys-color-on-surface)',
+                              }}
+                            >
                               {s.student.full_name?.slice(0, 2).toUpperCase()}
                             </div>
                             <div>
@@ -500,31 +580,40 @@ export default function OwnerAttendanceMonitor() {
                                 <span
                                   className={`w-7 h-7 rounded text-[11px] font-bold flex items-center justify-center mx-auto ${cfg.bg} ${cfg.text}`}
                                   title={`${s.student.full_name} — ${d}: ${cfg.full}`}
+                                  style={{ boxShadow: 'var(--neu-shadow-pressed-sm)' }}
                                 >
                                   {cfg.label}
                                 </span>
                               ) : (
-                                <span className="w-7 h-7 rounded flex items-center justify-center mx-auto text-[11px]"
-                                  style={{ background: 'var(--md-sys-color-surface-container)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                                <span
+                                  className="w-7 h-7 rounded flex items-center justify-center mx-auto text-[11px]"
+                                  style={{ background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                                >
                                   —
                                 </span>
                               )}
                             </td>
                           );
                         })}
-                        <td className="px-3 py-3 text-center text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <td className="px-3 py-3 text-center text-xs font-bold text-emerald-500">
                           {s.hadir}/{s.total}
                         </td>
                         <td className={`px-3 py-3 text-center text-xs font-bold ${s.alpha > 0 ? 'text-red-500' : 'text-[var(--md-sys-color-on-surface-variant)]'}`}>
                           {s.alpha}
                         </td>
                         <td className="px-3 py-3 text-right">
-                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                            s.total === 0 ? 'text-[var(--md-sys-color-on-surface-variant)]' :
-                            s.pct >= 80 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' :
-                            s.pct >= 60 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' :
-                            'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
-                          }`}>
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                            style={
+                              s.total === 0
+                                ? { color: 'var(--md-sys-color-on-surface-variant)' }
+                                : s.pct >= 80
+                                ? { background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
+                                : s.pct >= 60
+                                ? { background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
+                                : { background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
+                            }
+                          >
                             {s.total === 0 ? '—' : `${s.pct}%`}
                           </span>
                         </td>
@@ -541,8 +630,10 @@ export default function OwnerAttendanceMonitor() {
         {!loading && activeTab === 'alert' && (
           <div className="space-y-4 animate-fade-in">
             {atRiskStudents.length === 0 ? (
-              <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-16 text-center"
-                style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+              <div
+                className="rounded-3xl p-16 text-center border border-[var(--neu-border)]"
+                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+              >
                 <p className="text-4xl mb-3">🎉</p>
                 <p className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   Tidak Ada Atlet Kritis!
@@ -553,7 +644,8 @@ export default function OwnerAttendanceMonitor() {
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-3 p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
+                <div className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--neu-border)]"
+                  style={{ background: 'rgba(248,113,113,0.08)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                   <span className="text-xl">🚨</span>
                   <div>
                     <p className="text-sm font-bold text-red-500">{atRiskStudents.length} Atlet Memerlukan Perhatian Khusus</p>
@@ -563,8 +655,10 @@ export default function OwnerAttendanceMonitor() {
                   </div>
                 </div>
 
-                <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
-                  style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
+                <div
+                  className="rounded-3xl overflow-hidden border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+                >
                   {atRiskStudents.map((s, idx) => {
                     const alphaDates = Object.entries(s.sessionMap)
                       .filter(([, status]) => status === 'alpha')
@@ -577,12 +671,24 @@ export default function OwnerAttendanceMonitor() {
                       : null;
 
                     return (
-                      <div key={s.student.id}
-                        style={{ borderBottom: idx < atRiskStudents.length - 1 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}
-                        className="p-5 hover:bg-white/5 transition-colors">
+                      <div
+                        key={s.student.id}
+                        style={{ borderBottom: idx < atRiskStudents.length - 1 ? '1px solid var(--neu-border)' : 'none' }}
+                        className="p-5 transition-all duration-200"
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+                      >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-red-500/20 text-red-500 font-bold flex items-center justify-center text-sm flex-shrink-0">
+                            <div
+                              className="w-10 h-10 rounded-full font-bold flex items-center justify-center text-sm flex-shrink-0"
+                              style={{
+                                background: 'var(--neu-surface-low)',
+                                boxShadow: 'var(--neu-shadow-pressed-sm)',
+                                color: '#f87171',
+                                border: '1px solid rgba(248,113,113,0.3)',
+                              }}
+                            >
                               {s.student.full_name?.slice(0, 2).toUpperCase()}
                             </div>
                             <div>
@@ -598,15 +704,24 @@ export default function OwnerAttendanceMonitor() {
                           <div className="flex flex-wrap items-center gap-3">
                             {/* Stats mini */}
                             <div className="flex items-center gap-2">
-                              <div className="text-center px-3 py-1.5 rounded-xl" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                              <div
+                                className="text-center px-3 py-1.5 rounded-xl border border-[var(--neu-border)]"
+                                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                              >
                                 <div className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">Kehadiran</div>
                                 <div className={`text-sm font-black ${s.pct < 60 ? 'text-red-500' : 'text-amber-500'}`}>{s.pct}%</div>
                               </div>
-                              <div className="text-center px-3 py-1.5 rounded-xl" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                              <div
+                                className="text-center px-3 py-1.5 rounded-xl border border-[var(--neu-border)]"
+                                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                              >
                                 <div className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">Alpha</div>
                                 <div className="text-sm font-black text-red-500">{s.alpha}×</div>
                               </div>
-                              <div className="text-center px-3 py-1.5 rounded-xl" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                              <div
+                                className="text-center px-3 py-1.5 rounded-xl border border-[var(--neu-border)]"
+                                style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                              >
                                 <div className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">Hadir</div>
                                 <div className="text-sm font-black text-emerald-500">{s.hadir}/{s.total}</div>
                               </div>
@@ -618,7 +733,7 @@ export default function OwnerAttendanceMonitor() {
                                 href={waUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all flex items-center gap-1.5 cursor-pointer"
+                                className="apple-btn px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all duration-200"
                               >
                                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.044c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z" />
@@ -636,7 +751,11 @@ export default function OwnerAttendanceMonitor() {
                           <div className="mt-3 ml-13 flex flex-wrap gap-1.5">
                             <span className="text-[11px] text-[var(--md-sys-color-on-surface-variant)] font-medium mr-1">Tidak hadir tanpa keterangan:</span>
                             {alphaDates.map(d => (
-                              <span key={d} className="px-2 py-0.5 text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full font-semibold">
+                              <span
+                                key={d}
+                                className="px-2 py-0.5 text-[10px] rounded-full font-semibold"
+                                style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
+                              >
                                 {d}
                               </span>
                             ))}
@@ -653,9 +772,11 @@ export default function OwnerAttendanceMonitor() {
 
         {/* TAB 3: REKAP BULANAN */}
         {!loading && activeTab === 'recap' && (
-          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden shadow-sm animate-fade-in"
-            style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-            <div className="px-6 py-4 border-b border-[var(--md-sys-color-outline-variant)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div
+            className="rounded-3xl overflow-hidden border border-[var(--neu-border)] animate-fade-in"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+          >
+            <div className="px-6 py-4 border-b border-[var(--neu-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
                   Rekap Kehadiran — {MONTHS[monthFilter - 1]} {yearFilter}
@@ -664,7 +785,10 @@ export default function OwnerAttendanceMonitor() {
                   {filtered.length} siswa aktif · {totalSessions} sesi tercatat
                 </p>
               </div>
-              <button onClick={exportCSV} className="m3-btn-outlined px-4 py-2 text-xs font-semibold flex items-center gap-2 cursor-pointer self-start">
+              <button
+                onClick={exportCSV}
+                className="apple-btn-secondary px-4 py-2 text-xs font-semibold flex items-center gap-2 rounded-2xl cursor-pointer transition-all duration-200 self-start"
+              >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
@@ -681,7 +805,7 @@ export default function OwnerAttendanceMonitor() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                    <tr style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                       {['Nama Siswa', 'Sabuk', 'Total Sesi', 'Hadir', 'Izin', 'Sakit', 'Alpha', '% Kehadiran', 'Status'].map(col => (
                         <th key={col} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-center first:text-left"
                           style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{col}</th>
@@ -690,13 +814,23 @@ export default function OwnerAttendanceMonitor() {
                   </thead>
                   <tbody>
                     {filtered.sort((a, b) => b.pct - a.pct).map((s, idx) => (
-                      <tr key={s.student.id}
-                        style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}
-                        className="hover:bg-white/5 transition-colors">
+                      <tr
+                        key={s.student.id}
+                        style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--neu-border)' : 'none' }}
+                        className="transition-all duration-200"
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--neu-surface-high)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+                      >
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0"
-                              style={{ background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' }}>
+                            <div
+                              className="w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0"
+                              style={{
+                                background: 'var(--neu-surface-low)',
+                                boxShadow: 'var(--neu-shadow-pressed-sm)',
+                                color: 'var(--md-sys-color-on-surface)',
+                              }}
+                            >
                               {s.student.full_name?.slice(0, 2).toUpperCase()}
                             </div>
                             <div>
@@ -709,27 +843,39 @@ export default function OwnerAttendanceMonitor() {
                           {s.student.current_belt || 'Putih'}
                         </td>
                         <td className="px-5 py-4 text-sm text-center font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>{s.total}</td>
-                        <td className="px-5 py-4 text-sm text-center font-bold text-emerald-600 dark:text-emerald-400">{s.hadir}</td>
+                        <td className="px-5 py-4 text-sm text-center font-bold text-emerald-500">{s.hadir}</td>
                         <td className="px-5 py-4 text-sm text-center" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{s.izin}</td>
                         <td className="px-5 py-4 text-sm text-center text-amber-500">{s.sakit}</td>
                         <td className="px-5 py-4 text-sm text-center font-semibold text-red-500">{s.alpha}</td>
                         <td className="px-5 py-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                            s.total === 0 ? 'bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface-variant)]' :
-                            s.pct >= 80 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' :
-                            s.pct >= 60 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' :
-                            'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
-                          }`}>
+                          <span
+                            className="px-2.5 py-1 rounded-full text-xs font-bold"
+                            style={
+                              s.total === 0
+                                ? { background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
+                                : s.pct >= 80
+                                ? { background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
+                                : s.pct >= 60
+                                ? { background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
+                                : { background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
+                            }
+                          >
                             {s.total === 0 ? '—' : `${s.pct}%`}
                           </span>
                         </td>
                         <td className="px-5 py-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                            s.total === 0 ? 'text-[var(--md-sys-color-on-surface-variant)]' :
-                            s.isAtRisk ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                            s.pct >= 80 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' :
-                            'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                          }`}>
+                          <span
+                            className="px-2.5 py-1 rounded-full text-xs font-semibold"
+                            style={
+                              s.total === 0
+                                ? { color: 'var(--md-sys-color-on-surface-variant)' }
+                                : s.isAtRisk
+                                ? { background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
+                                : s.pct >= 80
+                                ? { background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
+                                : { background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)', boxShadow: 'var(--neu-shadow-pressed-sm)' }
+                            }
+                          >
                             {s.total === 0 ? '—' : s.isAtRisk ? '🚨 Kritis' : s.pct >= 80 ? '✅ Baik' : '⚡ Perlu Latihan'}
                           </span>
                         </td>
