@@ -47,12 +47,14 @@ export default function OwnerTournaments() {
   // Active tournament selection state
   const [selectedTourneyId, setSelectedTourneyId] = useState<string>('');
 
-  // Form states (Create Tournament)
+  // Form states (Create / Edit Tournament)
   const [isTourneyModalOpen, setIsTourneyModalOpen] = useState(false);
+  const [editingTourneyId, setEditingTourneyId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [tourneyDate, setTourneyDate] = useState('');
   const [location, setLocation] = useState('');
   const [level, setLevel] = useState<'lokal' | 'regional' | 'nasional'>('lokal');
+  const [status, setStatus] = useState<string>('aktif');
   const [organizer, setOrganizer] = useState('');
 
   // Form states (Register Competitor)
@@ -104,7 +106,69 @@ export default function OwnerTournaments() {
     loadData();
   }, []);
 
-  const handleCreateTournament = async (e: React.FormEvent) => {
+  const handleOpenCreateTourney = () => {
+    setEditingTourneyId(null);
+    setName('');
+    setTourneyDate('');
+    setLocation('');
+    setLevel('lokal');
+    setStatus('aktif');
+    setOrganizer('');
+    setIsTourneyModalOpen(true);
+  };
+
+  const handleOpenEditTourney = (t: Tournament, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingTourneyId(t.id);
+    setName(t.name);
+    setTourneyDate(t.tournament_date || t.start_date || '');
+    setLocation(t.location);
+    setLevel((t.level as any) || 'lokal');
+    setStatus(t.status || 'aktif');
+    setOrganizer(t.organizer || '');
+    setIsTourneyModalOpen(true);
+  };
+
+  const handleDeleteTourney = async (tourneyId: string, tourneyName: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const count = participants.filter(p => p.tournament_id === tourneyId).length;
+    const confirmMsg = count > 0
+      ? `Hapus turnamen "${tourneyName}"? PERINGATAN: ${count} data atlet yang terdaftar juga akan terhapus.`
+      : `Apakah Anda yakin ingin menghapus turnamen "${tourneyName}"?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      if (count > 0) {
+        await supabase.from('tournament_participants').eq('tournament_id', tourneyId).delete();
+      }
+
+      const { error } = await supabase.from('tournaments').eq('id', tourneyId).delete();
+      if (error) throw error;
+
+      alert('Event turnamen berhasil dihapus.');
+
+      const remaining = tournaments.filter(t => t.id !== tourneyId);
+      const nextSelected = remaining.length > 0 ? remaining[0].id : '';
+      await loadData(nextSelected);
+    } catch (err: any) {
+      alert(`Gagal menghapus event turnamen: ${err.message || err}`);
+    }
+  };
+
+  const handleDeleteParticipant = async (participantId: string, studentName: string) => {
+    if (!window.confirm(`Hapus ${studentName} dari kontingen turnamen ini?`)) return;
+
+    try {
+      const { error } = await supabase.from('tournament_participants').eq('id', participantId).delete();
+      if (error) throw error;
+      await loadData(selectedTourneyId);
+    } catch (err: any) {
+      alert(`Gagal menghapus atlet: ${err.message || err}`);
+    }
+  };
+
+  const handleSaveTournament = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !tourneyDate || !location) {
       alert('Mohon lengkapi nama turnamen, tanggal, dan lokasi.');
@@ -112,6 +176,47 @@ export default function OwnerTournaments() {
     }
 
     setSubmittingTourney(true);
+
+    if (editingTourneyId) {
+      // MODE UPDATE (EDIT)
+      const updatePayload = {
+        name,
+        tournament_date: tourneyDate,
+        start_date: tourneyDate,
+        end_date: tourneyDate,
+        location,
+        level,
+        status,
+        organizer: organizer || null
+      };
+
+      let { error } = await supabase.from('tournaments').eq('id', editingTourneyId).update(updatePayload);
+
+      if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+        const fallbackTourney = {
+          name,
+          location,
+          start_date: tourneyDate,
+          end_date: tourneyDate,
+          status
+        };
+        const retry = await supabase.from('tournaments').eq('id', editingTourneyId).update(fallbackTourney);
+        error = retry.error;
+      }
+
+      if (error) {
+        alert(`Gagal memperbarui turnamen: ${error.message}`);
+        setSubmittingTourney(false);
+        return;
+      }
+
+      setIsTourneyModalOpen(false);
+      setSubmittingTourney(false);
+      await loadData(editingTourneyId);
+      return;
+    }
+
+    // MODE CREATE (TAMBAH BARU)
     const newTourney = {
       name,
       tournament_date: tourneyDate,
@@ -121,7 +226,7 @@ export default function OwnerTournaments() {
       level,
       organizer: organizer || null,
       registration_fee: 150000,
-      status: 'aktif'
+      status
     };
 
     let createdId: string | null = null;
@@ -362,7 +467,7 @@ export default function OwnerTournaments() {
             </p>
           </div>
           <button
-            onClick={() => setIsTourneyModalOpen(true)}
+            onClick={handleOpenCreateTourney}
             className="m3-btn-filled px-5 py-2.5 text-sm font-semibold cursor-pointer"
           >
             <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -475,6 +580,23 @@ export default function OwnerTournaments() {
                   <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                     📍 {currentTourney.location} • 📅 {currentTourney.tournament_date || currentTourney.start_date} • Penyelenggara: {currentTourney.organizer || 'FORKI / KKI'}
                   </p>
+
+                  {/* Action Edit & Hapus Event Turnamen */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={(e) => handleOpenEditTourney(currentTourney, e)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold border hover:bg-slate-500/10 transition-colors flex items-center gap-1 cursor-pointer"
+                      style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+                    >
+                      ✏️ Edit Turnamen
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteTourney(currentTourney.id, currentTourney.name, e)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      🗑️ Hapus Turnamen
+                    </button>
+                  </div>
                 </div>
 
                 {/* 4 Medals & Athletes Metric Cards */}
@@ -643,27 +765,36 @@ export default function OwnerTournaments() {
                           {part.result || 'Berpartisipasi'}
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <select
-                            className="px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer transition-all focus:ring-2 focus:ring-red-500"
-                            style={{
-                              borderColor: 'var(--md-sys-color-outline-variant)',
-                              background: currentMedal === 'emas' ? 'rgba(255, 193, 7, 0.2)' :
-                                          currentMedal === 'perak' ? 'rgba(158, 158, 158, 0.2)' :
-                                          currentMedal === 'perunggu' ? 'rgba(205, 127, 50, 0.2)' :
-                                          'var(--md-sys-color-surface-container)',
-                              color: currentMedal === 'emas' ? '#ffd700' :
-                                     currentMedal === 'perak' ? '#e0e0e0' :
-                                     currentMedal === 'perunggu' ? '#ffab40' :
-                                     'var(--md-sys-color-on-surface)'
-                            }}
-                            value={currentMedal}
-                            onChange={(e) => handleMedalChange(part.id, e.target.value as any)}
-                          >
-                            <option value="none">Tanpa Medali</option>
-                            <option value="emas">🥇 Medali Emas</option>
-                            <option value="perak">🥈 Medali Perak</option>
-                            <option value="perunggu">🥉 Medali Perunggu</option>
-                          </select>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <select
+                              className="px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer transition-all focus:ring-2 focus:ring-red-500"
+                              style={{
+                                borderColor: 'var(--md-sys-color-outline-variant)',
+                                background: currentMedal === 'emas' ? 'rgba(255, 193, 7, 0.2)' :
+                                            currentMedal === 'perak' ? 'rgba(158, 158, 158, 0.2)' :
+                                            currentMedal === 'perunggu' ? 'rgba(205, 127, 50, 0.2)' :
+                                            'var(--md-sys-color-surface-container)',
+                                color: currentMedal === 'emas' ? '#ffd700' :
+                                       currentMedal === 'perak' ? '#e0e0e0' :
+                                       currentMedal === 'perunggu' ? '#ffab40' :
+                                       'var(--md-sys-color-on-surface)'
+                              }}
+                              value={currentMedal}
+                              onChange={(e) => handleMedalChange(part.id, e.target.value as any)}
+                            >
+                              <option value="none">Tanpa Medali</option>
+                              <option value="emas">🥇 Medali Emas</option>
+                              <option value="perak">🥈 Medali Perak</option>
+                              <option value="perunggu">🥉 Medali Perunggu</option>
+                            </select>
+                            <button
+                              onClick={() => handleDeleteParticipant(part.id, studentName)}
+                              title="Hapus atlet dari kontingen turnamen ini"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center border border-rose-500/20 text-rose-400 hover:bg-rose-500/10 transition-colors text-xs cursor-pointer ml-1"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -674,13 +805,13 @@ export default function OwnerTournaments() {
           )}
         </div>
 
-        {/* Schedule Tourney Modal */}
+        {/* Create / Edit Tournament Modal */}
         <M3Dialog
           open={isTourneyModalOpen}
           onClose={() => setIsTourneyModalOpen(false)}
-          title="Tambah Event Turnamen"
+          title={editingTourneyId ? 'Edit Event Turnamen' : 'Tambah Event Turnamen'}
         >
-          <form onSubmit={handleCreateTournament} className="space-y-4">
+          <form onSubmit={handleSaveTournament} className="space-y-4">
             <div className={fieldWrap}>
               <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama Kejuaraan *</label>
               <input
@@ -727,16 +858,29 @@ export default function OwnerTournaments() {
                 </select>
               </div>
               <div className={fieldWrap}>
-                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Penyelenggara *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="mis. Forki Jabar"
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Status Event</label>
+                <select
                   className={inputClass}
-                  value={organizer}
-                  onChange={(e) => setOrganizer(e.target.value)}
-                />
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="aktif">Aktif</option>
+                  <option value="pendaftaran">Pendaftaran</option>
+                  <option value="selesai">Selesai</option>
+                  <option value="dibatalkan">Dibatalkan</option>
+                </select>
               </div>
+            </div>
+            <div className={fieldWrap}>
+              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Penyelenggara *</label>
+              <input
+                type="text"
+                required
+                placeholder="mis. Forki Jabar"
+                className={inputClass}
+                value={organizer}
+                onChange={(e) => setOrganizer(e.target.value)}
+              />
             </div>
 
             <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
@@ -747,8 +891,8 @@ export default function OwnerTournaments() {
               >
                 Batal
               </button>
-              <button type="submit" disabled={submittingTourney} className="m3-btn-filled px-5 py-2.5 text-sm">
-                {submittingTourney ? 'Menyimpan...' : 'Simpan'}
+              <button type="submit" disabled={submittingTourney} className="m3-btn-filled px-5 py-2.5 text-sm font-semibold">
+                {submittingTourney ? 'Menyimpan...' : editingTourneyId ? 'Simpan Perubahan' : 'Simpan Turnamen'}
               </button>
             </div>
           </form>

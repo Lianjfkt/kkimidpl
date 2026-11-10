@@ -143,11 +143,13 @@ export default function OwnerExams() {
   // Active exam view state
   const [selectedExamId, setSelectedExamId] = useState<string>('');
 
-  // Form states (Create Exam)
+  // Form states (Create / Edit Exam)
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [examDate, setExamDate] = useState('');
   const [examLocation, setExamLocation] = useState('');
   const [examFee, setExamFee] = useState(100000);
+  const [examStatus, setExamStatus] = useState<'terjadwal' | 'selesai' | 'dibatalkan'>('terjadwal');
   const [examNotes, setExamNotes] = useState('');
   const [submittingExam, setSubmittingExam] = useState(false);
 
@@ -192,7 +194,69 @@ export default function OwnerExams() {
     loadData();
   }, []);
 
-  const handleCreateExam = async (e: React.FormEvent) => {
+  const handleOpenCreateExam = () => {
+    setEditingExamId(null);
+    setExamDate('');
+    setExamLocation('');
+    setExamFee(100000);
+    setExamStatus('terjadwal');
+    setExamNotes('');
+    setIsExamModalOpen(true);
+  };
+
+  const handleOpenEditExam = (ex: BeltExam, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingExamId(ex.id);
+    setExamDate(ex.exam_date);
+    setExamLocation(ex.location);
+    setExamFee(Number(ex.fee || ex.registration_fee || 100000));
+    setExamStatus((ex.status as any) || 'terjadwal');
+    setExamNotes(ex.notes || '');
+    setIsExamModalOpen(true);
+  };
+
+  const handleDeleteExam = async (examId: string, locationName: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const count = participants.filter(p => p.exam_id === examId).length;
+    const confirmMsg = count > 0
+      ? `Hapus jadwal ujian di "${locationName}"? PERINGATAN: ${count} data peserta pada jadwal ini juga akan terhapus.`
+      : `Apakah Anda yakin ingin menghapus jadwal ujian di "${locationName}"?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      // 1. Hapus peserta terkait terlebih dahulu jika ada
+      if (count > 0) {
+        await supabase.from('exam_participants').eq('exam_id', examId).delete();
+      }
+
+      // 2. Hapus jadwal ujian
+      const { error } = await supabase.from('belt_exams').eq('id', examId).delete();
+      if (error) throw error;
+
+      alert('Jadwal ujian berhasil dihapus.');
+      
+      const remaining = exams.filter(ex => ex.id !== examId);
+      const nextSelected = remaining.length > 0 ? remaining[0].id : '';
+      await loadData(nextSelected);
+    } catch (err: any) {
+      alert(`Gagal menghapus jadwal ujian: ${err.message || err}`);
+    }
+  };
+
+  const handleDeleteParticipant = async (participantId: string, studentName: string) => {
+    if (!window.confirm(`Hapus ${studentName} dari daftar peserta ujian ini?`)) return;
+
+    try {
+      const { error } = await supabase.from('exam_participants').eq('id', participantId).delete();
+      if (error) throw error;
+      await loadData(selectedExamId);
+    } catch (err: any) {
+      alert(`Gagal menghapus peserta: ${err.message || err}`);
+    }
+  };
+
+  const handleSaveExam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!examDate || !examLocation) {
       alert('Mohon lengkapi tanggal dan lokasi ujian.');
@@ -200,19 +264,57 @@ export default function OwnerExams() {
     }
 
     setSubmittingExam(true);
+
+    if (editingExamId) {
+      // MODE UPDATE (EDIT)
+      const updatePayload = {
+        exam_date: examDate,
+        location: examLocation,
+        fee: Number(examFee),
+        registration_fee: Number(examFee),
+        status: examStatus,
+        notes: examNotes || null
+      };
+
+      let { error } = await supabase.from('belt_exams').eq('id', editingExamId).update(updatePayload);
+
+      if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+        const fallbackPayload = {
+          exam_date: examDate,
+          location: examLocation,
+          registration_fee: Number(examFee),
+          status: examStatus === 'dibatalkan' ? 'dibatalkan' : 'terjadwal'
+        };
+        const retry = await supabase.from('belt_exams').eq('id', editingExamId).update(fallbackPayload);
+        error = retry.error;
+      }
+
+      if (error) {
+        alert(`Gagal memperbarui ujian: ${error.message}`);
+        setSubmittingExam(false);
+        return;
+      }
+
+      setIsExamModalOpen(false);
+      setSubmittingExam(false);
+      await loadData(editingExamId);
+      return;
+    }
+
+    // MODE CREATE (TAMBAH BARU)
     const newExam = {
       exam_date: examDate,
       location: examLocation,
       fee: Number(examFee),
       registration_fee: Number(examFee),
-      status: 'terjadwal' as const,
+      status: examStatus,
       notes: examNotes || null
     };
 
     let createdId: string | null = null;
     let { data, error } = await supabase.from('belt_exams').insert(newExam).select();
 
-    // Fallback jika schema DB lama belum menambahkan fee/notes atau status check
+    // Fallback jika schema DB lama
     if (error && (error.message.includes('column') || error.code === 'PGRST204' || error.message.includes('status'))) {
       const fallbackExam = {
         exam_date: examDate,
@@ -523,7 +625,7 @@ export default function OwnerExams() {
             </p>
           </div>
           <button
-            onClick={() => setIsExamModalOpen(true)}
+            onClick={handleOpenCreateExam}
             className="m3-btn-filled px-5 py-2.5 text-sm font-semibold cursor-pointer"
           >
             <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -635,6 +737,23 @@ export default function OwnerExams() {
                   <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                     Tanggal Pelaksanaan: <strong>{currentExam.exam_date}</strong> {currentExam.notes ? `• ${currentExam.notes}` : ''}
                   </p>
+                  
+                  {/* Action Edit & Hapus Event Ujian */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={(e) => handleOpenEditExam(currentExam, e)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold border hover:bg-slate-500/10 transition-colors flex items-center gap-1 cursor-pointer"
+                      style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+                    >
+                      ✏️ Edit Jadwal
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteExam(currentExam.id, currentExam.location, e)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      🗑️ Hapus Jadwal
+                    </button>
+                  </div>
                 </div>
 
                 {/* 4 Stats Pills */}
@@ -831,6 +950,13 @@ export default function OwnerExams() {
                             >
                               Gagal
                             </button>
+                            <button
+                              onClick={() => handleDeleteParticipant(part.id, studentName)}
+                              title="Hapus peserta dari ujian ini"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center border border-rose-500/20 text-rose-400 hover:bg-rose-500/10 transition-colors text-xs cursor-pointer ml-1"
+                            >
+                              ✕
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -842,13 +968,13 @@ export default function OwnerExams() {
           )}
         </div>
 
-        {/* Schedule Exam Modal */}
+        {/* Create / Edit Exam Modal */}
         <M3Dialog
           open={isExamModalOpen}
           onClose={() => setIsExamModalOpen(false)}
-          title="Jadwalkan Ujian Baru"
+          title={editingExamId ? 'Edit Jadwal Ujian' : 'Jadwalkan Ujian Baru'}
         >
-          <form onSubmit={handleCreateExam} className="space-y-4">
+          <form onSubmit={handleSaveExam} className="space-y-4">
             <div className={fieldWrap}>
               <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Tanggal Ujian *</label>
               <input
@@ -870,15 +996,29 @@ export default function OwnerExams() {
                 onChange={(e) => setExamLocation(e.target.value)}
               />
             </div>
-            <div className={fieldWrap}>
-              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Biaya Ujian (Rp) *</label>
-              <input
-                type="number"
-                required
-                className={inputClass}
-                value={examFee}
-                onChange={(e) => setExamFee(Number(e.target.value))}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Biaya Ujian (Rp) *</label>
+                <input
+                  type="number"
+                  required
+                  className={inputClass}
+                  value={examFee}
+                  onChange={(e) => setExamFee(Number(e.target.value))}
+                />
+              </div>
+              <div className={fieldWrap}>
+                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Status Event</label>
+                <select
+                  className={inputClass}
+                  value={examStatus}
+                  onChange={(e) => setExamStatus(e.target.value as any)}
+                >
+                  <option value="terjadwal">Terjadwal</option>
+                  <option value="selesai">Selesai</option>
+                  <option value="dibatalkan">Dibatalkan</option>
+                </select>
+              </div>
             </div>
             <div className={fieldWrap}>
               <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Keterangan Tambahan</label>
@@ -898,8 +1038,8 @@ export default function OwnerExams() {
               >
                 Batal
               </button>
-              <button type="submit" disabled={submittingExam} className="m3-btn-filled px-5 py-2.5 text-sm">
-                {submittingExam ? 'Menyimpan...' : 'Simpan'}
+              <button type="submit" disabled={submittingExam} className="m3-btn-filled px-5 py-2.5 text-sm font-semibold">
+                {submittingExam ? 'Menyimpan...' : editingExamId ? 'Simpan Perubahan' : 'Jadwalkan Ujian'}
               </button>
             </div>
           </form>
