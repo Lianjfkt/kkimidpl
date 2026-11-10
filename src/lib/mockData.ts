@@ -99,7 +99,9 @@ export interface BeltExam {
   exam_date: string;
   location: string;
   fee: number;
-  status: 'terjadwal' | 'selesai' | 'dibatalkan';
+  registration_fee?: number;
+  examiner?: string;
+  status: 'terjadwal' | 'mendatang' | 'selesai' | 'dibatalkan';
   notes?: string;
 }
 
@@ -107,19 +109,26 @@ export interface ExamParticipant {
   id: string;
   exam_id: string;
   student_id: string;
-  current_belt: string;
+  current_belt?: string;
   target_belt: string;
   result: 'lulus' | 'tidak_lulus' | 'pending';
+  status?: string;
   score_notes?: string;
+  grade?: string;
+  notes?: string;
 }
 
 export interface Tournament {
   id: string;
   name: string;
   tournament_date: string;
+  start_date?: string;
+  end_date?: string;
   location: string;
   level: 'lokal' | 'regional' | 'nasional';
   organizer: string;
+  registration_fee?: number;
+  status?: string;
 }
 
 export interface TournamentParticipant {
@@ -130,6 +139,8 @@ export interface TournamentParticipant {
   weight_class?: string;
   result: string;
   medal: 'emas' | 'perak' | 'perunggu' | 'none';
+  status?: string;
+  notes?: string;
 }
 
 export interface Registration {

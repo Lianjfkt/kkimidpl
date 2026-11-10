@@ -82,7 +82,8 @@ export default function CalendarPage() {
 
     // Check tournaments
     tournaments.forEach(t => {
-      if (t.tournament_date === dateStr) {
+      const tourneyDate = t.tournament_date || t.start_date;
+      if (tourneyDate === dateStr) {
         list.push({ type: 'tournament', label: `🏆 ${t.name}`, color: 'var(--md-sys-color-primary-container)' });
       }
     });

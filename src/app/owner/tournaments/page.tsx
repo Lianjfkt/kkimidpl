@@ -50,22 +50,26 @@ export default function OwnerTournaments() {
 
   // Medal winner state
   const [medalState, setMedalState] = useState<Record<string, 'emas' | 'perak' | 'perunggu' | 'none'>>({});
+  const [submittingTourney, setSubmittingTourney] = useState(false);
+  const [submittingCompetitor, setSubmittingCompetitor] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (selectId?: string) => {
     setLoading(true);
-    const { data: tourneysData } = await supabase.from('tournaments').select('*');
+    const { data: tourneysData } = await supabase.from('tournaments').select('*').order('created_at', { ascending: false });
     const { data: studentsData } = await supabase.from('students').eq('status', 'active').select('*');
     const { data: participantsData } = await supabase.from('tournament_participants').select('*');
 
     if (tourneysData) {
       setTournaments(tourneysData);
-      if (tourneysData.length > 0 && !selectedTourneyId) {
+      if (selectId) {
+        setSelectedTourneyId(selectId);
+      } else if (tourneysData.length > 0 && (!selectedTourneyId || !tourneysData.some((t: Tournament) => t.id === selectedTourneyId))) {
         setSelectedTourneyId(tourneysData[0].id);
       }
     }
     if (studentsData) {
       setStudents(studentsData);
-      if (studentsData.length > 0) setSelectedStudentId(studentsData[0].id);
+      if (studentsData.length > 0 && !selectedStudentId) setSelectedStudentId(studentsData[0].id);
     }
     if (participantsData) {
       setParticipants(participantsData);
@@ -85,33 +89,78 @@ export default function OwnerTournaments() {
 
   const handleCreateTournament = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name || !tourneyDate || !location) {
+      alert('Mohon lengkapi nama turnamen, tanggal, dan lokasi.');
+      return;
+    }
 
+    setSubmittingTourney(true);
     const newTourney = {
       name,
       tournament_date: tourneyDate,
+      start_date: tourneyDate,
+      end_date: tourneyDate,
       location,
       level,
-      organizer
+      organizer: organizer || null,
+      registration_fee: 150000,
+      status: 'aktif'
     };
 
-    await supabase.from('tournaments').insert(newTourney);
-    
+    let createdId: string | null = null;
+    let { data, error } = await supabase.from('tournaments').insert(newTourney).select();
+
+    // Fallback jika database belum ada kolom level/organizer/tournament_date
+    if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+      const fallbackTourney = {
+        name: newTourney.name,
+        location: newTourney.location,
+        start_date: newTourney.start_date,
+        end_date: newTourney.end_date,
+        registration_fee: 150000,
+        status: 'aktif'
+      };
+      const retry = await supabase.from('tournaments').insert(fallbackTourney).select();
+      data = retry.data;
+      error = retry.error;
+    }
+
+    if (error) {
+      alert(`Gagal menambahkan event turnamen: ${error.message}\nPastikan Anda sudah login sebagai Owner.`);
+      setSubmittingTourney(false);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      createdId = data[0].id;
+    }
+
     // Broadcast notifications to parents
-    const parentNotifications = students.map(s => ({
-      user_id: s.parent_id || 'user-parent-id',
-      title: 'Event Turnamen Baru',
-      message: `Telah dibuka pendaftaran atlet untuk event turnamen "${name}" yang diadakan pada tanggal ${tourneyDate} di ${location}.`,
-      type: 'turnamen' as const,
-      is_read: false
-    }));
-    await supabase.from('notifications').insert(parentNotifications);
+    try {
+      const parentNotifications = students
+        .filter(s => s.parent_id)
+        .map(s => ({
+          id: `notif-${Date.now()}-${s.id}`,
+          user_id: s.parent_id,
+          title: 'Event Turnamen Baru',
+          message: `Telah dibuka pendaftaran atlet untuk event turnamen "${name}" yang diadakan pada tanggal ${tourneyDate} di ${location}.`,
+          type: 'turnamen' as const,
+          is_read: false
+        }));
+      if (parentNotifications.length > 0) {
+        await supabase.from('notifications').insert(parentNotifications);
+      }
+    } catch (notifErr) {
+      console.warn('Gagal broadcast notifikasi turnamen (dilewati):', notifErr);
+    }
 
     setIsTourneyModalOpen(false);
     setName('');
     setTourneyDate('');
     setLocation('');
     setOrganizer('');
-    loadData();
+    setSubmittingTourney(false);
+    await loadData(createdId || undefined);
   };
 
   const handleRegisterCompetitor = async (e: React.FormEvent) => {
@@ -126,41 +175,81 @@ export default function OwnerTournaments() {
       return;
     }
 
+    setSubmittingCompetitor(true);
     const newParticipant = {
       tournament_id: selectedTourneyId,
       student_id: selectedStudentId,
       category,
       weight_class: weightClass || null,
       result: 'Berpartisipasi',
+      status: 'daftar',
       medal: 'none' as const
     };
 
-    await supabase.from('tournament_participants').insert(newParticipant);
+    let { error } = await supabase.from('tournament_participants').insert(newParticipant);
+
+    // Fallback jika database belum ada kolom medal / weight_class
+    if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+      const fallbackPart = {
+        tournament_id: selectedTourneyId,
+        student_id: selectedStudentId,
+        category,
+        status: 'daftar',
+        result: 'Berpartisipasi'
+      };
+      const retry = await supabase.from('tournament_participants').insert(fallbackPart);
+      error = retry.error;
+    }
+
+    if (error) {
+      alert(`Gagal mendaftarkan atlet: ${error.message}`);
+      setSubmittingCompetitor(false);
+      return;
+    }
+
     setIsRegModalOpen(false);
     setWeightClass('');
-    loadData();
+    setSubmittingCompetitor(false);
+    loadData(selectedTourneyId);
   };
 
   const handleMedalChange = async (partId: string, medal: 'emas' | 'perak' | 'perunggu' | 'none') => {
     setMedalState(prev => ({ ...prev, [partId]: medal }));
     
-    await supabase.from('tournament_participants').eq('id', partId).update({
+    let { error } = await supabase.from('tournament_participants').eq('id', partId).update({
       medal,
-      result: medal !== 'none' ? `Juara Medal ${medal}` : 'Berpartisipasi'
+      result: medal !== 'none' ? `Juara Medali ${medal}` : 'Berpartisipasi'
     });
+
+    if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+      const retry = await supabase.from('tournament_participants').eq('id', partId).update({
+        result: medal !== 'none' ? `Juara Medali ${medal}` : 'Berpartisipasi'
+      });
+      error = retry.error;
+    }
+
+    if (error) {
+      alert(`Gagal memperbarui perolehan medali: ${error.message}`);
+      return;
+    }
 
     if (medal !== 'none') {
       const part = participants.find(p => p.id === partId);
       const student = students.find(s => s.id === part?.student_id);
       const tourney = tournaments.find(t => t.id === selectedTourneyId);
-      if (student && tourney) {
-        await supabase.from('notifications').insert({
-          user_id: student.parent_id || 'user-parent-id',
-          title: 'Medali Turnamen!',
-          message: `Selamat! ${student.full_name} berhasil memenangkan Medali ${medal.toUpperCase()} di turnamen ${tourney.name}.`,
-          type: 'turnamen',
-          is_read: false
-        });
+      if (student && tourney && student.parent_id) {
+        try {
+          await supabase.from('notifications').insert({
+            id: `notif-${Date.now()}-${student.id}`,
+            user_id: student.parent_id,
+            title: 'Medali Turnamen!',
+            message: `Selamat! ${student.full_name} berhasil memenangkan Medali ${medal.toUpperCase()} di turnamen ${tourney.name}.`,
+            type: 'turnamen',
+            is_read: false
+          });
+        } catch (e) {
+          console.warn('Gagal notifikasi medali ortu:', e);
+        }
       }
     }
   };
@@ -210,7 +299,9 @@ export default function OwnerTournaments() {
                 <option value="">Belum ada event turnamen</option>
               ) : (
                 tournaments.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.tournament_date || t.start_date || 'Tanggal TBD'})
+                  </option>
                 ))
               )}
             </select>
@@ -364,8 +455,8 @@ export default function OwnerTournaments() {
               >
                 Batal
               </button>
-              <button type="submit" className="m3-btn-filled px-5 py-2.5 text-sm">
-                Simpan
+              <button type="submit" disabled={submittingTourney} className="m3-btn-filled px-5 py-2.5 text-sm">
+                {submittingTourney ? 'Menyimpan...' : 'Simpan'}
               </button>
             </div>
           </form>
@@ -424,8 +515,8 @@ export default function OwnerTournaments() {
               >
                 Batal
               </button>
-              <button type="submit" className="m3-btn-filled px-5 py-2.5 text-sm">
-                Daftarkan
+              <button type="submit" disabled={submittingCompetitor} className="m3-btn-filled px-5 py-2.5 text-sm">
+                {submittingCompetitor ? 'Mendaftarkan...' : 'Daftarkan'}
               </button>
             </div>
           </form>

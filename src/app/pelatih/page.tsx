@@ -239,9 +239,9 @@ export default function PelatihDashboard() {
         supabase.from('attendance_students')
           .gte('session_date', new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0])
           .select('*').limit(200),
-        supabase.from('belt_exams').in('status', ['terjadwal']).gte('exam_date', todayStr).select('*').limit(5),
+        supabase.from('belt_exams').in('status', ['terjadwal', 'mendatang']).gte('exam_date', todayStr).select('*').limit(5),
         supabase.from('exam_participants').select('*'),
-        supabase.from('tournaments').gte('tournament_date', todayStr).select('*').limit(5),
+        supabase.from('tournaments').select('*').limit(20),
         supabase.from('tournament_participants').select('*'),
       ]);
 
@@ -251,7 +251,10 @@ export default function PelatihDashboard() {
       if (attRecentRes.data) setRecentAttendance(attRecentRes.data);
       if (examsRes.data) setUpcomingExams(examsRes.data as BeltExam[]);
       if (examPartRes.data) setExamParticipants(examPartRes.data);
-      if (tournsRes.data) setUpcomingTournaments(tournsRes.data as Tournament[]);
+      if (tournsRes.data) {
+        const filteredTourns = (tournsRes.data as Tournament[]).filter(t => (t.tournament_date || t.start_date || '') >= todayStr).slice(0, 5);
+        setUpcomingTournaments(filteredTourns);
+      }
       if (tournPartRes.data) setTournParticipants(tournPartRes.data);
 
       setLastUpdated(new Date());
@@ -728,11 +731,11 @@ export default function PelatihDashboard() {
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                              {new Date(t.tournament_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                              {new Date(t.tournament_date || t.start_date || Date.now()).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                             </span>
                             <span className="px-1.5 py-0.5 rounded-full text-xs capitalize font-semibold"
-                              style={{ background: levelColor[t.level] + '22', color: levelColor[t.level] }}>
-                              {t.level}
+                              style={{ background: (levelColor[t.level || 'lokal'] || '#60a5fa') + '22', color: levelColor[t.level || 'lokal'] || '#60a5fa' }}>
+                              {t.level || 'lokal'}
                             </span>
                           </div>
                         </div>

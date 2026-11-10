@@ -105,14 +105,30 @@ export default function PelatihExams() {
     if (!student || !selExamId) return;
     const already = participants.some(p => p.exam_id === selExamId && p.student_id === selStudentId);
     if (already) { alert('Siswa sudah terdaftar di ujian ini.'); return; }
-    await supabase.from('exam_participants').insert({
+    const newPart = {
       exam_id: selExamId,
       student_id: selStudentId,
       current_belt: student.current_belt,
       target_belt: targetBelt,
       result: 'pending',
+      status: 'daftar',
       score_notes: '',
-    });
+    };
+    let { error } = await supabase.from('exam_participants').insert(newPart);
+    if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+      const fallbackPart = {
+        exam_id: selExamId,
+        student_id: selStudentId,
+        target_belt: targetBelt,
+        status: 'daftar'
+      };
+      const retry = await supabase.from('exam_participants').insert(fallbackPart);
+      error = retry.error;
+    }
+    if (error) {
+      alert(`Gagal mendaftarkan peserta: ${error.message}`);
+      return;
+    }
     setRegExamModal(false);
     loadData();
   };
@@ -120,14 +136,31 @@ export default function PelatihExams() {
   const handleRegisterTournParticipant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selTournId || !selTournStudentId) return;
-    await supabase.from('tournament_participants').insert({
+    const newPart = {
       tournament_id: selTournId,
       student_id: selTournStudentId,
       category: tournCategory,
       weight_class: tournWeightClass || null,
-      result: '',
+      result: 'Berpartisipasi',
+      status: 'daftar',
       medal: 'none',
-    });
+    };
+    let { error } = await supabase.from('tournament_participants').insert(newPart);
+    if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+      const fallbackPart = {
+        tournament_id: selTournId,
+        student_id: selTournStudentId,
+        category: tournCategory,
+        status: 'daftar',
+        result: 'Berpartisipasi'
+      };
+      const retry = await supabase.from('tournament_participants').insert(fallbackPart);
+      error = retry.error;
+    }
+    if (error) {
+      alert(`Gagal mendaftarkan atlet: ${error.message}`);
+      return;
+    }
     setRegTournModal(false);
     loadData();
   };
@@ -136,22 +169,38 @@ export default function PelatihExams() {
     if (!resultModal) return;
     const part = participants.find(p => p.id === resultModal.id);
     if (!part) return;
-    await supabase.from('exam_participants').eq('id', resultModal.id).update({
+    let { error } = await supabase.from('exam_participants').eq('id', resultModal.id).update({
       result: examResult,
+      status: examResult === 'lulus' ? 'lulus' : 'tidak_lulus',
       score_notes: examNotes,
     });
+    if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+      const retry = await supabase.from('exam_participants').eq('id', resultModal.id).update({
+        status: examResult === 'lulus' ? 'lulus' : 'tidak_lulus',
+      });
+      error = retry.error;
+    }
+    if (error) {
+      alert(`Gagal menyimpan hasil: ${error.message}`);
+      return;
+    }
     if (examResult === 'lulus') {
       await supabase.from('students').eq('id', part.student_id).update({ current_belt: part.target_belt });
       const student = students.find(s => s.id === part.student_id);
-      if (student) {
-        await supabase.from('notifications').insert({
-          user_id: student.parent_id || 'user-parent-id',
-          title: 'Hasil Ujian Kenaikan Sabuk',
-          message: `Selamat! ${student.full_name} dinyatakan LULUS dan naik ke sabuk ${part.target_belt}.`,
-          type: 'ujian',
-          is_read: false,
-          created_at: new Date().toISOString(),
-        });
+      if (student && student.parent_id) {
+        try {
+          await supabase.from('notifications').insert({
+            id: `notif-${Date.now()}-${student.id}`,
+            user_id: student.parent_id,
+            title: 'Hasil Ujian Kenaikan Sabuk',
+            message: `Selamat! ${student.full_name} dinyatakan LULUS dan naik ke sabuk ${part.target_belt}.`,
+            type: 'ujian',
+            is_read: false,
+            created_at: new Date().toISOString(),
+          });
+        } catch (e) {
+          console.warn('Gagal notifikasi ortu:', e);
+        }
       }
     }
     setResultModal(null);
@@ -161,22 +210,37 @@ export default function PelatihExams() {
 
   const handleSubmitTournResult = async () => {
     if (!resultModal) return;
-    await supabase.from('tournament_participants').eq('id', resultModal.id).update({
-      result: tournResult,
+    let { error } = await supabase.from('tournament_participants').eq('id', resultModal.id).update({
+      result: tournResult || (tournMedal !== 'none' ? `Juara Medali ${tournMedal}` : 'Berpartisipasi'),
       medal: tournMedal,
     });
+    if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+      const retry = await supabase.from('tournament_participants').eq('id', resultModal.id).update({
+        result: tournResult || (tournMedal !== 'none' ? `Juara Medali ${tournMedal}` : 'Berpartisipasi'),
+      });
+      error = retry.error;
+    }
+    if (error) {
+      alert(`Gagal menyimpan hasil turnamen: ${error.message}`);
+      return;
+    }
     const tp = tournParticipants.find(p => p.id === resultModal.id);
     if (tp) {
       const student = students.find(s => s.id === tp.student_id);
-      if (student) {
-        await supabase.from('notifications').insert({
-          user_id: student.parent_id || 'user-parent-id',
-          title: 'Hasil Turnamen',
-          message: `Hasil turnamen untuk ${student.full_name}: ${tournResult}${tournMedal !== 'none' ? ` — Meraih medali ${tournMedal}! 🏅` : ''}.`,
-          type: 'turnamen',
-          is_read: false,
-          created_at: new Date().toISOString(),
-        });
+      if (student && student.parent_id) {
+        try {
+          await supabase.from('notifications').insert({
+            id: `notif-${Date.now()}-${student.id}`,
+            user_id: student.parent_id,
+            title: 'Hasil Turnamen',
+            message: `Hasil turnamen untuk ${student.full_name}: ${tournResult}${tournMedal !== 'none' ? ` — Meraih medali ${tournMedal}! 🏅` : ''}.`,
+            type: 'turnamen',
+            is_read: false,
+            created_at: new Date().toISOString(),
+          });
+        } catch (e) {
+          console.warn('Gagal notifikasi ortu:', e);
+        }
       }
     }
     setResultModal(null);

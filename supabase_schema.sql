@@ -171,16 +171,18 @@ create table public.belt_exams (
   id uuid primary key default gen_random_uuid(),
   exam_date date not null,
   location text not null,
-  status text not null check (status in ('mendatang', 'selesai', 'dibatalkan')) default 'mendatang',
+  status text not null check (status in ('terjadwal', 'mendatang', 'selesai', 'dibatalkan')) default 'terjadwal',
   examiner text,
+  fee numeric not null default 100000,
   registration_fee numeric not null default 100000,
+  notes text,
   created_at timestamptz default now()
 );
 
 alter table public.belt_exams enable row level security;
 create policy "Allow read access to belt_exams" on public.belt_exams for select using (true);
-create policy "Allow owner to manage belt_exams" on public.belt_exams for all using (
-  exists (select 1 from public.profiles where id = auth.uid() and role = 'owner')
+create policy "Allow manager to manage belt_exams" on public.belt_exams for all using (
+  exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih'))
 );
 
 -- 11. Create Exam Participants Table
@@ -188,8 +190,11 @@ create table public.exam_participants (
   id uuid primary key default gen_random_uuid(),
   exam_id uuid references public.belt_exams(id) on delete cascade,
   student_id uuid references public.students(id) on delete cascade,
+  current_belt text,
   target_belt text not null,
+  result text not null check (result in ('pending', 'lulus', 'tidak_lulus')) default 'pending',
   status text not null check (status in ('daftar', 'lulus', 'tidak_lulus', 'menunggu')) default 'daftar',
+  score_notes text,
   grade text,
   notes text,
   updated_at timestamptz default now()
@@ -206,17 +211,20 @@ create table public.tournaments (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   location text not null,
-  start_date date not null,
-  end_date date not null,
+  tournament_date date,
+  start_date date,
+  end_date date,
+  level text default 'lokal',
+  organizer text,
   registration_fee numeric not null default 150000,
-  status text not null check (status in ('aktif', 'selesai', 'dibatalkan')) default 'aktif',
+  status text not null check (status in ('aktif', 'terjadwal', 'selesai', 'dibatalkan')) default 'aktif',
   created_at timestamptz default now()
 );
 
 alter table public.tournaments enable row level security;
 create policy "Allow read access to tournaments" on public.tournaments for select using (true);
-create policy "Allow owner to manage tournaments" on public.tournaments for all using (
-  exists (select 1 from public.profiles where id = auth.uid() and role = 'owner')
+create policy "Allow manager to manage tournaments" on public.tournaments for all using (
+  exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih'))
 );
 
 -- 13. Create Tournament Participants Table
@@ -225,6 +233,8 @@ create table public.tournament_participants (
   tournament_id uuid references public.tournaments(id) on delete cascade,
   student_id uuid references public.students(id) on delete cascade,
   category text not null,
+  weight_class text,
+  medal text not null default 'none',
   status text not null check (status in ('daftar', 'berangkat', 'selesai', 'batal')) default 'daftar',
   result text,
   notes text
@@ -233,6 +243,8 @@ create table public.tournament_participants (
 alter table public.tournament_participants enable row level security;
 create policy "Allow read access to tournament_participants" on public.tournament_participants for select using (true);
 create policy "Allow managers to write tournament_participants" on public.tournament_participants for all using (
+  exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih'))
+);
   exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih'))
 );
 
@@ -263,7 +275,7 @@ create policy "Allow owner to modify registrations" on public.registrations for 
 
 -- 15. Create Notifications Table
 create table public.notifications (
-  id text primary key, -- Custom text key
+  id text primary key default gen_random_uuid()::text,
   user_id text, -- Custom text or uuid
   title text not null,
   message text not null,

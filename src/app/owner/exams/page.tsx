@@ -137,34 +137,38 @@ export default function OwnerExams() {
   const [examLocation, setExamLocation] = useState('');
   const [examFee, setExamFee] = useState(100000);
   const [examNotes, setExamNotes] = useState('');
+  const [submittingExam, setSubmittingExam] = useState(false);
 
   // Form states (Register Candidate)
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [targetBelt, setTargetBelt] = useState('Kuning');
+  const [submittingReg, setSubmittingReg] = useState(false);
 
   // Belt level up celebration
   const [celebration, setCelebration] = useState<CelebrationData | null>(null);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (selectId?: string) => {
     setLoading(true);
-    const { data: examsData } = await supabase.from('belt_exams').select('*');
+    const { data: examsData } = await supabase.from('belt_exams').select('*').order('exam_date', { ascending: false });
     const { data: studentsData } = await supabase.from('students').eq('status', 'active').select('*');
     const { data: participantsData } = await supabase.from('exam_participants').select('*');
 
     if (examsData) {
       setExams(examsData);
-      if (examsData.length > 0 && !selectedExamId) {
+      if (selectId) {
+        setSelectedExamId(selectId);
+      } else if (examsData.length > 0 && (!selectedExamId || !examsData.some((e: BeltExam) => e.id === selectedExamId))) {
         setSelectedExamId(examsData[0].id);
       }
     }
     if (studentsData) {
       setStudents(studentsData);
-      if (studentsData.length > 0) setSelectedStudentId(studentsData[0].id);
+      if (studentsData.length > 0 && !selectedStudentId) setSelectedStudentId(studentsData[0].id);
     }
     if (participantsData) setParticipants(participantsData);
     setLoading(false);
-  }, [selectedExamId]);
+  }, [selectedExamId, selectedStudentId]);
 
   useEffect(() => {
     loadData();
@@ -172,32 +176,72 @@ export default function OwnerExams() {
 
   const handleCreateExam = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!examDate || !examLocation) {
+      alert('Mohon lengkapi tanggal dan lokasi ujian.');
+      return;
+    }
 
+    setSubmittingExam(true);
     const newExam = {
       exam_date: examDate,
       location: examLocation,
       fee: Number(examFee),
+      registration_fee: Number(examFee),
       status: 'terjadwal' as const,
-      notes: examNotes
+      notes: examNotes || null
     };
 
-    await supabase.from('belt_exams').insert(newExam);
-    
-    // Broadcast notifications to parents
-    const parentNotifications = students.map(s => ({
-      user_id: s.parent_id || 'user-parent-id',
-      title: 'Ujian Kenaikan Sabuk Baru',
-      message: `Jadwal ujian kenaikan sabuk (grading) baru telah dibuka pada tanggal ${examDate} di ${examLocation}.`,
-      type: 'ujian' as const,
-      is_read: false
-    }));
-    await supabase.from('notifications').insert(parentNotifications);
+    let createdId: string | null = null;
+    let { data, error } = await supabase.from('belt_exams').insert(newExam).select();
+
+    // Fallback jika schema DB lama belum menambahkan fee/notes atau status check
+    if (error && (error.message.includes('column') || error.code === 'PGRST204' || error.message.includes('status'))) {
+      const fallbackExam = {
+        exam_date: examDate,
+        location: examLocation,
+        registration_fee: Number(examFee),
+        status: 'mendatang'
+      };
+      const retry = await supabase.from('belt_exams').insert(fallbackExam).select();
+      data = retry.data;
+      error = retry.error;
+    }
+
+    if (error) {
+      alert(`Gagal menjadwalkan ujian: ${error.message}\nPastikan Anda sudah login sebagai Owner.`);
+      setSubmittingExam(false);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      createdId = data[0].id;
+    }
+
+    // Broadcast notifications to parents secara aman
+    try {
+      const parentNotifications = students
+        .filter(s => s.parent_id)
+        .map(s => ({
+          id: `notif-${Date.now()}-${s.id}`,
+          user_id: s.parent_id,
+          title: 'Ujian Kenaikan Sabuk Baru',
+          message: `Jadwal ujian kenaikan sabuk (grading) baru telah dibuka pada tanggal ${examDate} di ${examLocation}.`,
+          type: 'ujian' as const,
+          is_read: false
+        }));
+      if (parentNotifications.length > 0) {
+        await supabase.from('notifications').insert(parentNotifications);
+      }
+    } catch (notifErr) {
+      console.warn('Gagal broadcast notifikasi (dilewati):', notifErr);
+    }
 
     setIsExamModalOpen(false);
     setExamDate('');
     setExamLocation('');
     setExamNotes('');
-    loadData();
+    setSubmittingExam(false);
+    await loadData(createdId || undefined);
   };
 
   const handleRegisterParticipant = async (e: React.FormEvent) => {
@@ -213,18 +257,40 @@ export default function OwnerExams() {
       return;
     }
 
+    setSubmittingReg(true);
     const newParticipant = {
       exam_id: selectedExamId,
       student_id: selectedStudentId,
       current_belt: student.current_belt,
       target_belt: targetBelt,
       result: 'pending' as const,
+      status: 'daftar' as const,
       score_notes: ''
     };
 
-    await supabase.from('exam_participants').insert(newParticipant);
+    let { error } = await supabase.from('exam_participants').insert(newParticipant);
+
+    // Fallback jika database belum ada kolom current_belt/result/score_notes
+    if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+      const fallbackPart = {
+        exam_id: selectedExamId,
+        student_id: selectedStudentId,
+        target_belt: targetBelt,
+        status: 'daftar'
+      };
+      const retry = await supabase.from('exam_participants').insert(fallbackPart);
+      error = retry.error;
+    }
+
+    if (error) {
+      alert(`Gagal mendaftarkan peserta: ${error.message}`);
+      setSubmittingReg(false);
+      return;
+    }
+
     setIsRegModalOpen(false);
-    loadData();
+    setSubmittingReg(false);
+    loadData(selectedExamId);
   };
 
   const handleUpdateResult = async (participantId: string, result: 'lulus' | 'tidak_lulus') => {
@@ -232,7 +298,23 @@ export default function OwnerExams() {
     if (!participant) return;
 
     // 1. Update result in participant logs
-    await supabase.from('exam_participants').eq('id', participantId).update({ result });
+    let { error } = await supabase.from('exam_participants').eq('id', participantId).update({
+      result,
+      status: result === 'lulus' ? 'lulus' : 'tidak_lulus'
+    });
+
+    // Fallback jika kolom result belum ada di database
+    if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+      const retry = await supabase.from('exam_participants').eq('id', participantId).update({
+        status: result === 'lulus' ? 'lulus' : 'tidak_lulus'
+      });
+      error = retry.error;
+    }
+
+    if (error) {
+      alert(`Gagal memperbarui status kelulusan: ${error.message}`);
+      return;
+    }
 
     // 2. If lulus, update student current_belt + trigger celebration
     if (result === 'lulus') {
@@ -240,27 +322,32 @@ export default function OwnerExams() {
         current_belt: participant.target_belt
       });
 
-      // Notify parent
+      // Notify parent secara aman
       const student = students.find(s => s.id === participant.student_id);
-      if (student) {
-        await supabase.from('notifications').insert({
-          user_id: student.parent_id || 'user-parent-id',
-          title: 'Hasil Ujian Kenaikan Sabuk',
-          message: `Selamat! ${student.full_name} dinyatakan LULUS ujian dan naik ke tingkat ${participant.target_belt}.`,
-          type: 'ujian',
-          is_read: false
-        });
+      if (student && student.parent_id) {
+        try {
+          await supabase.from('notifications').insert({
+            id: `notif-${Date.now()}-${student.id}`,
+            user_id: student.parent_id,
+            title: 'Hasil Ujian Kenaikan Sabuk',
+            message: `Selamat! ${student.full_name} dinyatakan LULUS ujian dan naik ke tingkat ${participant.target_belt}.`,
+            type: 'ujian',
+            is_read: false
+          });
+        } catch (e) {
+          console.warn('Gagal notifikasi ortu:', e);
+        }
 
         // 🎉 Trigger belt level up celebration overlay
         setCelebration({
           studentName: student.full_name,
-          fromBelt: participant.current_belt,
+          fromBelt: participant.current_belt || student.current_belt,
           toBelt: participant.target_belt,
         });
       }
     }
 
-    loadData();
+    loadData(selectedExamId);
   };
 
   const activeParticipants = participants.filter(p => p.exam_id === selectedExamId);
@@ -377,25 +464,26 @@ export default function OwnerExams() {
                 <tbody>
                   {activeParticipants.map((part, idx) => {
                     const studentName = students.find(s => s.id === part.student_id)?.full_name || 'Siswa';
+                    const partRes = part.result || (part.status === 'lulus' ? 'lulus' : part.status === 'tidak_lulus' ? 'tidak_lulus' : 'pending');
                     return (
                       <tr key={part.id}
                         style={{ borderBottom: idx < activeParticipants.length - 1 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}>
                         <td className="px-5 py-4 text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{studentName}</td>
-                        <td className="px-5 py-4 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{part.current_belt}</td>
+                        <td className="px-5 py-4 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{part.current_belt || '-'}</td>
                         <td className="px-5 py-4 text-sm font-semibold" style={{ color: 'var(--md-sys-color-primary)' }}>{part.target_belt}</td>
                         <td className="px-5 py-4 text-sm">
                           <span className="px-2.5 py-1 rounded-[var(--md-sys-shape-corner-full)] text-xs font-semibold"
                             style={
-                              part.result === 'lulus' ? { background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' } :
-                              part.result === 'tidak_lulus' ? { background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' } :
+                              partRes === 'lulus' ? { background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' } :
+                              partRes === 'tidak_lulus' ? { background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' } :
                               { background: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)' }
                             }>
-                            {part.result === 'lulus' ? '✅ Lulus' :
-                             part.result === 'tidak_lulus' ? '❌ Tidak Lulus' : '⏳ Tertunda'}
+                            {partRes === 'lulus' ? '✅ Lulus' :
+                             partRes === 'tidak_lulus' ? '❌ Tidak Lulus' : '⏳ Tertunda'}
                           </span>
                         </td>
                         <td className="px-5 py-4 text-sm text-right">
-                          {part.result === 'pending' && (
+                          {partRes === 'pending' && (
                             <div className="flex justify-end gap-1">
                               <button
                                 onClick={() => handleUpdateResult(part.id, 'lulus')}
@@ -479,8 +567,8 @@ export default function OwnerExams() {
               >
                 Batal
               </button>
-              <button type="submit" className="m3-btn-filled px-5 py-2.5 text-sm">
-                Simpan
+              <button type="submit" disabled={submittingExam} className="m3-btn-filled px-5 py-2.5 text-sm">
+                {submittingExam ? 'Menyimpan...' : 'Simpan'}
               </button>
             </div>
           </form>

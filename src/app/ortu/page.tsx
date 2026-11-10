@@ -30,12 +30,12 @@ export default function OrtuDashboard() {
       }
       const today = new Date().toISOString().split('T')[0];
       const [examsRes, tournsRes, notifRes] = await Promise.all([
-        supabase.from('belt_exams').eq('status', 'terjadwal').select('*'),
+        supabase.from('belt_exams').in('status', ['terjadwal', 'mendatang']).select('*'),
         supabase.from('tournaments').select('*'),
         supabase.from('notifications').eq('user_id', userData.user.id).order('created_at', { ascending: false }).select('*'),
       ]);
       if (examsRes.data) setUpcomingExams((examsRes.data as BeltExam[]).filter((e) => e.exam_date >= today));
-      if (tournsRes.data) setUpcomingTournaments((tournsRes.data as Tournament[]).filter((t) => t.tournament_date >= today));
+      if (tournsRes.data) setUpcomingTournaments((tournsRes.data as Tournament[]).filter((t) => (t.tournament_date || t.start_date || '') >= today));
       if (notifRes.data) setNotifications(notifRes.data);
     }
     setLoading(false);
@@ -212,7 +212,7 @@ export default function OrtuDashboard() {
                   <div className="flex-1">
                     <p className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-primary-container)' }}>{tourn.name}</p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-primary-container)', opacity: 0.8 }}>
-                      {new Date(tourn.tournament_date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {tourn.location}
+                      {new Date(tourn.tournament_date || tourn.start_date || Date.now()).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {tourn.location}
                     </p>
                   </div>
                 </div>
