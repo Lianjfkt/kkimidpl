@@ -1,21 +1,34 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Student, Tournament, TournamentParticipant } from '@/lib/mockData';
+import { getBeltEmoji } from '@/lib/constants/belts';
 
-function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+function M3Dialog({ open, onClose, title, maxWidth = 'max-w-lg', children }: { open: boolean; onClose: () => void; title: string; maxWidth?: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in"
+        className={`w-full ${maxWidth} rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in max-h-[90vh] flex flex-col`}
         style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-xl font-semibold mb-5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
-        {children}
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <h3 className="text-xl font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
+          <button
+            onClick={onClose}
+            type="button"
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-slate-500/10"
+            style={{ color: 'var(--md-sys-color-on-surface-variant)' }}
+          >
+            ✕
+          </button>
+        </div>
+        <div className="overflow-y-auto flex-1 pr-1">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -44,9 +57,14 @@ export default function OwnerTournaments() {
 
   // Form states (Register Competitor)
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [category, setCategory] = useState<'kata' | 'kumite'>('kata');
-  const [weightClass, setWeightClass] = useState('');
+  const [searchStudent, setSearchStudent] = useState('');
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [athleteConfigs, setAthleteConfigs] = useState<Record<string, { category: 'kata' | 'kumite'; weightClass: string }>>({});
+
+  // Filter & Search di tabel peserta turnamen
+  const [tableSearch, setTableSearch] = useState('');
+  const [tableCategoryFilter, setTableCategoryFilter] = useState<'all' | 'kata' | 'kumite'>('all');
+  const [tableMedalFilter, setTableMedalFilter] = useState<'all' | 'emas' | 'perak' | 'perunggu' | 'none'>('all');
 
   // Medal winner state
   const [medalState, setMedalState] = useState<Record<string, 'emas' | 'perak' | 'perunggu' | 'none'>>({});
@@ -69,7 +87,6 @@ export default function OwnerTournaments() {
     }
     if (studentsData) {
       setStudents(studentsData);
-      if (studentsData.length > 0 && !selectedStudentId) setSelectedStudentId(studentsData[0].id);
     }
     if (participantsData) {
       setParticipants(participantsData);
@@ -163,40 +180,75 @@ export default function OwnerTournaments() {
     await loadData(createdId || undefined);
   };
 
-  const handleRegisterCompetitor = async (e: React.FormEvent) => {
+  const handleOpenBatchRegister = () => {
+    setSelectedStudentIds([]);
+    setSearchStudent('');
+    setAthleteConfigs({});
+    setIsRegModalOpen(true);
+  };
+
+  const registeredStudentIds = useMemo(() => {
+    return new Set(participants.filter(p => p.tournament_id === selectedTourneyId).map(p => p.student_id));
+  }, [participants, selectedTourneyId]);
+
+  const availableStudents = useMemo(() => {
+    return students.filter(s => !registeredStudentIds.has(s.id));
+  }, [students, registeredStudentIds]);
+
+  const filteredStudents = useMemo(() => {
+    return availableStudents.filter(s =>
+      s.full_name.toLowerCase().includes(searchStudent.toLowerCase())
+    );
+  }, [availableStudents, searchStudent]);
+
+  const handleToggleStudent = (studentId: string) => {
+    setSelectedStudentIds(prev =>
+      prev.includes(studentId) ? prev.filter(id => id !== studentId) : [...prev, studentId]
+    );
+  };
+
+  const handleSelectAllFiltered = () => {
+    const filteredIds = filteredStudents.map(s => s.id);
+    const allSelected = filteredIds.length > 0 && filteredIds.every(id => selectedStudentIds.includes(id));
+    if (allSelected) {
+      setSelectedStudentIds(prev => prev.filter(id => !filteredIds.includes(id)));
+    } else {
+      setSelectedStudentIds(prev => Array.from(new Set([...prev, ...filteredIds])));
+    }
+  };
+
+  const handleBatchRegisterCompetitors = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!selectedTourneyId || !selectedStudentId) return;
-
-    // Check duplicate
-    const exists = participants.some(p => p.tournament_id === selectedTourneyId && p.student_id === selectedStudentId);
-    if (exists) {
-      alert('Atlet ini sudah didaftarkan di turnamen.');
+    if (!selectedTourneyId || selectedStudentIds.length === 0) {
+      alert('Pilih minimal satu atlet untuk didaftarkan.');
       return;
     }
 
     setSubmittingCompetitor(true);
-    const newParticipant = {
-      tournament_id: selectedTourneyId,
-      student_id: selectedStudentId,
-      category,
-      weight_class: weightClass || null,
-      result: 'Berpartisipasi',
-      status: 'daftar',
-      medal: 'none' as const
-    };
 
-    let { error } = await supabase.from('tournament_participants').insert(newParticipant);
-
-    // Fallback jika database belum ada kolom medal / weight_class
-    if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
-      const fallbackPart = {
+    const newParticipants = selectedStudentIds.map(studentId => {
+      const cfg = athleteConfigs[studentId] || { category: 'kata', weightClass: '' };
+      return {
         tournament_id: selectedTourneyId,
-        student_id: selectedStudentId,
-        category,
+        student_id: studentId,
+        category: cfg.category,
+        weight_class: cfg.weightClass || null,
+        result: 'Berpartisipasi',
+        status: 'daftar' as const,
+        medal: 'none' as const
+      };
+    });
+
+    let { error } = await supabase.from('tournament_participants').insert(newParticipants);
+
+    if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
+      const fallbackPart = newParticipants.map(p => ({
+        tournament_id: p.tournament_id,
+        student_id: p.student_id,
+        category: p.category,
         status: 'daftar',
         result: 'Berpartisipasi'
-      };
+      }));
       const retry = await supabase.from('tournament_participants').insert(fallbackPart);
       error = retry.error;
     }
@@ -208,7 +260,7 @@ export default function OwnerTournaments() {
     }
 
     setIsRegModalOpen(false);
-    setWeightClass('');
+    setSelectedStudentIds([]);
     setSubmittingCompetitor(false);
     loadData(selectedTourneyId);
   };
@@ -255,6 +307,41 @@ export default function OwnerTournaments() {
   };
 
   const activeParticipants = participants.filter(p => p.tournament_id === selectedTourneyId);
+  const currentTourney = tournaments.find(t => t.id === selectedTourneyId);
+
+  // Filter peserta turnamen di tabel utama
+  const filteredActiveParticipants = useMemo(() => {
+    return activeParticipants.filter(p => {
+      const s = students.find(stud => stud.id === p.student_id);
+      const name = s?.full_name?.toLowerCase() || '';
+      const matchSearch = name.includes(tableSearch.toLowerCase());
+
+      const matchCategory = tableCategoryFilter === 'all' || p.category === tableCategoryFilter;
+      const currentMedal = medalState[p.id] || (p.medal as any) || 'none';
+      const matchMedal = tableMedalFilter === 'all' || currentMedal === tableMedalFilter;
+
+      return matchSearch && matchCategory && matchMedal;
+    });
+  }, [activeParticipants, students, tableSearch, tableCategoryFilter, tableMedalFilter, medalState]);
+
+  // Statistik medali turnamen aktif
+  const tourneyStats = useMemo(() => {
+    const total = activeParticipants.length;
+    let emas = 0;
+    let perak = 0;
+    let perunggu = 0;
+    let tanpaMedali = 0;
+
+    activeParticipants.forEach(p => {
+      const m = medalState[p.id] || (p.medal as any) || 'none';
+      if (m === 'emas') emas++;
+      else if (m === 'perak') perak++;
+      else if (m === 'perunggu') perunggu++;
+      else tanpaMedali++;
+    });
+
+    return { total, emas, perak, perunggu, tanpaMedali };
+  }, [activeParticipants, medalState]);
 
   const levelBadgeStyle = (lvl: string) => {
     if (lvl === 'nasional') return { background: 'var(--md-sys-color-primary-container)', color: 'var(--md-sys-color-on-primary-container)' };
@@ -285,64 +372,235 @@ export default function OwnerTournaments() {
           </button>
         </div>
 
-        {/* Tournament Select bar */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] flex flex-col md:flex-row gap-4 items-end justify-between"
-          style={{ background: 'var(--md-sys-color-surface-container-low)', padding: '20px' }}>
-          <div className="w-full md:w-72 flex flex-col">
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Pilih Event Turnamen</label>
-            <select
-              className={inputClass}
-              value={selectedTourneyId}
-              onChange={(e) => setSelectedTourneyId(e.target.value)}
-            >
-              {tournaments.length === 0 ? (
-                <option value="">Belum ada event turnamen</option>
-              ) : (
-                tournaments.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({t.tournament_date || t.start_date || 'Tanggal TBD'})
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          {selectedTourneyId && (
+        {/* Event Select Cards & KPI Banner */}
+        {tournaments.length === 0 ? (
+          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-8 text-center border"
+            style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+            <div className="text-4xl mb-2">🏆</div>
+            <h3 className="font-bold text-lg" style={{ color: 'var(--md-sys-color-on-surface)' }}>Belum Ada Event Turnamen</h3>
+            <p className="text-xs mt-1 mb-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Tambahkan kejuaraan karate (Kejurda, Kejurnas, Sirkuit) untuk mendaftarkan atlet kontingen.
+            </p>
             <button
-              onClick={() => setIsRegModalOpen(true)}
-              className="m3-btn-outlined px-5 py-2.5 text-sm font-semibold cursor-pointer w-full md:w-auto"
+              onClick={() => setIsTourneyModalOpen(true)}
+              className="m3-btn-filled px-5 py-2.5 text-sm font-semibold cursor-pointer"
             >
-              Daftarkan Atlet Kontingen
+              + Tambah Event Turnamen Baru
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Horizontal Tournament Selection Cards */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Pilih Event Turnamen Aktif ({tournaments.length})
+                </span>
+                <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Klik kartu untuk beralih event
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {tournaments.map((t) => {
+                  const isSelected = t.id === selectedTourneyId;
+                  const partCount = participants.filter(p => p.tournament_id === t.id).length;
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => setSelectedTourneyId(t.id)}
+                      className={`p-4 rounded-2xl cursor-pointer transition-all border text-left flex flex-col justify-between gap-3 ${
+                        isSelected
+                          ? 'ring-2 ring-[var(--md-sys-color-primary)] shadow-lg'
+                          : 'hover:border-[var(--md-sys-color-outline)]'
+                      }`}
+                      style={{
+                        background: isSelected
+                          ? 'linear-gradient(135deg, rgba(255,82,82,0.12) 0%, rgba(20,13,12,0.95) 100%)'
+                          : 'var(--md-sys-color-surface-container-low)',
+                        borderColor: isSelected ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)'
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full inline-block"
+                              style={{
+                                background: isSelected ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
+                                color: isSelected ? 'white' : 'var(--md-sys-color-on-surface)'
+                              }}>
+                              📅 {t.tournament_date || t.start_date || 'Tanggal TBD'}
+                            </span>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase" style={levelBadgeStyle(t.level || 'lokal')}>
+                              {t.level || 'lokal'}
+                            </span>
+                          </div>
+                          <h4 className="font-bold text-base line-clamp-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                            {t.name}
+                          </h4>
+                          <p className="text-xs line-clamp-1 mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                            📍 {t.location}
+                          </p>
+                        </div>
+                      </div>
 
-        {/* Competitors List */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
-          style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-          <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
-            <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
-              Daftar Atlet Kontingen Dojo
-            </h3>
+                      <div className="flex items-center justify-between text-xs pt-2 border-t"
+                        style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                        <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          Kontingen: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>{partCount} Atlet</strong>
+                        </span>
+                        <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                          {t.organizer || 'Pengda KKI'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selected Tourney Metric Banner & Primary Action */}
+            {currentTourney && (
+              <div className="rounded-3xl p-6 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 border"
+                style={{
+                  background: 'linear-gradient(135deg, var(--md-sys-color-surface-container-high) 0%, var(--md-sys-color-surface-container) 100%)',
+                  borderColor: 'var(--md-sys-color-outline-variant)'
+                }}>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🏆</span>
+                    <h3 className="text-xl font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                      {currentTourney.name}
+                    </h3>
+                  </div>
+                  <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    📍 {currentTourney.location} • 📅 {currentTourney.tournament_date || currentTourney.start_date} • Penyelenggara: {currentTourney.organizer || 'FORKI / KKI'}
+                  </p>
+                </div>
+
+                {/* 4 Medals & Athletes Metric Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 max-w-xl">
+                  <div className="p-3 rounded-2xl text-center border"
+                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                    <div className="text-xs font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Total Atlet</div>
+                    <div className="text-xl font-black mt-0.5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{tourneyStats.total}</div>
+                  </div>
+                  <div className="p-3 rounded-2xl text-center border"
+                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                    <div className="text-xs font-medium text-amber-400">🥇 Emas</div>
+                    <div className="text-xl font-black mt-0.5 text-amber-400">{tourneyStats.emas}</div>
+                  </div>
+                  <div className="p-3 rounded-2xl text-center border"
+                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                    <div className="text-xs font-medium text-slate-300">🥈 Perak</div>
+                    <div className="text-xl font-black mt-0.5 text-slate-300">{tourneyStats.perak}</div>
+                  </div>
+                  <div className="p-3 rounded-2xl text-center border"
+                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                    <div className="text-xs font-medium text-amber-600">🥉 Perunggu</div>
+                    <div className="text-xl font-black mt-0.5 text-amber-600">{tourneyStats.perunggu}</div>
+                  </div>
+                </div>
+
+                {/* Action button */}
+                <button
+                  onClick={handleOpenBatchRegister}
+                  className="m3-btn-filled px-6 py-3 text-sm font-bold cursor-pointer whitespace-nowrap shadow-lg hover:scale-102 transition-transform"
+                >
+                  + Daftarkan Atlet Kontingen
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Competitors List with Live Search & Filter */}
+        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden border"
+          style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+          
+          {/* Table Header & Toolbar */}
+          <div className="p-5 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between border-b"
+            style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+            <div>
+              <h3 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Daftar Kontingen Atlet ({filteredActiveParticipants.length}/{activeParticipants.length})
+              </h3>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Catat kategori tanding dan perolehan medali atlet dojo KKI.
+              </p>
+            </div>
+
+            {/* Filter controls */}
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                placeholder="Cari atlet..."
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
+                className="text-xs px-3 py-2 rounded-xl border bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+              />
+
+              <select
+                value={tableCategoryFilter}
+                onChange={(e) => setTableCategoryFilter(e.target.value as any)}
+                className="text-xs px-3 py-2 rounded-xl border bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+              >
+                <option value="all">Semua Kategori</option>
+                <option value="kata">Kata (Jurus)</option>
+                <option value="kumite">Kumite (Tanding)</option>
+              </select>
+
+              <select
+                value={tableMedalFilter}
+                onChange={(e) => setTableMedalFilter(e.target.value as any)}
+                className="text-xs px-3 py-2 rounded-xl border bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+              >
+                <option value="all">Semua Medali</option>
+                <option value="emas">🥇 Emas ({tourneyStats.emas})</option>
+                <option value="perak">🥈 Perak ({tourneyStats.perak})</option>
+                <option value="perunggu">🥉 Perunggu ({tourneyStats.perunggu})</option>
+                <option value="none">Tanpa Medali ({tourneyStats.tanpaMedali})</option>
+              </select>
+            </div>
           </div>
 
           {loading ? (
             <div className="p-6 space-y-3">
-              {[1, 2].map((i) => (
+              {[1, 2, 3].map((i) => (
                 <div key={i} className="h-12 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse"
                   style={{ background: 'var(--md-sys-color-surface-container)' }} />
               ))}
             </div>
           ) : activeParticipants.length === 0 ? (
-            <p className="p-6 text-sm text-center" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-              Belum ada atlet didaftarkan pada event turnamen ini.
-            </p>
+            <div className="p-12 text-center">
+              <div className="text-5xl mb-3 opacity-40">🏆</div>
+              <h4 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Belum ada atlet didaftarkan pada event turnamen ini
+              </h4>
+              <p className="text-xs mt-1 mb-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Klik tombol di bawah untuk mendaftarkan atlet kontingen dojo.
+              </p>
+              {selectedTourneyId && (
+                <button
+                  onClick={handleOpenBatchRegister}
+                  className="m3-btn-filled px-5 py-2.5 text-sm cursor-pointer"
+                >
+                  + Daftarkan Atlet Kontingen Sekarang
+                </button>
+              )}
+            </div>
+          ) : filteredActiveParticipants.length === 0 ? (
+            <div className="p-8 text-center text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Tidak ada atlet yang cocok dengan filter pencarian.
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr style={{ background: 'var(--md-sys-color-surface-container)' }}>
-                    {['Nama Atlet', 'Kategori Tanding', 'Kelas Berat (Kumite)', 'Status Hasil', 'Perolehan Medali'].map((h, idx) => (
+                    {['Nama Atlet', 'Kategori Tanding', 'Kelas Berat', 'Keterangan Hasil', 'Perolehan Medali'].map((h, idx) => (
                       <th key={h} className={`px-5 py-3.5 text-xs font-semibold uppercase tracking-wider ${idx === 4 ? 'text-right' : ''}`}
                         style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                         {h}
@@ -350,27 +608,61 @@ export default function OwnerTournaments() {
                     ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {activeParticipants.map((part, idx) => {
-                    const studentName = students.find(s => s.id === part.student_id)?.full_name || 'Siswa';
+                <tbody className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                  {filteredActiveParticipants.map((part) => {
+                    const student = students.find(s => s.id === part.student_id);
+                    const studentName = student?.full_name || 'Siswa';
+                    const currentMedal = medalState[part.id] || (part.medal as any) || 'none';
+
                     return (
-                      <tr key={part.id}
-                        style={{ borderBottom: idx < activeParticipants.length - 1 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}>
-                        <td className="px-5 py-4 text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{studentName}</td>
-                        <td className="px-5 py-4 text-sm capitalize" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{part.category}</td>
-                        <td className="px-5 py-4 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{part.weight_class || '-'}</td>
-                        <td className="px-5 py-4 text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{part.result}</td>
-                        <td className="px-5 py-4 text-sm text-right">
+                      <tr key={part.id} className="hover:bg-slate-500/5 transition-colors">
+                        <td className="px-5 py-4">
+                          <div className="font-bold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                            {studentName}
+                          </div>
+                          <div className="text-[11px] flex items-center gap-1.5 mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                            <span>Sabuk:</span>
+                            <span className="font-semibold text-red-400">
+                              {getBeltEmoji(student?.current_belt)} {student?.current_belt || 'Putih'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${
+                            part.category === 'kata'
+                              ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                              : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                          }`}>
+                            {part.category === 'kata' ? '🥋 Kata (Jurus)' : '🥊 Kumite (Tanding)'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-xs font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          {part.weight_class ? `${part.weight_class}` : '-'}
+                        </td>
+                        <td className="px-5 py-4 text-xs font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                          {part.result || 'Berpartisipasi'}
+                        </td>
+                        <td className="px-5 py-4 text-right">
                           <select
-                            className="px-3 py-1.5 rounded-lg border bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[var(--md-sys-color-primary)]"
-                            style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}
-                            value={medalState[part.id] || 'none'}
+                            className="px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer transition-all focus:ring-2 focus:ring-red-500"
+                            style={{
+                              borderColor: 'var(--md-sys-color-outline-variant)',
+                              background: currentMedal === 'emas' ? 'rgba(255, 193, 7, 0.2)' :
+                                          currentMedal === 'perak' ? 'rgba(158, 158, 158, 0.2)' :
+                                          currentMedal === 'perunggu' ? 'rgba(205, 127, 50, 0.2)' :
+                                          'var(--md-sys-color-surface-container)',
+                              color: currentMedal === 'emas' ? '#ffd700' :
+                                     currentMedal === 'perak' ? '#e0e0e0' :
+                                     currentMedal === 'perunggu' ? '#ffab40' :
+                                     'var(--md-sys-color-on-surface)'
+                            }}
+                            value={currentMedal}
                             onChange={(e) => handleMedalChange(part.id, e.target.value as any)}
                           >
                             <option value="none">Tanpa Medali</option>
-                            <option value="emas">🥇 Emas</option>
-                            <option value="perak">🥈 Perak</option>
-                            <option value="perunggu">🥉 Perunggu</option>
+                            <option value="emas">🥇 Medali Emas</option>
+                            <option value="perak">🥈 Medali Perak</option>
+                            <option value="perunggu">🥉 Medali Perunggu</option>
                           </select>
                         </td>
                       </tr>
@@ -462,62 +754,164 @@ export default function OwnerTournaments() {
           </form>
         </M3Dialog>
 
-        {/* Register competitor Modal */}
+        {/* Batch Register Competitors Modal */}
         <M3Dialog
           open={isRegModalOpen}
           onClose={() => setIsRegModalOpen(false)}
-          title="Daftarkan Atlet Kontingen"
+          title="Daftarkan Atlet Kontingen Sekaligus"
+          maxWidth="max-w-3xl"
         >
-          <form onSubmit={handleRegisterCompetitor} className="space-y-4">
-            <div className={fieldWrap}>
-              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama Siswa</label>
-              <select
+          <form onSubmit={handleBatchRegisterCompetitors} className="space-y-4">
+            <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Pilih satu atau banyak atlet untuk dimasukkan ke kontingen dojo. Tentukan kategori tanding (Kata/Kumite) dan kelas berat untuk tiap atlet.
+            </p>
+
+            {/* Search Bar */}
+            <div className="pt-2">
+              <input
+                type="text"
+                placeholder="Cari nama atlet..."
                 className={inputClass}
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-              >
-                {students.map((student) => (
-                  <option key={student.id} value={student.id}>{student.full_name} ({student.current_belt})</option>
-                ))}
-              </select>
+                value={searchStudent}
+                onChange={(e) => setSearchStudent(e.target.value)}
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className={fieldWrap}>
-                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kategori Kejuaraan</label>
-                <select
-                  className={inputClass}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as any)}
-                >
-                  <option value="kata">Kata (Jurus)</option>
-                  <option value="kumite">Kumite (Tanding)</option>
-                </select>
-              </div>
-              <div className={fieldWrap}>
-                <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Berat Kumite (Kg)</label>
-                <input
-                  type="text"
-                  placeholder="mis. -35Kg"
-                  className={inputClass}
-                  value={weightClass}
-                  disabled={category === 'kata'}
-                  onChange={(e) => setWeightClass(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+            {/* Quick Actions Bar */}
+            <div className="flex items-center justify-between text-xs py-1 px-1">
+              <span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Tersedia {filteredStudents.length} atlet | Dipilih: <strong style={{ color: 'var(--md-sys-color-primary)' }}>{selectedStudentIds.length}</strong>
+              </span>
               <button
                 type="button"
-                onClick={() => setIsRegModalOpen(false)}
-                className="m3-btn-text px-5 py-2.5 text-sm"
+                onClick={handleSelectAllFiltered}
+                className="text-xs font-semibold hover:underline cursor-pointer"
+                style={{ color: 'var(--md-sys-color-primary)' }}
               >
-                Batal
+                {filteredStudents.length > 0 && filteredStudents.every(s => selectedStudentIds.includes(s.id))
+                  ? 'Batalkan Pilih Semua di List'
+                  : 'Pilih Semua di List Ini'}
               </button>
-              <button type="submit" disabled={submittingCompetitor} className="m3-btn-filled px-5 py-2.5 text-sm">
-                {submittingCompetitor ? 'Mendaftarkan...' : 'Daftarkan'}
-              </button>
+            </div>
+
+            {/* Athletes List */}
+            <div
+              className="border rounded-[var(--md-sys-shape-corner-medium)] max-h-72 overflow-y-auto divide-y"
+              style={{
+                borderColor: 'var(--md-sys-color-outline-variant)',
+                background: 'var(--md-sys-color-surface-container-low)'
+              }}
+            >
+              {filteredStudents.length === 0 ? (
+                <div className="p-8 text-center text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  {availableStudents.length === 0
+                    ? 'Semua atlet sudah terdaftar di kontingen turnamen ini.'
+                    : 'Tidak ada atlet yang cocok dengan pencarian.'}
+                </div>
+              ) : (
+                filteredStudents.map((st) => {
+                  const isChecked = selectedStudentIds.includes(st.id);
+                  const cfg = athleteConfigs[st.id] || { category: 'kata', weightClass: '' };
+
+                  return (
+                    <div
+                      key={st.id}
+                      className={`p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                        isChecked ? 'bg-primary/5' : 'hover:bg-slate-500/5'
+                      }`}
+                    >
+                      <label className="flex items-center gap-3 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleStudent(st.id)}
+                          className="w-4 h-4 rounded text-red-600 focus:ring-red-500 cursor-pointer"
+                        />
+                        <div>
+                          <div className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                            {st.full_name}
+                          </div>
+                          <div className="text-xs flex items-center gap-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                            <span>Sabuk:</span>
+                            <span className="font-medium text-red-400">
+                              {getBeltEmoji(st.current_belt)} {st.current_belt || 'Putih'}
+                            </span>
+                          </div>
+                        </div>
+                      </label>
+
+                      {/* Category & Weight Class Config */}
+                      <div className="flex items-center gap-2 pl-7 sm:pl-0">
+                        <select
+                          disabled={!isChecked}
+                          value={cfg.category}
+                          onChange={(e) => {
+                            const cat = e.target.value as 'kata' | 'kumite';
+                            setAthleteConfigs(prev => ({
+                              ...prev,
+                              [st.id]: { category: cat, weightClass: cat === 'kata' ? '' : cfg.weightClass }
+                            }));
+                          }}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                          style={{
+                            background: isChecked ? 'var(--md-sys-color-surface)' : 'var(--md-sys-color-surface-container)',
+                            color: 'var(--md-sys-color-on-surface)',
+                            borderColor: 'var(--md-sys-color-outline-variant)'
+                          }}
+                        >
+                          <option value="kata">Kata (Jurus)</option>
+                          <option value="kumite">Kumite (Tanding)</option>
+                        </select>
+
+                        {cfg.category === 'kumite' && (
+                          <input
+                            type="text"
+                            disabled={!isChecked}
+                            placeholder="-35kg"
+                            value={cfg.weightClass}
+                            onChange={(e) => {
+                              const wc = e.target.value;
+                              setAthleteConfigs(prev => ({
+                                ...prev,
+                                [st.id]: { ...cfg, weightClass: wc }
+                              }));
+                            }}
+                            className="w-20 text-xs px-2.5 py-1.5 rounded-lg border focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                            style={{
+                              background: isChecked ? 'var(--md-sys-color-surface)' : 'var(--md-sys-color-surface-container)',
+                              color: 'var(--md-sys-color-on-surface)',
+                              borderColor: 'var(--md-sys-color-outline-variant)'
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+              <div className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                {selectedStudentIds.length} atlet akan didaftarkan
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRegModalOpen(false)}
+                  className="m3-btn-text px-4 py-2 text-sm"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingCompetitor || selectedStudentIds.length === 0}
+                  className="m3-btn-filled px-5 py-2 text-sm font-semibold"
+                >
+                  {submittingCompetitor ? 'Mendaftarkan...' : `Daftarkan ${selectedStudentIds.length} Atlet`}
+                </button>
+              </div>
             </div>
           </form>
         </M3Dialog>

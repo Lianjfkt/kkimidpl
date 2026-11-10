@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Student, BeltExam, ExamParticipant } from '@/lib/mockData';
-import { OFFICIAL_BELTS, getBeltEmoji, getNextBelt } from '@/lib/constants/belts';
+import { OFFICIAL_BELTS, getBeltEmoji, getBeltStyle, getNextBelt } from '@/lib/constants/belts';
 
 function M3Dialog({ open, onClose, title, maxWidth = 'max-w-lg', children }: { open: boolean; onClose: () => void; title: string; maxWidth?: string; children: React.ReactNode }) {
   if (!open) return null;
@@ -158,6 +158,11 @@ export default function OwnerExams() {
   const [filterBelt, setFilterBelt] = useState('all');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [customTargetBelts, setCustomTargetBelts] = useState<Record<string, string>>({});
+
+  // Search & Filter in Main Participants Table
+  const [tableSearch, setTableSearch] = useState('');
+  const [tableStatusFilter, setTableStatusFilter] = useState<'all' | 'pending' | 'lulus' | 'tidak_lulus'>('all');
+  const [batchActionLoading, setBatchActionLoading] = useState(false);
 
   // Belt level up celebration
   const [celebration, setCelebration] = useState<CelebrationData | null>(null);
@@ -406,7 +411,96 @@ export default function OwnerExams() {
     loadData(selectedExamId);
   };
 
+  const handleBatchPassAllPending = async () => {
+    const pendingParticipants = activeParticipants.filter(p => {
+      const res = p.result || (p.status === 'lulus' ? 'lulus' : p.status === 'tidak_lulus' ? 'tidak_lulus' : 'pending');
+      return res === 'pending';
+    });
+
+    if (pendingParticipants.length === 0) {
+      alert('Tidak ada peserta dengan status pending di jadwal ini.');
+      return;
+    }
+
+    const confirm = window.confirm(`Luluskan ${pendingParticipants.length} peserta ujian pending sekaligus? Sabuk siswa akan otomatis diperbarui ke target.`);
+    if (!confirm) return;
+
+    setBatchActionLoading(true);
+
+    try {
+      // 1. Update status di exam_participants
+      for (const p of pendingParticipants) {
+        await supabase.from('exam_participants').eq('id', p.id).update({
+          result: 'lulus',
+          status: 'lulus'
+        });
+
+        // 2. Update sabuk siswa
+        await supabase.from('students').eq('id', p.student_id).update({
+          current_belt: p.target_belt
+        });
+
+        // 3. Notifikasi
+        const st = students.find(s => s.id === p.student_id);
+        if (st && st.parent_id) {
+          try {
+            await supabase.from('notifications').insert({
+              id: `notif-${Date.now()}-${st.id}`,
+              user_id: st.parent_id,
+              title: 'Hasil Ujian Kenaikan Sabuk',
+              message: `Selamat! ${st.full_name} dinyatakan LULUS ujian dan naik ke tingkat ${p.target_belt}.`,
+              type: 'ujian',
+              is_read: false
+            });
+          } catch (e) {
+            console.warn(e);
+          }
+        }
+      }
+
+      await loadData(selectedExamId);
+      alert(`Berhasil meluluskan ${pendingParticipants.length} peserta.`);
+    } catch (err: any) {
+      alert(`Terjadi kesalahan: ${err.message || err}`);
+    } finally {
+      setBatchActionLoading(false);
+    }
+  };
+
   const activeParticipants = participants.filter(p => p.exam_id === selectedExamId);
+  const currentExam = exams.find(e => e.id === selectedExamId);
+
+  // Filter peserta di tabel utama
+  const filteredActiveParticipants = useMemo(() => {
+    return activeParticipants.filter(p => {
+      const s = students.find(stud => stud.id === p.student_id);
+      const name = s?.full_name?.toLowerCase() || '';
+      const matchSearch = name.includes(tableSearch.toLowerCase());
+      
+      const res = p.result || (p.status === 'lulus' ? 'lulus' : p.status === 'tidak_lulus' ? 'tidak_lulus' : 'pending');
+      const matchStatus = tableStatusFilter === 'all' || res === tableStatusFilter;
+
+      return matchSearch && matchStatus;
+    });
+  }, [activeParticipants, students, tableSearch, tableStatusFilter]);
+
+  // Statistik ujian aktif
+  const stats = useMemo(() => {
+    const total = activeParticipants.length;
+    let lulus = 0;
+    let gagal = 0;
+    let pending = 0;
+
+    activeParticipants.forEach(p => {
+      const res = p.result || (p.status === 'lulus' ? 'lulus' : p.status === 'tidak_lulus' ? 'tidak_lulus' : 'pending');
+      if (res === 'lulus') lulus++;
+      else if (res === 'tidak_lulus') gagal++;
+      else pending++;
+    });
+
+    const lulusPercent = total > 0 ? Math.round((lulus / total) * 100) : 0;
+    return { total, lulus, gagal, pending, lulusPercent };
+  }, [activeParticipants]);
 
   return (
     <Navigation>
@@ -439,77 +533,232 @@ export default function OwnerExams() {
           </button>
         </div>
 
-        {/* Exam Select Event Bar */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] flex flex-col md:flex-row gap-4 items-end justify-between"
-          style={{ background: 'var(--md-sys-color-surface-container-low)', padding: '20px' }}>
-          <div className="w-full md:w-72 flex flex-col">
-            <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-              Pilih Jadwal Ujian
-            </label>
-            <select
-              className={inputClass}
-              value={selectedExamId}
-              onChange={(e) => setSelectedExamId(e.target.value)}
-            >
-              {exams.length === 0 ? (
-                <option value="">Belum ada jadwal ujian</option>
-              ) : (
-                exams.map((ex) => (
-                  <option key={ex.id} value={ex.id}>
-                    {ex.exam_date} - {ex.location}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          {selectedExamId && (
+        {/* Event Select & Quick Metric Header Cards */}
+        {exams.length === 0 ? (
+          <div className="rounded-[var(--md-sys-shape-corner-extra-large)] p-8 text-center border"
+            style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+            <div className="text-4xl mb-2">🥋</div>
+            <h3 className="font-bold text-lg" style={{ color: 'var(--md-sys-color-on-surface)' }}>Belum Ada Jadwal Ujian Sabuk</h3>
+            <p className="text-xs mt-1 mb-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Mulai dengan menjadwalkan tanggal dan lokasi ujian kenaikan tingkat baru.
+            </p>
             <button
-              onClick={handleOpenBatchRegister}
-              className="m3-btn-outlined px-5 py-2.5 text-sm font-semibold cursor-pointer w-full md:w-auto"
+              onClick={() => setIsExamModalOpen(true)}
+              className="m3-btn-filled px-5 py-2.5 text-sm font-semibold cursor-pointer"
             >
-              + Daftarkan Peserta Ujian (Banyak / Satuan)
+              + Jadwalkan Ujian Sekarang
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Horizontal Event Selection Pills / Cards */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Pilih Jadwal Ujian Aktif ({exams.length})
+                </span>
+                <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Klik kartu untuk beralih jadwal
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {exams.map((ex) => {
+                  const isSelected = ex.id === selectedExamId;
+                  const partCount = participants.filter(p => p.exam_id === ex.id).length;
+                  return (
+                    <div
+                      key={ex.id}
+                      onClick={() => setSelectedExamId(ex.id)}
+                      className={`p-4 rounded-2xl cursor-pointer transition-all border text-left flex flex-col justify-between gap-3 ${
+                        isSelected
+                          ? 'ring-2 ring-[var(--md-sys-color-primary)] shadow-lg'
+                          : 'hover:border-[var(--md-sys-color-outline)]'
+                      }`}
+                      style={{
+                        background: isSelected
+                          ? 'linear-gradient(135deg, rgba(255,82,82,0.12) 0%, rgba(20,13,12,0.95) 100%)'
+                          : 'var(--md-sys-color-surface-container-low)',
+                        borderColor: isSelected ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline-variant)'
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-semibold px-2 py-0.5 rounded-full inline-block mb-1.5"
+                            style={{
+                              background: isSelected ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-surface-container-high)',
+                              color: isSelected ? 'white' : 'var(--md-sys-color-on-surface)'
+                            }}>
+                            📅 {ex.exam_date}
+                          </div>
+                          <h4 className="font-bold text-base line-clamp-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                            {ex.location}
+                          </h4>
+                        </div>
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-full uppercase"
+                          style={{
+                            background: ex.status === 'selesai' ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 82, 82, 0.2)',
+                            color: ex.status === 'selesai' ? '#4caf50' : 'var(--md-sys-color-primary)'
+                          }}>
+                          {ex.status || 'terjadwal'}
+                        </span>
+                      </div>
 
-        {/* Participants Table */}
-        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden"
-          style={{ background: 'var(--md-sys-color-surface-container-low)' }}>
-          <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--md-sys-color-outline-variant)' }}>
-            <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
-              Daftar Peserta Ujian
-            </h3>
+                      <div className="flex items-center justify-between text-xs pt-2 border-t"
+                        style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                        <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          Peserta: <strong style={{ color: 'var(--md-sys-color-on-surface)' }}>{partCount} Siswa</strong>
+                        </span>
+                        <span className="font-medium" style={{ color: 'var(--md-sys-color-primary)' }}>
+                          Rp {(ex.fee || ex.registration_fee || 100000).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selected Exam Metric Banner & Primary Action */}
+            {currentExam && (
+              <div className="rounded-3xl p-6 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 border"
+                style={{
+                  background: 'linear-gradient(135deg, var(--md-sys-color-surface-container-high) 0%, var(--md-sys-color-surface-container) 100%)',
+                  borderColor: 'var(--md-sys-color-outline-variant)'
+                }}>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🥋</span>
+                    <h3 className="text-xl font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                      {currentExam.location}
+                    </h3>
+                  </div>
+                  <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    Tanggal Pelaksanaan: <strong>{currentExam.exam_date}</strong> {currentExam.notes ? `• ${currentExam.notes}` : ''}
+                  </p>
+                </div>
+
+                {/* 4 Stats Pills */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 max-w-xl">
+                  <div className="p-3 rounded-2xl text-center border"
+                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                    <div className="text-xs font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Total Peserta</div>
+                    <div className="text-xl font-black mt-0.5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{stats.total}</div>
+                  </div>
+                  <div className="p-3 rounded-2xl text-center border"
+                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                    <div className="text-xs font-medium text-amber-500">⏳ Pending</div>
+                    <div className="text-xl font-black mt-0.5 text-amber-500">{stats.pending}</div>
+                  </div>
+                  <div className="p-3 rounded-2xl text-center border"
+                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                    <div className="text-xs font-medium text-emerald-500">✅ Lulus</div>
+                    <div className="text-xl font-black mt-0.5 text-emerald-500">{stats.lulus}</div>
+                  </div>
+                  <div className="p-3 rounded-2xl text-center border"
+                    style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                    <div className="text-xs font-medium text-rose-500">❌ Tidak Lulus</div>
+                    <div className="text-xl font-black mt-0.5 text-rose-500">{stats.gagal}</div>
+                  </div>
+                </div>
+
+                {/* Action button */}
+                <button
+                  onClick={handleOpenBatchRegister}
+                  className="m3-btn-filled px-6 py-3 text-sm font-bold cursor-pointer whitespace-nowrap shadow-lg hover:scale-102 transition-transform"
+                >
+                  + Daftarkan Peserta (Batch)
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Participants Table with Live Filter & Search */}
+        <div className="rounded-[var(--md-sys-shape-corner-extra-large)] overflow-hidden border"
+          style={{ background: 'var(--md-sys-color-surface-container-low)', borderColor: 'var(--md-sys-color-outline-variant)' }}>
+          
+          {/* Table Toolbar Header */}
+          <div className="p-5 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between border-b"
+            style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+            <div>
+              <h3 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Daftar Peserta Ujian ({filteredActiveParticipants.length}/{activeParticipants.length})
+              </h3>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Kelola penilaian hasil ujian kelulusan tingkat kyu siswa dojo.
+              </p>
+            </div>
+
+            {/* Quick Actions & Live Filter */}
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                placeholder="Cari peserta..."
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
+                className="text-xs px-3 py-2 rounded-xl border bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+              />
+
+              <select
+                value={tableStatusFilter}
+                onChange={(e) => setTableStatusFilter(e.target.value as any)}
+                className="text-xs px-3 py-2 rounded-xl border bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                style={{ borderColor: 'var(--md-sys-color-outline-variant)', color: 'var(--md-sys-color-on-surface)' }}
+              >
+                <option value="all">Semua Status</option>
+                <option value="pending">⏳ Pending ({stats.pending})</option>
+                <option value="lulus">✅ Lulus ({stats.lulus})</option>
+                <option value="tidak_lulus">❌ Tidak Lulus ({stats.gagal})</option>
+              </select>
+
+              {stats.pending > 0 && (
+                <button
+                  onClick={handleBatchPassAllPending}
+                  disabled={batchActionLoading}
+                  className="px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-1.5 border border-emerald-600/40 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30"
+                >
+                  {batchActionLoading ? 'Memproses...' : `🎉 Luluskan Semua (${stats.pending})`}
+                </button>
+              )}
+            </div>
           </div>
 
           {loading ? (
             <div className="p-6 space-y-3">
-              {[1, 2].map((i) => (
+              {[1, 2, 3].map((i) => (
                 <div key={i} className="h-12 rounded-[var(--md-sys-shape-corner-medium)] animate-pulse"
                   style={{ background: 'var(--md-sys-color-surface-container)' }} />
               ))}
             </div>
           ) : activeParticipants.length === 0 ? (
-            <div className="p-10 text-center">
-              <div className="text-5xl mb-3 opacity-30">🥋</div>
-              <p className="text-sm font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                Belum ada siswa didaftarkan di jadwal ujian ini.
+            <div className="p-12 text-center">
+              <div className="text-5xl mb-3 opacity-40">🥋</div>
+              <h4 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Belum ada siswa terdaftar di jadwal ini
+              </h4>
+              <p className="text-xs mt-1 mb-4" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Gunakan tombol pendaftaran massal untuk memilih dan mendaftarkan atlet sekaligus.
               </p>
               {selectedExamId && (
                 <button
                   onClick={handleOpenBatchRegister}
-                  className="mt-4 m3-btn-filled px-5 py-2 text-sm cursor-pointer"
+                  className="m3-btn-filled px-5 py-2.5 text-sm cursor-pointer"
                 >
-                  Daftarkan Peserta Pertama
+                  + Daftarkan Peserta Ujian Sekarang
                 </button>
               )}
+            </div>
+          ) : filteredActiveParticipants.length === 0 ? (
+            <div className="p-8 text-center text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Tidak ada peserta yang cocok dengan filter pencarian.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr style={{ background: 'var(--md-sys-color-surface-container)' }}>
-                    {['Nama Siswa', 'Sabuk Sekarang', 'Target Sabuk', 'Status Hasil', 'Kelulusan'].map((h, idx) => (
+                    {['Nama Siswa', 'Sabuk Saat Ini', 'Target Kenaikan', 'Status Hasil', 'Aksi Kelulusan'].map((h, idx) => (
                       <th key={h} className={`px-5 py-3.5 text-xs font-semibold uppercase tracking-wider ${idx === 4 ? 'text-right' : ''}`}
                         style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                         {h}
@@ -517,46 +766,72 @@ export default function OwnerExams() {
                     ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {activeParticipants.map((part, idx) => {
-                    const studentName = students.find(s => s.id === part.student_id)?.full_name || 'Siswa';
+                <tbody className="divide-y" style={{ borderColor: 'var(--md-sys-color-outline-variant)' }}>
+                  {filteredActiveParticipants.map((part) => {
+                    const student = students.find(s => s.id === part.student_id);
+                    const studentName = student?.full_name || 'Siswa';
+                    const curBelt = part.current_belt || student?.current_belt || 'Putih';
                     const partRes = part.result || (part.status === 'lulus' ? 'lulus' : part.status === 'tidak_lulus' ? 'tidak_lulus' : 'pending');
+
                     return (
-                      <tr key={part.id}
-                        style={{ borderBottom: idx < activeParticipants.length - 1 ? '1px solid var(--md-sys-color-outline-variant)' : 'none' }}>
-                        <td className="px-5 py-4 text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{studentName}</td>
-                        <td className="px-5 py-4 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{part.current_belt || '-'}</td>
-                        <td className="px-5 py-4 text-sm font-semibold" style={{ color: 'var(--md-sys-color-primary)' }}>{part.target_belt}</td>
-                        <td className="px-5 py-4 text-sm">
-                          <span className="px-2.5 py-1 rounded-[var(--md-sys-shape-corner-full)] text-xs font-semibold"
-                            style={
-                              partRes === 'lulus' ? { background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' } :
-                              partRes === 'tidak_lulus' ? { background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' } :
-                              { background: 'var(--md-sys-color-surface-container-high)', color: 'var(--md-sys-color-on-surface-variant)' }
-                            }>
-                            {partRes === 'lulus' ? '✅ Lulus' :
-                             partRes === 'tidak_lulus' ? '❌ Tidak Lulus' : '⏳ Tertunda'}
+                      <tr key={part.id} className="hover:bg-slate-500/5 transition-colors">
+                        <td className="px-5 py-4">
+                          <div className="font-bold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                            {studentName}
+                          </div>
+                          <div className="text-[11px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                            {student?.phone || 'No telp -'}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
+                            style={{
+                              background: 'var(--md-sys-color-surface-container)',
+                              borderColor: 'var(--md-sys-color-outline-variant)',
+                              color: 'var(--md-sys-color-on-surface)'
+                            }}>
+                            {getBeltEmoji(curBelt)} {curBelt}
                           </span>
                         </td>
-                        <td className="px-5 py-4 text-sm text-right">
-                          {partRes === 'pending' && (
-                            <div className="flex justify-end gap-1">
-                              <button
-                                onClick={() => handleUpdateResult(part.id, 'lulus')}
-                                className="m3-btn-text py-1 px-3 text-xs font-bold cursor-pointer"
-                                style={{ color: 'var(--md-sys-color-tertiary)' }}
-                              >
-                                🎉 Lulus
-                              </button>
-                              <button
-                                onClick={() => handleUpdateResult(part.id, 'tidak_lulus')}
-                                className="m3-btn-text py-1 px-3 text-xs font-semibold cursor-pointer"
-                                style={{ color: 'var(--md-sys-color-error)' }}
-                              >
-                                Gagal
-                              </button>
-                            </div>
-                          )}
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border border-red-500/30 bg-red-500/10 text-red-400">
+                            → {getBeltEmoji(part.target_belt)} {part.target_belt}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold"
+                            style={
+                              partRes === 'lulus' ? { background: 'rgba(76, 175, 80, 0.15)', color: '#4caf50', border: '1px solid rgba(76, 175, 80, 0.3)' } :
+                              partRes === 'tidak_lulus' ? { background: 'rgba(244, 67, 54, 0.15)', color: '#f44336', border: '1px solid rgba(244, 67, 54, 0.3)' } :
+                              { background: 'rgba(255, 193, 7, 0.15)', color: '#ffb300', border: '1px solid rgba(255, 193, 7, 0.3)' }
+                            }>
+                            {partRes === 'lulus' ? '✅ Lulus' :
+                             partRes === 'tidak_lulus' ? '❌ Tidak Lulus' : '⏳ Belum Diuji'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <div className="flex justify-end items-center gap-1.5">
+                            <button
+                              onClick={() => handleUpdateResult(part.id, 'lulus')}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                                partRes === 'lulus'
+                                  ? 'bg-emerald-600 text-white shadow-sm'
+                                  : 'border border-emerald-600/40 text-emerald-400 hover:bg-emerald-600/20'
+                              }`}
+                            >
+                              🎉 Lulus
+                            </button>
+                            <button
+                              onClick={() => handleUpdateResult(part.id, 'tidak_lulus')}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+                                partRes === 'tidak_lulus'
+                                  ? 'bg-rose-600 text-white shadow-sm'
+                                  : 'border border-rose-600/40 text-rose-400 hover:bg-rose-600/20'
+                              }`}
+                            >
+                              Gagal
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
