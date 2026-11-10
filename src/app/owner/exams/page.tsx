@@ -1,22 +1,34 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Student, BeltExam, ExamParticipant } from '@/lib/mockData';
-import { OFFICIAL_BELTS, getBeltEmoji } from '@/lib/constants/belts';
+import { OFFICIAL_BELTS, getBeltEmoji, getNextBelt } from '@/lib/constants/belts';
 
-function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+function M3Dialog({ open, onClose, title, maxWidth = 'max-w-lg', children }: { open: boolean; onClose: () => void; title: string; maxWidth?: string; children: React.ReactNode }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in"
+        className={`w-full ${maxWidth} rounded-[var(--md-sys-shape-corner-extra-large)] shadow-2xl animate-fade-in max-h-[90vh] flex flex-col`}
         style={{ background: 'var(--md-sys-color-surface-container-high)', padding: '24px' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-xl font-semibold mb-5" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
-        {children}
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <h3 className="text-xl font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{title}</h3>
+          <button
+            onClick={onClose}
+            type="button"
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-slate-500/10"
+            style={{ color: 'var(--md-sys-color-on-surface-variant)' }}
+          >
+            ✕
+          </button>
+        </div>
+        <div className="overflow-y-auto flex-1 pr-1">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -139,11 +151,13 @@ export default function OwnerExams() {
   const [examNotes, setExamNotes] = useState('');
   const [submittingExam, setSubmittingExam] = useState(false);
 
-  // Form states (Register Candidate)
+  // Form states (Batch Register Candidates)
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [targetBelt, setTargetBelt] = useState('Kuning');
   const [submittingReg, setSubmittingReg] = useState(false);
+  const [searchStudent, setSearchStudent] = useState('');
+  const [filterBelt, setFilterBelt] = useState('all');
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [customTargetBelts, setCustomTargetBelts] = useState<Record<string, string>>({});
 
   // Belt level up celebration
   const [celebration, setCelebration] = useState<CelebrationData | null>(null);
@@ -164,11 +178,10 @@ export default function OwnerExams() {
     }
     if (studentsData) {
       setStudents(studentsData);
-      if (studentsData.length > 0 && !selectedStudentId) setSelectedStudentId(studentsData[0].id);
     }
     if (participantsData) setParticipants(participantsData);
     setLoading(false);
-  }, [selectedExamId, selectedStudentId]);
+  }, [selectedExamId]);
 
   useEffect(() => {
     loadData();
@@ -244,41 +257,83 @@ export default function OwnerExams() {
     await loadData(createdId || undefined);
   };
 
-  const handleRegisterParticipant = async (e: React.FormEvent) => {
+  const handleOpenBatchRegister = () => {
+    setSelectedStudentIds([]);
+    setSearchStudent('');
+    setFilterBelt('all');
+    setCustomTargetBelts({});
+    setIsRegModalOpen(true);
+  };
+
+  // Siswa yang belum terdaftar di jadwal ujian ini
+  const registeredStudentIds = useMemo(() => {
+    return new Set(participants.filter(p => p.exam_id === selectedExamId).map(p => p.student_id));
+  }, [participants, selectedExamId]);
+
+  const availableStudents = useMemo(() => {
+    return students.filter(s => !registeredStudentIds.has(s.id));
+  }, [students, registeredStudentIds]);
+
+  const filteredStudents = useMemo(() => {
+    return availableStudents.filter(s => {
+      const matchSearch = s.full_name.toLowerCase().includes(searchStudent.toLowerCase());
+      const matchBelt = filterBelt === 'all' || s.current_belt === filterBelt;
+      return matchSearch && matchBelt;
+    });
+  }, [availableStudents, searchStudent, filterBelt]);
+
+  const handleToggleStudent = (studentId: string) => {
+    setSelectedStudentIds(prev => 
+      prev.includes(studentId) ? prev.filter(id => id !== studentId) : [...prev, studentId]
+    );
+  };
+
+  const handleSelectAllFiltered = () => {
+    const filteredIds = filteredStudents.map(s => s.id);
+    const allSelected = filteredIds.length > 0 && filteredIds.every(id => selectedStudentIds.includes(id));
+    if (allSelected) {
+      setSelectedStudentIds(prev => prev.filter(id => !filteredIds.includes(id)));
+    } else {
+      setSelectedStudentIds(prev => Array.from(new Set([...prev, ...filteredIds])));
+    }
+  };
+
+  const handleBatchRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const student = students.find(s => s.id === selectedStudentId);
-    if (!student || !selectedExamId) return;
-
-    // Check if student already registered in this exam
-    const exists = participants.some(p => p.exam_id === selectedExamId && p.student_id === selectedStudentId);
-    if (exists) {
-      alert('Siswa ini sudah terdaftar sebagai peserta ujian.');
+    if (!selectedExamId || selectedStudentIds.length === 0) {
+      alert('Pilih minimal satu siswa untuk didaftarkan.');
       return;
     }
 
     setSubmittingReg(true);
-    const newParticipant = {
-      exam_id: selectedExamId,
-      student_id: selectedStudentId,
-      current_belt: student.current_belt,
-      target_belt: targetBelt,
-      result: 'pending' as const,
-      status: 'daftar' as const,
-      score_notes: ''
-    };
 
-    let { error } = await supabase.from('exam_participants').insert(newParticipant);
+    const newParticipants = selectedStudentIds.map(studentId => {
+      const st = students.find(s => s.id === studentId);
+      const curBelt = st?.current_belt || 'Putih';
+      const tgtBelt = customTargetBelts[studentId] || getNextBelt(curBelt);
+
+      return {
+        exam_id: selectedExamId,
+        student_id: studentId,
+        current_belt: curBelt,
+        target_belt: tgtBelt,
+        result: 'pending' as const,
+        status: 'daftar' as const,
+        score_notes: ''
+      };
+    });
+
+    let { error } = await supabase.from('exam_participants').insert(newParticipants);
 
     // Fallback jika database belum ada kolom current_belt/result/score_notes
     if (error && (error.message.includes('column') || error.code === 'PGRST204')) {
-      const fallbackPart = {
-        exam_id: selectedExamId,
-        student_id: selectedStudentId,
-        target_belt: targetBelt,
+      const fallbackPayload = newParticipants.map(p => ({
+        exam_id: p.exam_id,
+        student_id: p.student_id,
+        target_belt: p.target_belt,
         status: 'daftar'
-      };
-      const retry = await supabase.from('exam_participants').insert(fallbackPart);
+      }));
+      const retry = await supabase.from('exam_participants').insert(fallbackPayload);
       error = retry.error;
     }
 
@@ -289,8 +344,9 @@ export default function OwnerExams() {
     }
 
     setIsRegModalOpen(false);
+    setSelectedStudentIds([]);
     setSubmittingReg(false);
-    loadData(selectedExamId);
+    await loadData(selectedExamId);
   };
 
   const handleUpdateResult = async (participantId: string, result: 'lulus' | 'tidak_lulus') => {
@@ -409,10 +465,10 @@ export default function OwnerExams() {
 
           {selectedExamId && (
             <button
-              onClick={() => setIsRegModalOpen(true)}
+              onClick={handleOpenBatchRegister}
               className="m3-btn-outlined px-5 py-2.5 text-sm font-semibold cursor-pointer w-full md:w-auto"
             >
-              Daftarkan Peserta Ujian
+              + Daftarkan Peserta Ujian (Banyak / Satuan)
             </button>
           )}
         </div>
@@ -441,7 +497,7 @@ export default function OwnerExams() {
               </p>
               {selectedExamId && (
                 <button
-                  onClick={() => setIsRegModalOpen(true)}
+                  onClick={handleOpenBatchRegister}
                   className="mt-4 m3-btn-filled px-5 py-2 text-sm cursor-pointer"
                 >
                   Daftarkan Peserta Pertama
@@ -574,52 +630,166 @@ export default function OwnerExams() {
           </form>
         </M3Dialog>
 
-        {/* Register Participant Modal */}
+        {/* Batch Register Participant Modal */}
         <M3Dialog
           open={isRegModalOpen}
           onClose={() => setIsRegModalOpen(false)}
-          title="Daftarkan Atlet"
+          title="Daftarkan Peserta Ujian Sekaligus"
+          maxWidth="max-w-3xl"
         >
-          <form onSubmit={handleRegisterParticipant} className="space-y-4">
-            <div className={fieldWrap}>
-              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Nama Siswa</label>
-              <select
-                className={inputClass}
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-              >
-                {students.map((student) => (
-                  <option key={student.id} value={student.id}>{student.full_name} ({student.current_belt})</option>
-                ))}
-              </select>
+          <form onSubmit={handleBatchRegister} className="space-y-4">
+            <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+              Pilih satu atau banyak siswa yang akan diikutsertakan. Target sabuk otomatis dihitung naik 1 tingkat (Kyu), tetapi tetap dapat disesuaikan per siswa.
+            </p>
+
+            {/* Filter and Search Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
+              <div className="sm:col-span-7">
+                <input
+                  type="text"
+                  placeholder="Cari nama siswa..."
+                  className={inputClass}
+                  value={searchStudent}
+                  onChange={(e) => setSearchStudent(e.target.value)}
+                />
+              </div>
+              <div className="sm:col-span-5">
+                <select
+                  className={inputClass}
+                  value={filterBelt}
+                  onChange={(e) => setFilterBelt(e.target.value)}
+                >
+                  <option value="all">Semua Sabuk ({availableStudents.length} siswa)</option>
+                  {OFFICIAL_BELTS.map((belt) => {
+                    const cnt = availableStudents.filter(s => s.current_belt === belt).length;
+                    return (
+                      <option key={belt} value={belt}>
+                        Sabuk {belt} ({cnt})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
             </div>
 
-            <div className={fieldWrap}>
-              <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Target Sabuk Baru</label>
-              <select
-                className={inputClass}
-                value={targetBelt}
-                onChange={(e) => setTargetBelt(e.target.value)}
-              >
-                {OFFICIAL_BELTS.filter((b) => b !== 'Putih').map((belt) => (
-                  <option key={belt} value={belt}>
-                    {belt}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+            {/* Quick Actions Bar */}
+            <div className="flex items-center justify-between text-xs py-1 px-1">
+              <span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Ditemukan {filteredStudents.length} siswa | Dipilih: <strong style={{ color: 'var(--md-sys-color-primary)' }}>{selectedStudentIds.length}</strong>
+              </span>
               <button
                 type="button"
-                onClick={() => setIsRegModalOpen(false)}
-                className="m3-btn-text px-5 py-2.5 text-sm"
+                onClick={handleSelectAllFiltered}
+                className="text-xs font-semibold hover:underline cursor-pointer"
+                style={{ color: 'var(--md-sys-color-primary)' }}
               >
-                Batal
+                {filteredStudents.length > 0 && filteredStudents.every(s => selectedStudentIds.includes(s.id))
+                  ? 'Batalkan Pilih Semua di List'
+                  : 'Pilih Semua di List Ini'}
               </button>
-              <button type="submit" className="m3-btn-filled px-5 py-2.5 text-sm">
-                Daftarkan
-              </button>
+            </div>
+
+            {/* Students List with Checkboxes */}
+            <div
+              className="border rounded-[var(--md-sys-shape-corner-medium)] max-h-72 overflow-y-auto divide-y"
+              style={{
+                borderColor: 'var(--md-sys-color-outline-variant)',
+                background: 'var(--md-sys-color-surface-container-low)'
+              }}
+            >
+              {filteredStudents.length === 0 ? (
+                <div className="p-8 text-center text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  {availableStudents.length === 0
+                    ? 'Semua siswa aktif sudah terdaftar di ujian ini.'
+                    : 'Tidak ada siswa yang cocok dengan filter pencarian.'}
+                </div>
+              ) : (
+                filteredStudents.map((st) => {
+                  const isChecked = selectedStudentIds.includes(st.id);
+                  const curBelt = st.current_belt || 'Putih';
+                  const defaultNext = getNextBelt(curBelt);
+                  const target = customTargetBelts[st.id] || defaultNext;
+
+                  return (
+                    <div
+                      key={st.id}
+                      className={`p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                        isChecked ? 'bg-primary/5' : 'hover:bg-slate-500/5'
+                      }`}
+                    >
+                      <label className="flex items-center gap-3 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleStudent(st.id)}
+                          className="w-4 h-4 rounded text-red-600 focus:ring-red-500 cursor-pointer"
+                        />
+                        <div>
+                          <div className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                            {st.full_name}
+                          </div>
+                          <div className="text-xs flex items-center gap-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                            <span>Sabuk Saat Ini:</span>
+                            <span className="font-medium px-2 py-0.5 rounded-full text-[11px]" style={{ background: 'var(--md-sys-color-surface-container)' }}>
+                              {getBeltEmoji(curBelt)} {curBelt}
+                            </span>
+                          </div>
+                        </div>
+                      </label>
+
+                      {/* Target Belt Selector per student */}
+                      <div className="flex items-center gap-2 pl-7 sm:pl-0">
+                        <span className="text-xs whitespace-nowrap" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          Target:
+                        </span>
+                        <select
+                          disabled={!isChecked}
+                          value={target}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCustomTargetBelts(prev => ({ ...prev, [st.id]: val }));
+                          }}
+                          className="text-xs px-2.5 py-1.5 rounded-lg border focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                          style={{
+                            background: isChecked ? 'var(--md-sys-color-surface)' : 'var(--md-sys-color-surface-container)',
+                            color: 'var(--md-sys-color-on-surface)',
+                            borderColor: 'var(--md-sys-color-outline-variant)'
+                          }}
+                        >
+                          {OFFICIAL_BELTS.filter(b => b !== 'Putih').map((b) => (
+                            <option key={b} value={b}>
+                              {getBeltEmoji(b)} {b}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid var(--md-sys-color-outline-variant)' }}>
+              <div className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                {selectedStudentIds.length} siswa akan didaftarkan
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRegModalOpen(false)}
+                  className="m3-btn-text px-4 py-2 text-sm"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReg || selectedStudentIds.length === 0}
+                  className="m3-btn-filled px-5 py-2 text-sm font-semibold"
+                >
+                  {submittingReg ? 'Mendaftarkan...' : `Daftarkan ${selectedStudentIds.length} Peserta`}
+                </button>
+              </div>
             </div>
           </form>
         </M3Dialog>

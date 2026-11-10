@@ -117,3 +117,14 @@ export function getBeltEmoji(belt?: string): string {
 export function getBeltHex(belt?: string): string {
   return getBeltStyle(belt).hex;
 }
+
+export function getNextBelt(currentBelt?: string): string {
+  if (!currentBelt) return 'Kuning';
+  const c = currentBelt.trim().toLowerCase();
+  const idx = OFFICIAL_BELTS.findIndex((b) => b.toLowerCase() === c);
+  if (idx !== -1 && idx < OFFICIAL_BELTS.length - 1) {
+    return OFFICIAL_BELTS[idx + 1];
+  }
+  return 'Kuning';
+}
+
