@@ -98,8 +98,7 @@ export default function PelatihExams() {
       if (coachData) setCoach(coachData as Coach);
     }
     const { data: studentsData } = await supabase.from('students').select('*');
-    const { initialStudents } = await import('@/lib/mockData');
-    const allSt = (studentsData && studentsData.length > 0) ? studentsData : initialStudents;
+    const allSt = (studentsData || []) as Student[];
     const activeSt = allSt.filter((s: any) => s.status === 'active' || !s.status);
     const finalSt = activeSt.length > 0 ? activeSt : allSt;
     setStudents(finalSt as Student[]);

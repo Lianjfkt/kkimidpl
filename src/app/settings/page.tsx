@@ -64,6 +64,11 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
+  // Change own password state
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordMsg, setPasswordMsg] = useState<{ text: string; error: boolean } | null>(null);
+  const [savingPassword, setSavingPassword] = useState(false);
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' || 'dark';
     setTheme(savedTheme);
@@ -123,6 +128,24 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 3000);
   };
 
+  const handleChangeOwnPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordMsg({ text: 'Kata sandi minimal 6 karakter.', error: true });
+      return;
+    }
+    setSavingPassword(true);
+    setPasswordMsg(null);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setSavingPassword(false);
+    if (error) {
+      setPasswordMsg({ text: 'Gagal memperbarui: ' + error.message, error: true });
+    } else {
+      setPasswordMsg({ text: '✅ Kata sandi berhasil diperbarui!', error: false });
+      setNewPassword('');
+    }
+  };
+
   // CRUD Actions
   const openAddUserModal = () => {
     setEditingUser(null);
@@ -146,37 +169,52 @@ export default function SettingsPage() {
     e.preventDefault();
     setSaving(true);
 
-    const updateData: any = {
-      full_name: formName.trim(),
-      phone: formPhone.trim(),
-      role: formRole,
-    };
+    try {
+      if (editingUser) {
+        // 1. Edit User Profile
+        await supabase.from('profiles').eq('id', editingUser.id).update({
+          full_name: formName.trim(),
+          phone: formPhone.trim(),
+          role: formRole,
+        });
 
-    if (formPassword.trim() !== '') {
-      updateData.password_hash = await generateSHA256(formPassword.trim());
-    }
+        // 2. Jika password baru diisi oleh Owner, update via API server
+        if (formPassword.trim() !== '') {
+          await fetch('/api/admin/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'update_password',
+              userId: editingUser.id,
+              password: formPassword.trim(),
+            }),
+          });
+        }
+      } else {
+        // Create User Profile via API server tanpa logout
+        const digitsOnly = formPhone.trim().replace(/\D/g, '') || String(Date.now()).slice(-8);
+        const generatedEmail = `${digitsOnly}@kkidpl.com`;
 
-    if (editingUser) {
-      // Edit User Profile
-      await supabase.from('profiles').eq('id', editingUser.id).update(updateData);
-    } else {
-      // Create User Profile
-      const newId = `user-${Date.now()}`;
-      // default hash if blank is '123456'
-      if (!updateData.password_hash) {
-        updateData.password_hash = await generateSHA256('123456');
+        await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'create',
+            email: generatedEmail,
+            password: formPassword.trim() || '123456',
+            fullName: formName.trim(),
+            phone: formPhone.trim(),
+            role: formRole,
+          }),
+        });
       }
-      await supabase.from('profiles').insert({
-        id: newId,
-        avatar_url: '',
-        created_at: new Date().toISOString(),
-        ...updateData
-      });
+    } catch (err) {
+      console.error('Error in handleUserSubmit:', err);
+    } finally {
+      setSaving(false);
+      setIsModalOpen(false);
+      loadAllProfiles();
     }
-
-    setSaving(false);
-    setIsModalOpen(false);
-    loadAllProfiles();
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -185,7 +223,18 @@ export default function SettingsPage() {
       return;
     }
     if (confirm('Apakah Anda yakin ingin menghapus akun pengguna ini?')) {
-      await supabase.from('profiles').eq('id', userId).delete();
+      try {
+        await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'delete_user',
+            userId,
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to delete user:', err);
+      }
       loadAllProfiles();
     }
   };
@@ -279,6 +328,50 @@ export default function SettingsPage() {
                 {saved && (
                   <p className="text-xs font-semibold text-center mt-1" style={{ color: 'var(--md-sys-color-tertiary)' }}>
                     ✅ Profil berhasil diperbarui!
+                  </p>
+                )}
+              </form>
+            </div>
+
+            {/* Change Password Card */}
+            <div
+              className="rounded-3xl p-6 space-y-4 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+            >
+              <h3 className="font-semibold text-sm animate-fade-in" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                🔑 Ganti Kata Sandi
+              </h3>
+              <form onSubmit={handleChangeOwnPassword} className="space-y-3">
+                <div className={fieldWrap}>
+                  <label className={labelClass} style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    Kata Sandi Baru
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder="Minimal 6 karakter"
+                    className="w-full px-4 py-2.5 rounded-2xl text-sm outline-none transition-all"
+                    style={neuInputStyle}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={savingPassword}
+                  className="apple-btn w-full py-2.5 text-xs font-semibold cursor-pointer"
+                >
+                  {savingPassword ? 'Menyimpan...' : 'Update Kata Sandi'}
+                </button>
+                {passwordMsg && (
+                  <p
+                    className="text-xs font-semibold text-center mt-1"
+                    style={{
+                      color: passwordMsg.error
+                        ? 'var(--md-sys-color-error)'
+                        : 'var(--md-sys-color-tertiary)',
+                    }}
+                  >
+                    {passwordMsg.text}
                   </p>
                 )}
               </form>

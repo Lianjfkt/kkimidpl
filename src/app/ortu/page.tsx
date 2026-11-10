@@ -20,8 +20,7 @@ export default function OrtuDashboard() {
     const { data: userData } = await supabase.auth.getUser();
     if (userData?.user) {
       const { data: kidsData } = await supabase.from('students').eq('parent_id', userData.user.id).select('*');
-      const { initialStudents } = await import('@/lib/mockData');
-      const kids = (kidsData && kidsData.length > 0) ? kidsData : initialStudents.slice(0, 2);
+      const kids = (kidsData && kidsData.length > 0) ? kidsData : [];
       setChildren(kids);
       const kidIds = kids.map((k: Student) => k.id);
       if (kidIds.length > 0) {
@@ -227,7 +226,7 @@ export default function OrtuDashboard() {
                   <div className="flex-1">
                     <p className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-primary)' }}>{tourn.name}</p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-primary)', opacity: 0.8 }}>
-                      {new Date(tourn.tournament_date || tourn.start_date || Date.now()).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {tourn.location}
+                      {tourn.tournament_date || tourn.start_date ? new Date(tourn.tournament_date || tourn.start_date || '').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '-'} · {tourn.location}
                     </p>
                   </div>
                 </div>

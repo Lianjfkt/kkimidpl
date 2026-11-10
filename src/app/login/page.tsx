@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
@@ -22,6 +23,7 @@ import {
 import { OFFICIAL_BELTS } from '@/lib/constants/belts';
 
 export default function LoginPage() {
+  const router = useRouter();
   const { signIn, loading: authLoading } = useAuth();
 
   const [view, setView] = useState<'login' | 'register'>('login');
@@ -51,7 +53,10 @@ export default function LoginPage() {
     const trimmed = input.trim();
     const isPhone = /^(\+62|62|0)\d{7,}$/.test(trimmed) || /^\d{8,}$/.test(trimmed);
     if (isPhone) {
-      const digitsOnly = trimmed.replace(/\D/g, '');
+      let digitsOnly = trimmed.replace(/\D/g, '');
+      if (digitsOnly.startsWith('62')) {
+        digitsOnly = '0' + digitsOnly.slice(2);
+      }
       return `${digitsOnly}@kkidpl.com`;
     }
     return trimmed;
@@ -71,17 +76,10 @@ export default function LoginPage() {
         setLoading(false);
       } else {
         const role = response.role;
-        if (role === 'owner') {
-          window.location.href = '/owner';
-        } else if (role === 'pelatih') {
-          window.location.href = '/pelatih';
-        } else if (role === 'ortu') {
-          window.location.href = '/ortu';
-        } else {
-          window.location.href = '/owner';
-        }
+        const targetRoute = role === 'owner' ? '/owner' : role === 'pelatih' ? '/pelatih' : role === 'ortu' ? '/ortu' : '/owner';
+        router.push(targetRoute);
       }
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan saat masuk. Silakan coba lagi.');
       setLoading(false);
     }
@@ -137,15 +135,25 @@ export default function LoginPage() {
         return;
       }
 
-      await supabase.from('notifications').insert({
-        id: `notif-reg-${newReg.id}`,
-        user_id: 'user-owner-id',
-        title: 'Pendaftaran Baru',
-        message: `${newReg.full_name} (Sabuk ${newReg.current_belt}) telah didaftarkan secara publik oleh ${regData.parentName}. Silakan review.`,
-        type: 'umum',
-        is_read: false,
-        created_at: new Date().toISOString(),
-      });
+      // Notifikasi dikirimkan ke semua akun Owner asli di database
+      try {
+        const { data: owners } = await supabase.from('profiles').eq('role', 'owner').select('id');
+        const ownerIds = (owners && owners.length > 0) ? owners.map((o: any) => o.id) : ['user-owner-id'];
+
+        for (const ownerId of ownerIds) {
+          await supabase.from('notifications').insert({
+            id: `notif-reg-${newReg.id}-${String(ownerId).slice(0, 8)}`,
+            user_id: ownerId,
+            title: 'Pendaftaran Baru',
+            message: `${newReg.full_name} (Sabuk ${newReg.current_belt}) telah didaftarkan secara publik oleh ${regData.parentName}. Silakan review.`,
+            type: 'umum',
+            is_read: false,
+            created_at: new Date().toISOString(),
+          });
+        }
+      } catch (notifErr) {
+        console.warn('Gagal membuat notifikasi owner:', notifErr);
+      }
 
       setSuccessMessage('Pendaftaran calon siswa baru berhasil dikirim dan menunggu verifikasi Pengurus Dojo.');
       setRegData({

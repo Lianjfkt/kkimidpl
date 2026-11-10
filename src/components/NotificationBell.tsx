@@ -23,8 +23,28 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000);
-    return () => clearInterval(interval);
+
+    if (!user?.id) return;
+
+    // Realtime subscription if available
+    try {
+      const channel = supabase
+        .channel(`notifications-user-${user.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+          () => {
+            fetchNotifications();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (err) {
+      console.warn('Realtime subscription error:', err);
+    }
   }, [user?.id]);
 
   // Close dropdown on outside click
@@ -48,9 +68,13 @@ export default function NotificationBell() {
   };
 
   const markAllAsRead = async () => {
-    for (const n of notifications.filter((n: Notification) => !n.is_read)) {
-      await supabase.from('notifications').eq('id', n.id).update({ is_read: true });
-    }
+    if (!user?.id) return;
+    await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false);
+
     setNotifications((prev: Notification[]) => prev.map((n: Notification) => ({ ...n, is_read: true })));
   };
 
@@ -64,15 +88,18 @@ export default function NotificationBell() {
     }
   };
 
-  const timeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Baru saja';
-    if (mins < 60) return `${mins}m lalu`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}j lalu`;
-    const days = Math.floor(hrs / 24);
-    return `${days}h lalu`;
+  const formatDateLabel = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   return (
@@ -221,7 +248,7 @@ export default function NotificationBell() {
                         {n.message}
                       </p>
                       <p className="text-[9px] font-semibold text-[var(--md-sys-color-primary)] mt-1.5 opacity-80">
-                        {timeAgo(n.created_at)}
+                        {formatDateLabel(n.created_at)}
                       </p>
                     </div>
                   </div>

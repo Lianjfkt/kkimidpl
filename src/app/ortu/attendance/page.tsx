@@ -31,12 +31,15 @@ export default function OrtuAttendance() {
 
   useEffect(() => {
     const load = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
       const { data: kidsData } = await supabase
         .from('students')
-        .eq('parent_id', user?.id || 'user-parent-id')
+        .eq('parent_id', user.id)
         .select('*');
-      const { initialStudents } = await import('@/lib/mockData');
-      const kids = (kidsData && kidsData.length > 0 ? kidsData : initialStudents.slice(0, 2)) as Student[];
+      const kids = (kidsData || []) as Student[];
       setChildren(kids);
       if (kids.length > 0) setSelectedChild(kids[0].id);
 

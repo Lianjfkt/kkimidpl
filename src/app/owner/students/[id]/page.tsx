@@ -40,24 +40,16 @@ export default function StudentDetailPage() {
       setErrorMsg('');
       try {
         // Load each query independently so one failure doesn't block others
-        const studRes = await supabase.from('students').eq('id', studentId).single();
+        const studRes = await supabase.from('students').eq('id', studentId).maybeSingle();
 
         if (!studRes.data) {
-          // Fallback: try fetching all students and find by ID manually
-          const allStudRes = await supabase.from('students').select('*');
-          const found = (allStudRes.data || []).find((s: Student) => s.id === studentId);
-          if (found) {
-            setStudent(found);
-            setCoachNotes(found.medical_history || '');
-          } else {
-            setErrorMsg(`Siswa dengan ID "${studentId}" tidak ditemukan.`);
-            setLoading(false);
-            return;
-          }
-        } else {
-          setStudent(studRes.data as Student);
-          setCoachNotes(studRes.data.medical_history || '');
+          setErrorMsg(`Siswa dengan ID "${studentId}" tidak ditemukan.`);
+          setLoading(false);
+          return;
         }
+
+        setStudent(studRes.data as Student);
+        setCoachNotes(studRes.data.medical_history || '');
 
         // Load related data in parallel, each independently
         const [feesRes, attRes, tournPartsRes, tournsRes, examPartsRes, examsRes] = await Promise.all([

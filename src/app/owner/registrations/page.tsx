@@ -172,56 +172,33 @@ function RegistrationsContent() {
     setSaving(false);
   };
 
-  const getDeletedIds = (): string[] => {
-    try {
-      if (typeof window !== 'undefined') {
-        return JSON.parse(localStorage.getItem('deleted_registration_ids') || '[]');
-      }
-    } catch {
-      // ignore
-    }
-    return [];
-  };
-
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     const targetId = deleteTarget.id;
 
-    // 1. Simpan ID yang dihapus ke localStorage agar selamanya terhapus di UI client
-    try {
-      const deletedIds = getDeletedIds();
-      if (!deletedIds.includes(targetId)) {
-        deletedIds.push(targetId);
-        localStorage.setItem('deleted_registration_ids', JSON.stringify(deletedIds));
-      }
-    } catch (e) {
-      console.warn('Failed to save deleted ID to localStorage:', e);
-    }
-
-    // 2. Optimistic UI update: Hapus seketika dari tampilan
-    setRegistrations(prev => prev.filter(r => r.id !== targetId));
-    setDeleteTarget(null);
-
-    // 3. Eksekusi penghapusan di database Supabase
+    // Eksekusi penghapusan di database Supabase
     try {
       const { error } = await rawClient.from('registrations').delete().eq('id', targetId);
       if (error) {
-        console.warn('Supabase DB delete notification:', error.message);
+        alert('Gagal menghapus pendaftaran: ' + error.message);
+        setDeleting(false);
+        return;
       }
-    } catch (err) {
-      console.error('Delete request failed:', err);
+      // Update UI seketika
+      setRegistrations(prev => prev.filter(r => r.id !== targetId));
+      setDeleteTarget(null);
+    } catch (err: any) {
+      alert('Terjadi kesalahan saat menghapus: ' + (err?.message || 'Gagal'));
+    } finally {
+      setDeleting(false);
     }
-
-    setDeleting(false);
   };
 
   const fetchRegistrations = async () => {
     const { data } = await rawClient.from('registrations').select('*').order('submitted_at', { ascending: false });
-    const deletedIds = getDeletedIds();
     if (data) {
-      const activeData = (data as Registration[]).filter(r => !deletedIds.includes(r.id));
-      setRegistrations(activeData);
+      setRegistrations(data as Registration[]);
     }
     setLoading(false);
   };
@@ -259,8 +236,7 @@ function RegistrationsContent() {
       const { data: regs } = await supabase.from('registrations').order('submitted_at', { ascending: false }).select();
       const { data: parents } = await supabase.from('profiles').eq('role', 'ortu').select();
 
-      const deletedIds = getDeletedIds();
-      if (regs) setRegistrations((regs as Registration[]).filter(r => !deletedIds.includes(r.id)));
+      if (regs) setRegistrations(regs as Registration[]);
       if (parents) setParentProfiles(parents as Profile[]);
       setLoading(false);
 
@@ -306,48 +282,37 @@ function RegistrationsContent() {
         return;
       }
 
-      // Buat email internal dari nomor HP: {digitsOnly}@kkidpl.com (menggunakan domain valid agar lolos validasi Supabase)
+      // Buat akun orang tua secara aman via API server tanpa membajak sesi login Owner
       const phoneDigits = newParentPhone.trim().replace(/\D/g, '');
       const generatedEmail = `${phoneDigits}@kkidpl.com`;
 
-      let authUserId = '';
+      try {
+        const res = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'create',
+            email: generatedEmail,
+            password: newParentPassword,
+            fullName: newParentName.trim(),
+            phone: newParentPhone.trim(),
+            role: 'ortu',
+          }),
+        });
 
-      // Coba buat akun Supabase Auth
-      const { data: signUpData, error: signUpError } = await rawClient.auth.signUp({
-        email: generatedEmail,
-        password: newParentPassword,
-        options: {
-          data: { full_name: newParentName.trim(), role: 'ortu' },
-          emailRedirectTo: undefined,
-        },
-      });
-
-      if (!signUpError && signUpData?.user?.id) {
-        authUserId = signUpData.user.id;
-      } else {
-        console.warn('Supabase Auth signUp failed/bypassed:', signUpError?.message);
-        // Fallback ID jika Supabase Auth menolak domain atau user auth gagal dibuat
-        authUserId = isSupabaseConfigured ? crypto.randomUUID() : `parent-${phoneDigits}`;
+        const resData = await res.json();
+        if (resData?.userId) {
+          parentId = resData.userId;
+        } else if (resData?.error) {
+          console.warn('Admin user creation warning:', resData.error);
+          // Fallback lokal jika API mengembalikan error
+          parentId = isSupabaseConfigured ? crypto.randomUUID() : `parent-${phoneDigits}`;
+        }
+      } catch (err) {
+        console.error('Call to /api/admin/users failed:', err);
+        parentId = isSupabaseConfigured ? crypto.randomUUID() : `parent-${phoneDigits}`;
       }
 
-      const newProfile: Partial<Profile> = {
-        id: authUserId,
-        full_name: newParentName.trim(),
-        role: 'ortu',
-        phone: newParentPhone.trim(),
-        avatar_url: '',
-        created_at: new Date().toISOString(),
-      };
-
-      const { error: profileError } = await supabase.from('profiles').insert(newProfile);
-      if (profileError) {
-        console.error('Failed to insert parent profile:', profileError.message);
-        // Jika profil gagal dibuat (misal karena user auth tidak ada di auth.users pada Supabase asli dengan FK strict),
-        // reset parentId ke undefined agar siswa bisa dibuat tanpa error Foreign Key Constraint (students_parent_id_fkey)
-        parentId = '';
-      } else {
-        parentId = authUserId;
-      }
       fetchParentProfiles();
     }
 

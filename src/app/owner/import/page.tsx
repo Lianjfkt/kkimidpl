@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import * as XLSX from 'xlsx';
@@ -669,9 +670,9 @@ export default function ImportPage() {
                 <button onClick={reset} className="flex-1 apple-btn-secondary py-2.5 text-sm cursor-pointer">
                   Import File Lain
                 </button>
-                <a href="/owner/students" className="flex-1 apple-btn py-2.5 text-sm font-semibold text-center">
+                <Link href="/owner/students" className="flex-1 apple-btn py-2.5 text-sm font-semibold text-center">
                   Lihat Data Siswa
-                </a>
+                </Link>
               </div>
             </div>
           </div>

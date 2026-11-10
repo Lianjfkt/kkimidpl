@@ -617,7 +617,7 @@ export default function OwnerDashboard() {
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>{t.name}</p>
                         <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                          {new Date(t.tournament_date || t.start_date || Date.now()).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} · {t.location}
+                          {t.tournament_date || t.start_date ? new Date(t.tournament_date || t.start_date || '').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'} · {t.location}
                         </p>
                       </div>
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize flex-shrink-0 border border-[var(--neu-border)]"

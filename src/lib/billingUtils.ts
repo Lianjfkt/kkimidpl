@@ -169,8 +169,8 @@ export function generateUnpaidBillingCsv(
     unpaidMonthsCount: number;
     unpaidDetails: string;
   }>,
-  month: number,
-  year: number
+  _month?: number,
+  _year?: number
 ): string {
   const header = 'Nama Siswa,Sabuk,Nama Orang Tua / Wali,No. Telepon / WA,Status Periode Ini,Nominal Periode Ini,Total Akumulasi Tunggakan,Jumlah Bulan Nunggak,Rincian Periode Tunggakan\n';
   

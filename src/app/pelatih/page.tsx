@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { ClassSession, Student, Coach, BeltExam, Tournament, initialStudents } from '@/lib/mockData';
+import { ClassSession, Student, Coach, BeltExam, Tournament } from '@/lib/mockData';
 import { getBeltHex, getBeltStyle, OFFICIAL_BELTS } from '@/lib/constants/belts';
 
 const DAYS = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -283,7 +283,9 @@ export default function PelatihDashboard() {
         supabase.from('tournament_participants').select('*'),
       ]);
 
-      const rawStudents = (studentsRes.data && studentsRes.data.length > 0) ? studentsRes.data : initialStudents; const activeSt = rawStudents.filter((s: any) => s.status === 'active' || s.status === undefined || s.status === null || s.status === ''); setStudents(activeSt.length > 0 ? activeSt : initialStudents);
+      const rawStudents = (studentsRes.data || []) as Student[];
+      const activeSt = rawStudents.filter((s: any) => s.status === 'active' || s.status === undefined || s.status === null || s.status === '');
+      setStudents(activeSt);
       if (enrollRes.data) setEnrollments(enrollRes.data);
       if (attTodayRes.data) setTodayAttendance(attTodayRes.data);
       if (attRecentRes.data) setRecentAttendance(attRecentRes.data);
@@ -809,7 +811,7 @@ export default function PelatihDashboard() {
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                              {new Date(t.tournament_date || t.start_date || Date.now()).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                              {t.tournament_date || t.start_date ? new Date(t.tournament_date || t.start_date || '').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '-'}
                             </span>
                             <span className="px-1.5 py-0.5 rounded-full text-xs capitalize font-semibold"
                               style={{ background: (levelColor[t.level || 'lokal'] || '#60a5fa') + '22', color: levelColor[t.level || 'lokal'] || '#60a5fa' }}>

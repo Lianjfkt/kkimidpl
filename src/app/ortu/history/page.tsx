@@ -223,7 +223,7 @@ export default function OrtuHistory() {
                       <div className="grid grid-cols-2 gap-2 text-xs mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                         {tourn && (
                           <>
-                            <div><span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>Tanggal:</span> {new Date(tourn.tournament_date || tourn.start_date || Date.now()).toLocaleDateString('id-ID')}</div>
+                            <div><span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>Tanggal:</span> {tourn.tournament_date || tourn.start_date ? new Date(tourn.tournament_date || tourn.start_date || '').toLocaleDateString('id-ID') : '-'}</div>
                             <div><span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>Level:</span> <span className="capitalize">{tourn.level || 'lokal'}</span></div>
                           </>
                         )}
