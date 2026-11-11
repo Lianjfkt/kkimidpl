@@ -261,7 +261,7 @@ function RegistrationsContent() {
     }
     setApproving(true);
 
-    let parentId = '';
+    let parentId: string | null = '';
 
     if (parentMode === 'existing') {
       if (!selectedParentId) {
