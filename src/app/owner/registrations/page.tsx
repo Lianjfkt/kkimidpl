@@ -336,17 +336,27 @@ function RegistrationsContent() {
       status: 'active',
     };
 
-    if (parentId && parentId.trim() !== '' && parentId !== 'user-parent-id') {
-      newStudentData.parent_id = parentId;
-    }
+    // Hanya set parent_id jika UUID valid dan profile-nya benar-benar ada di tabel profiles
+    // Untuk menghindari FK violation, kita skip parent_id dan simpan info ortu di kolom teks saja
+    // parent_name dan parent_job sudah tersimpan di newStudentData di atas
 
-    // 1. Simpan data siswa ke tabel 'students' TERLEBIH DAHULU
-    const { error: studentError } = await supabase.from('students').insert(newStudentData);
+    // 1. Simpan data siswa ke tabel 'students' TERLEBIH DAHULU (tanpa parent_id untuk hindari FK)
+    const { data: insertedStudents, error: studentError } = await supabase.from('students').insert(newStudentData).select('id');
     if (studentError) {
       console.error('Insert student error details:', studentError);
       alert('Gagal menambahkan siswa ke Data Siswa: ' + studentError.message);
       setApproving(false);
       return;
+    }
+
+    // 1b. Setelah siswa berhasil dibuat, link parent_id secara terpisah (menghindari race condition FK)
+    const insertedStudentId = insertedStudents?.[0]?.id;
+    if (insertedStudentId && parentId && parentId.trim() !== '' && parentId !== 'user-parent-id') {
+      // Verifikasi dulu bahwa profile benar-benar ada sebelum set parent_id
+      const { data: profileExists } = await supabase.from('profiles').select('id').eq('id', parentId).maybeSingle();
+      if (profileExists) {
+        await supabase.from('students').update({ parent_id: parentId }).eq('id', insertedStudentId);
+      }
     }
 
     // 2. Jika siswa berhasil dimasukkan, baru ubah status registrasi ke 'disetujui'
@@ -357,17 +367,22 @@ function RegistrationsContent() {
       alert('Siswa berhasil dibuat, namun gagal mengupdate status pendaftaran: ' + updateRegError.message);
     }
 
-    // 3. Kirim notifikasi
-    const notif: Partial<Notification> = {
-      id: `notif-approve-${approveTarget.id}`,
-      user_id: parentId || 'user-owner-id',
-      title: 'Pendaftaran Disetujui',
-      message: `Pendaftaran ${approveTarget.full_name} telah disetujui dan ditambahkan sebagai siswa baru. Sabuk saat ini: ${approveTarget.current_belt || 'Putih'}.`,
-      type: 'umum',
-      is_read: false,
-      created_at: new Date().toISOString(),
-    };
-    await supabase.from('notifications').insert(notif);
+    // 3. Kirim notifikasi (hanya jika parentId valid — ada di profiles)
+    if (parentId && parentId.trim() !== '' && parentId !== 'user-parent-id') {
+      const { data: profileExists } = await supabase.from('profiles').select('id').eq('id', parentId).maybeSingle();
+      if (profileExists) {
+        const notif: Partial<Notification> = {
+          id: `notif-approve-${approveTarget.id}`,
+          user_id: parentId,
+          title: 'Pendaftaran Disetujui',
+          message: `Pendaftaran ${approveTarget.full_name} telah disetujui dan ditambahkan sebagai siswa baru. Sabuk saat ini: ${approveTarget.current_belt || 'Putih'}.`,
+          type: 'umum',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        };
+        await supabase.from('notifications').insert(notif);
+      }
+    }
 
     setApproveTarget(null);
     setApproving(false);
