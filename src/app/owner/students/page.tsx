@@ -115,16 +115,17 @@ export default function OwnerStudents() {
       join_date: editingStudent ? editingStudent.join_date : new Date().toISOString().split('T')[0]
     };
 
-    // If using real Supabase, avoid passing invalid UUID string for parent_id
+    // parent_id hanya diisi jika sedang edit dan siswa sudah punya parent_id valid (UUID ortu)
+    // Saat tambah baru oleh owner/pelatih, parent_id dibiarkan null agar tidak melanggar FK
     if (editingStudent) {
-      if (editingStudent.parent_id && editingStudent.parent_id !== 'user-parent-id') {
-        studentData.parent_id = editingStudent.parent_id;
-      }
-    } else {
-      if (!isSupabaseConfigured) {
-        studentData.parent_id = 'user-parent-id';
+      const pid = editingStudent.parent_id;
+      if (pid && pid !== 'user-parent-id') {
+        studentData.parent_id = pid;
+      } else {
+        studentData.parent_id = null;
       }
     }
+    // Saat insert baru: JANGAN sertakan parent_id sama sekali (biarkan null dari DB)
 
     let savedStudentId = editingStudent?.id;
     let error = null;

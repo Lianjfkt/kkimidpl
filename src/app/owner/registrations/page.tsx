@@ -305,12 +305,13 @@ function RegistrationsContent() {
           parentId = resData.userId;
         } else if (resData?.error) {
           console.warn('Admin user creation warning:', resData.error);
-          // Fallback lokal jika API mengembalikan error
-          parentId = isSupabaseConfigured ? crypto.randomUUID() : `parent-${phoneDigits}`;
+          // Fallback: jangan set parentId agar parent_id tetap null (tidak melanggar FK)
+          parentId = isSupabaseConfigured ? null : `parent-${phoneDigits}`;
         }
       } catch (err) {
         console.error('Call to /api/admin/users failed:', err);
-        parentId = isSupabaseConfigured ? crypto.randomUUID() : `parent-${phoneDigits}`;
+        // Fallback: jangan set parentId agar parent_id tetap null (tidak melanggar FK)
+        parentId = isSupabaseConfigured ? null : `parent-${phoneDigits}`;
       }
 
       fetchParentProfiles();
