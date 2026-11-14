@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Student, Fee, FinanceTransaction } from '@/lib/mockData';
+import { Student, Fee, FinanceTransaction, StudentAttendance } from '@/lib/mockData';
 import { OFFICIAL_BELTS, getBeltStyle } from '@/lib/constants/belts';
 import {
   MONTH_NAMES,
@@ -12,6 +12,13 @@ import {
   generateWhatsAppUrl,
   calculateStudentArrears,
   generateUnpaidBillingCsv,
+  getMonthsInRange,
+  getDateRangeBounds,
+  calculateStudentAttendanceStats,
+  calculateStudentRangeBilling,
+  generateIntegratedBillingCsv,
+  AttendanceStats,
+  StudentRangeBillingInfo,
 } from '@/lib/billingUtils';
 
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
@@ -63,6 +70,7 @@ export default function OwnerFinance() {
   const [students, setStudents] = useState<Student[]>([]);
   const [fees, setFees] = useState<Fee[]>([]);
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
+  const [attendance, setAttendance] = useState<StudentAttendance[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Toast System State
@@ -111,8 +119,11 @@ export default function OwnerFinance() {
   // -------------------------------------------------------------
   // Penagihan & Tunggakan Filter & Actions State
   // -------------------------------------------------------------
-  const [billingMonth, setBillingMonth] = useState(new Date().getMonth() + 1);
-  const [billingYear, setBillingYear] = useState(new Date().getFullYear());
+  const now = new Date();
+  const [billingStartMonth, setBillingStartMonth] = useState(now.getMonth() + 1);
+  const [billingStartYear, setBillingStartYear] = useState(now.getFullYear());
+  const [billingEndMonth, setBillingEndMonth] = useState(now.getMonth() + 1);
+  const [billingEndYear, setBillingEndYear] = useState(now.getFullYear());
   const [billingSearch, setBillingSearch] = useState('');
   const [billingBeltFilter, setBillingBeltFilter] = useState('');
   const [billingStatusFilter, setBillingStatusFilter] = useState<'all' | 'belum_lunas' | 'lunas'>('belum_lunas');
@@ -122,6 +133,8 @@ export default function OwnerFinance() {
   const [quickPayOpen, setQuickPayOpen] = useState(false);
   const [quickPayStudent, setQuickPayStudent] = useState<Student | null>(null);
   const [quickPayFee, setQuickPayFee] = useState<Fee | null>(null);
+  const [quickPayMonth, setQuickPayMonth] = useState<number>(now.getMonth() + 1);
+  const [quickPayYear, setQuickPayYear] = useState<number>(now.getFullYear());
   const [quickPayAmount, setQuickPayAmount] = useState(20000);
   const [quickPayMethod, setQuickPayMethod] = useState<'transfer' | 'tunai' | 'qris'>('transfer');
   const [quickPayDate, setQuickPayDate] = useState(new Date().toISOString().split('T')[0]);
@@ -133,14 +146,16 @@ export default function OwnerFinance() {
 
   const loadData = async () => {
     setLoading(true);
-    const [studRes, feesRes, txRes] = await Promise.all([
+    const [studRes, feesRes, txRes, attRes] = await Promise.all([
       supabase.from('students').select('*'),
       supabase.from('fees').select('*'),
       supabase.from('finance_transactions').select('*'),
+      supabase.from('attendance_students').select('*'),
     ]);
     if (studRes.data) setStudents(studRes.data);
     if (feesRes.data) setFees(feesRes.data);
     if (txRes.data) setTransactions(txRes.data);
+    if (attRes.data) setAttendance(attRes.data);
     setLoading(false);
   };
 
@@ -230,11 +245,16 @@ export default function OwnerFinance() {
   // -------------------------------------------------------------
   // Quick Pay Modal Handler (Penagihan Tab)
   // -------------------------------------------------------------
-  const openQuickPay = (student: Student, fee?: Fee) => {
+  const openQuickPay = (student: Student, defaultFee?: Fee, defaultMonth?: number, defaultYear?: number) => {
     setQuickPayStudent(student);
-    // Find existing fee for this student and period if available
-    const matchedFee = fee || fees.find(
-      (f) => f.student_id === student.id && Number(f.period_month) === Number(billingMonth) && Number(f.period_year) === Number(billingYear)
+    const m = defaultMonth || billingEndMonth;
+    const y = defaultYear || billingEndYear;
+    setQuickPayMonth(m);
+    setQuickPayYear(y);
+
+    // Find existing fee for this student and target period if available
+    const matchedFee = defaultFee || fees.find(
+      (f) => f.student_id === student.id && Number(f.period_month) === Number(m) && Number(f.period_year) === Number(y)
     ) || null;
 
     setQuickPayFee(matchedFee);
@@ -254,9 +274,9 @@ export default function OwnerFinance() {
       const { data: userData } = await supabase.auth.getUser();
       const currentUserId = userData?.user?.id || null;
 
-      // Find if fee row already exists for this student & selected period
+      // Find if fee row already exists for this student & selected target period
       const existingFee = quickPayFee || fees.find(
-        (f) => f.student_id === quickPayStudent.id && Number(f.period_month) === Number(billingMonth) && Number(f.period_year) === Number(billingYear)
+        (f) => f.student_id === quickPayStudent.id && Number(f.period_month) === Number(quickPayMonth) && Number(f.period_year) === Number(quickPayYear)
       );
 
       if (existingFee) {
@@ -289,8 +309,8 @@ export default function OwnerFinance() {
         // Insert new fee as lunas (DO NOT pass custom string ID, let Supabase generate UUID)
         const { error: insertErr } = await supabase.from('fees').insert({
           student_id: quickPayStudent.id,
-          period_month: Number(billingMonth),
-          period_year: Number(billingYear),
+          period_month: Number(quickPayMonth),
+          period_year: Number(quickPayYear),
           amount: Number(quickPayAmount),
           status: 'lunas',
           paid_date: quickPayDate,
@@ -303,13 +323,13 @@ export default function OwnerFinance() {
         // Optimistically update local fees
         setFees((prev) => {
           const filtered = prev.filter(
-            (f) => !(f.student_id === quickPayStudent.id && Number(f.period_month) === Number(billingMonth) && Number(f.period_year) === Number(billingYear))
+            (f) => !(f.student_id === quickPayStudent.id && Number(f.period_month) === Number(quickPayMonth) && Number(f.period_year) === Number(quickPayYear))
           );
           const newFee: Fee = {
             id: `temp-${Date.now()}`,
             student_id: quickPayStudent.id,
-            period_month: Number(billingMonth),
-            period_year: Number(billingYear),
+            period_month: Number(quickPayMonth),
+            period_year: Number(quickPayYear),
             amount: Number(quickPayAmount),
             status: 'lunas',
             paid_date: quickPayDate,
@@ -326,7 +346,7 @@ export default function OwnerFinance() {
         category: 'iuran',
         amount: Number(quickPayAmount),
         transaction_date: quickPayDate,
-        description: `Iuran Bulan ${months[billingMonth - 1]} ${billingYear} - ${quickPayStudent.full_name} (${quickPayMethod.toUpperCase()})`,
+        description: `Iuran Bulan ${months[quickPayMonth - 1]} ${quickPayYear} - ${quickPayStudent.full_name} (${quickPayMethod.toUpperCase()})`,
         created_by: currentUserId,
       });
 
@@ -335,7 +355,7 @@ export default function OwnerFinance() {
         await supabase.from('notifications').insert({
           user_id: quickPayStudent.parent_id,
           title: 'Iuran Berhasil Dilunasi',
-          message: `Pembayaran iuran bulanan Rp ${Number(quickPayAmount).toLocaleString('id-ID')} periode ${months[billingMonth - 1]} ${billingYear} untuk ${quickPayStudent.full_name} telah kami terima. Terima kasih!`,
+          message: `Pembayaran iuran bulanan Rp ${Number(quickPayAmount).toLocaleString('id-ID')} periode ${months[quickPayMonth - 1]} ${quickPayYear} untuk ${quickPayStudent.full_name} telah kami terima. Terima kasih!`,
           type: 'iuran',
           is_read: false,
         });
@@ -343,7 +363,7 @@ export default function OwnerFinance() {
 
       showToast(
         'Iuran Berhasil Dilunasi!',
-        `Pelunasan Rp ${Number(quickPayAmount).toLocaleString('id-ID')} untuk ${quickPayStudent.full_name} (${months[billingMonth - 1]} ${billingYear}) via ${quickPayMethod.toUpperCase()} sukses dicatat ke kas.`,
+        `Pelunasan Rp ${Number(quickPayAmount).toLocaleString('id-ID')} untuk ${quickPayStudent.full_name} (${months[quickPayMonth - 1]} ${quickPayYear}) via ${quickPayMethod.toUpperCase()} sukses dicatat ke kas.`,
         'success',
         '🥋'
       );
@@ -358,18 +378,24 @@ export default function OwnerFinance() {
   };
 
   // WhatsApp Message Handlers
-  const handleSendWhatsApp = (student: Student, arrears: ReturnType<typeof calculateStudentArrears>) => {
-    const feeObj = arrears.currentMonthFee;
-    const amount = feeObj ? Number(feeObj.amount) : 20000;
+  const handleSendWhatsApp = (
+    student: Student,
+    rangeBilling: StudentRangeBillingInfo,
+    attendanceStats: AttendanceStats
+  ) => {
     const message = generateWhatsAppMessage({
       studentName: student.full_name,
       parentName: student.parent_name,
-      monthName: months[billingMonth - 1],
-      year: billingYear,
-      amount: amount,
-      totalArrearsAmount: arrears.totalUnpaidAmount,
-      unpaidMonthsCount: arrears.unpaidCount,
-      unpaidMonthDetails: arrears.unpaidMonthDetails,
+      belt: student.current_belt,
+      startMonthName: months[billingStartMonth - 1],
+      startYear: billingStartYear,
+      endMonthName: months[billingEndMonth - 1],
+      endYear: billingEndYear,
+      attendanceStats: attendanceStats,
+      unpaidMonthsCount: rangeBilling.unpaidCount,
+      totalArrearsAmount: rangeBilling.totalUnpaidAmount,
+      unpaidMonthDetails: rangeBilling.unpaidMonthDetails,
+      isRangeFullyPaid: rangeBilling.isRangeFullyPaid,
     });
 
     const url = generateWhatsAppUrl(student.phone, message);
@@ -377,38 +403,79 @@ export default function OwnerFinance() {
 
     showToast(
       'Membuka WhatsApp Tagihan',
-      `Format pesan penagihan Bank JAGO untuk ananda ${student.full_name} telah disiapkan dan dikirim ke nomor WhatsApp.`,
+      `Format pesan rekap absensi & penagihan untuk ananda ${student.full_name} telah disiapkan dan dikirim ke WhatsApp.`,
       'info',
       '📱'
     );
   };
 
-  const handleCopyWhatsAppText = (student: Student, arrears: ReturnType<typeof calculateStudentArrears>) => {
-    const feeObj = arrears.currentMonthFee;
-    const amount = feeObj ? Number(feeObj.amount) : 20000;
+  const handleCopyWhatsAppText = async (
+    student: Student,
+    rangeBilling: StudentRangeBillingInfo,
+    attendanceStats: AttendanceStats
+  ) => {
     const message = generateWhatsAppMessage({
       studentName: student.full_name,
       parentName: student.parent_name,
-      monthName: months[billingMonth - 1],
-      year: billingYear,
-      amount: amount,
-      totalArrearsAmount: arrears.totalUnpaidAmount,
-      unpaidMonthsCount: arrears.unpaidCount,
-      unpaidMonthDetails: arrears.unpaidMonthDetails,
+      belt: student.current_belt,
+      startMonthName: months[billingStartMonth - 1],
+      startYear: billingStartYear,
+      endMonthName: months[billingEndMonth - 1],
+      endYear: billingEndYear,
+      attendanceStats: attendanceStats,
+      unpaidMonthsCount: rangeBilling.unpaidCount,
+      totalArrearsAmount: rangeBilling.totalUnpaidAmount,
+      unpaidMonthDetails: rangeBilling.unpaidMonthDetails,
+      isRangeFullyPaid: rangeBilling.isRangeFullyPaid,
     });
 
-    navigator.clipboard.writeText(message);
-    setCopiedStudentId(student.id);
-    setTimeout(() => {
-      setCopiedStudentId(null);
-    }, 2500);
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopiedStudentId(student.id);
+      setTimeout(() => {
+        setCopiedStudentId(null);
+      }, 2500);
 
-    showToast(
-      'Pesan Tagihan Disalin!',
-      `Teks tagihan lengkap untuk ananda ${student.full_name} (${months[billingMonth - 1]} ${billingYear}) berhasil disalin ke clipboard.`,
-      'success',
-      '📋'
-    );
+      showToast(
+        'Pesan Tagihan Disalin!',
+        `Teks rekap absensi & tagihan lengkap untuk ananda ${student.full_name} berhasil disalin ke clipboard.`,
+        'success',
+        '📋'
+      );
+    } catch {
+      showToast('Gagal Menyalin', 'Izin clipboard ditolak oleh peramban.', 'error', '✕');
+    }
+  };
+
+  const handleSetPreset = (preset: 'thisMonth' | 'last3Months' | 'thisYear') => {
+    const curNow = new Date();
+    const curM = curNow.getMonth() + 1;
+    const curY = curNow.getFullYear();
+    if (preset === 'thisMonth') {
+      setBillingStartMonth(curM);
+      setBillingStartYear(curY);
+      setBillingEndMonth(curM);
+      setBillingEndYear(curY);
+      showToast('Periode Diatur', `Menampilkan tagihan bulan ${months[curM - 1]} ${curY}`, 'info', '📅');
+    } else if (preset === 'last3Months') {
+      let sM = curM - 2;
+      let sY = curY;
+      if (sM < 1) {
+        sM += 12;
+        sY -= 1;
+      }
+      setBillingStartMonth(sM);
+      setBillingStartYear(sY);
+      setBillingEndMonth(curM);
+      setBillingEndYear(curY);
+      showToast('Periode Diatur', `Menampilkan tagihan 3 bulan (${months[sM - 1]} ${sY} - ${months[curM - 1]} ${curY})`, 'info', '📅');
+    } else if (preset === 'thisYear') {
+      setBillingStartMonth(1);
+      setBillingStartYear(curY);
+      setBillingEndMonth(12);
+      setBillingEndYear(curY);
+      showToast('Periode Diatur', `Menampilkan tagihan tahun ${curY} (Jan - Des)`, 'info', '📅');
+    }
   };
 
   // -------------------------------------------------------------
@@ -470,25 +537,47 @@ export default function OwnerFinance() {
   });
   const chartMax = Math.max(...chartData.flatMap((d) => [d.income, d.expense]), 1);
 
-  // Active students billing aggregation
+  // Months range & date bounds for selected period
+  const billingMonthsRange = useMemo(() => {
+    return getMonthsInRange(billingStartMonth, billingStartYear, billingEndMonth, billingEndYear);
+  }, [billingStartMonth, billingStartYear, billingEndMonth, billingEndYear]);
+
+  const { startDate: billingStartDate, endDate: billingEndDate } = useMemo(() => {
+    return getDateRangeBounds(billingStartMonth, billingStartYear, billingEndMonth, billingEndYear);
+  }, [billingStartMonth, billingStartYear, billingEndMonth, billingEndYear]);
+
+  const billingPeriodLabel = useMemo(() => {
+    if (billingStartMonth === billingEndMonth && billingStartYear === billingEndYear) {
+      return `${months[billingStartMonth - 1]} ${billingStartYear}`;
+    }
+    return `${months[billingStartMonth - 1]} ${billingStartYear} - ${months[billingEndMonth - 1]} ${billingEndYear}`;
+  }, [billingStartMonth, billingStartYear, billingEndMonth, billingEndYear]);
+
+  // Active students billing & attendance aggregation
   const activeStudents = students.filter((s) => s.status === 'active');
-  const studentBillingList = activeStudents.map((student) => {
-    const arrears = calculateStudentArrears(student.id, fees, billingMonth, billingYear, 20000);
-    return {
-      student,
-      arrears,
-      isPaid: arrears.isCurrentMonthPaid,
-      fee: arrears.currentMonthFee,
-    };
-  });
+  const studentBillingList = useMemo(() => {
+    return activeStudents.map((student) => {
+      const rangeBilling = calculateStudentRangeBilling(student.id, fees, billingMonthsRange, 20000);
+      const attendanceStats = calculateStudentAttendanceStats(student.id, attendance, billingStartDate, billingEndDate);
+      return {
+        student,
+        rangeBilling,
+        attendanceStats,
+        isPaid: rangeBilling.isRangeFullyPaid,
+      };
+    });
+  }, [activeStudents, fees, attendance, billingMonthsRange, billingStartDate, billingEndDate]);
 
   // KPI Calculations for selected billing period
   const totalActive = activeStudents.length;
-  const totalPaidSelectedMonth = studentBillingList.filter((d) => d.isPaid).length;
-  const totalUnpaidSelectedMonth = studentBillingList.filter((d) => !d.isPaid).length;
-  const billingComplianceRate = totalActive > 0 ? Math.round((totalPaidSelectedMonth / totalActive) * 100) : 100;
-  const totalUnpaidNominalSelectedMonth = studentBillingList.filter((d) => !d.isPaid).reduce((sum, d) => sum + (d.fee ? Number(d.fee.amount) : 20000), 0);
-  const multiMonthArrearsCount = studentBillingList.filter((d) => d.arrears.unpaidCount > 1).length;
+  const totalPaidSelectedRange = studentBillingList.filter((d) => d.isPaid).length;
+  const totalUnpaidSelectedRange = studentBillingList.filter((d) => !d.isPaid).length;
+  const billingComplianceRate = totalActive > 0 ? Math.round((totalPaidSelectedRange / totalActive) * 100) : 100;
+  const totalUnpaidNominalSelectedRange = studentBillingList.reduce((sum, d) => sum + d.rangeBilling.totalUnpaidAmount, 0);
+  const avgAttendanceRate = totalActive > 0
+    ? Math.round(studentBillingList.reduce((sum, d) => sum + d.attendanceStats.attendancePct, 0) / totalActive)
+    : 0;
+  const multiMonthArrearsCount = studentBillingList.filter((d) => d.rangeBilling.unpaidCount > 1).length;
 
   // Filtered list for display in Penagihan Table
   const filteredBillingList = studentBillingList.filter((item) => {
@@ -510,29 +599,39 @@ export default function OwnerFinance() {
   // Export CSV handler for Penagihan Tab
   const handleExportBillingCSV = () => {
     const exportItems = filteredBillingList.map((item) => ({
-      student: item.student,
+      studentName: item.student.full_name,
+      belt: item.student.current_belt || 'Putih',
       parentName: item.student.parent_name || '',
       phone: item.student.phone || '',
-      belt: item.student.current_belt || 'Putih',
-      currentMonthStatus: item.isPaid ? 'Lunas' : 'Belum Lunas',
-      currentMonthAmount: item.fee ? Number(item.fee.amount) : 20000,
-      totalArrearsAmount: item.arrears.totalUnpaidAmount,
-      unpaidMonthsCount: item.arrears.unpaidCount,
-      unpaidDetails: item.arrears.unpaidMonthDetails.join('; '),
+      totalSessions: item.attendanceStats.totalSessions,
+      hadir: item.attendanceStats.hadir,
+      izin: item.attendanceStats.izin,
+      sakit: item.attendanceStats.sakit,
+      alpha: item.attendanceStats.alpha,
+      attendancePct: item.attendanceStats.attendancePct,
+      status: item.isPaid ? 'Lunas' : 'Belum Lunas',
+      unpaidMonths: item.rangeBilling.unpaidMonthDetails.join('; '),
+      totalUnpaid: item.rangeBilling.totalUnpaidAmount,
     }));
 
-    const csvContent = generateUnpaidBillingCsv(exportItems, billingMonth, billingYear);
+    const csvContent = generateIntegratedBillingCsv(
+      exportItems,
+      billingStartMonth,
+      billingStartYear,
+      billingEndMonth,
+      billingEndYear
+    );
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Rekap_Penagihan_Iuran_${months[billingMonth - 1]}_${billingYear}.csv`;
+    a.download = `Rekap_Tagihan_Absensi_Dojo_${months[billingStartMonth - 1]}_${billingStartYear}_sd_${months[billingEndMonth - 1]}_${billingEndYear}.csv`;
     a.click();
     URL.revokeObjectURL(url);
 
     showToast(
       'Ekspor CSV Berhasil',
-      `File rekap penagihan iuran periode ${months[billingMonth - 1]} ${billingYear} (${exportItems.length} data siswa) berhasil diunduh.`,
+      `File rekap tagihan & absensi (${exportItems.length} data siswa) berhasil diunduh.`,
       'success',
       '📥'
     );
@@ -683,9 +782,9 @@ export default function OwnerFinance() {
             }
           >
             <span>⚠️</span> Penagihan &amp; Tunggakan
-            {totalUnpaidSelectedMonth > 0 && (
+            {totalUnpaidSelectedRange > 0 && (
               <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-white text-red-600 rounded-full font-bold">
-                {totalUnpaidSelectedMonth}
+                {totalUnpaidSelectedRange}
               </span>
             )}
           </button>
@@ -922,7 +1021,7 @@ export default function OwnerFinance() {
                 style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-error)' }}>
-                    Belum Lunas ({months[billingMonth - 1]})
+                    Ada Tunggakan ({billingPeriodLabel})
                   </span>
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-[var(--neu-border)]"
                     style={{ background: 'rgba(248,113,113,0.12)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
@@ -931,7 +1030,7 @@ export default function OwnerFinance() {
                 </div>
                 <div className="mt-3">
                   <p className="text-2xl font-black text-red-500">
-                    {loading ? '—' : `${totalUnpaidSelectedMonth} Siswa`}
+                    {loading ? '—' : `${totalUnpaidSelectedRange} Siswa`}
                   </p>
                   <p className="text-[11px] mt-0.5 opacity-75" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                     dari total {totalActive} siswa aktif dojo
@@ -952,10 +1051,10 @@ export default function OwnerFinance() {
                 </div>
                 <div className="mt-3">
                   <p className="text-2xl font-black text-amber-500">
-                    {loading ? '—' : `Rp ${totalUnpaidNominalSelectedMonth.toLocaleString('id-ID')}`}
+                    {loading ? '—' : `Rp ${totalUnpaidNominalSelectedRange.toLocaleString('id-ID')}`}
                   </p>
                   <p className="text-[11px] mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                    potensi dana iuran bulan ini
+                    potensi tagihan dalam rentang ini
                   </p>
                 </div>
               </div>
@@ -964,19 +1063,19 @@ export default function OwnerFinance() {
                 style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold" style={{ color: '#34d399' }}>
-                    Kepatuhan Iuran
+                    Kehadiran &amp; Kepatuhan
                   </span>
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center border border-[var(--neu-border)]"
                     style={{ background: 'rgba(52,211,153,0.12)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
-                    <span className="text-sm">✓</span>
+                    <span className="text-sm">🎯</span>
                   </div>
                 </div>
                 <div className="mt-3">
                   <p className="text-2xl font-black text-emerald-500">
-                    {loading ? '—' : `${billingComplianceRate}%`}
+                    {loading ? '—' : `${avgAttendanceRate}%`}
                   </p>
                   <p className="text-[11px] mt-0.5 opacity-75" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                    {totalPaidSelectedMonth} dari {totalActive} siswa lunas
+                    kehadiran rata-rata · {totalPaidSelectedRange}/{totalActive} lunas ({billingComplianceRate}%)
                   </p>
                 </div>
               </div>
@@ -997,7 +1096,7 @@ export default function OwnerFinance() {
                     {loading ? '—' : `${multiMonthArrearsCount} Siswa`}
                   </p>
                   <p className="text-[11px] mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                    memiliki akumulasi tunggakan lama
+                    memiliki akumulasi tunggakan
                   </p>
                 </div>
               </div>
@@ -1006,36 +1105,79 @@ export default function OwnerFinance() {
             {/* Filter & Control Bar */}
             <div className="rounded-3xl p-5 flex flex-col gap-4 border border-[var(--neu-border)]"
               style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-3">
-                  {/* Period Selector */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Periode:</span>
-                    <select
-                      className="text-xs py-1.5 px-3 rounded-xl outline-none transition-all"
-                      style={neuInputStyle}
-                      value={billingMonth}
-                      onChange={(e) => {
-                        const m = Number(e.target.value);
-                        setBillingMonth(m);
-                        showToast('Periode Diubah', `Menampilkan tagihan untuk bulan ${months[m - 1]} ${billingYear}`, 'info', '📅');
-                      }}
-                    >
-                      {months.map((m, idx) => (
-                        <option key={idx} value={idx + 1}>{m}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      className="text-xs py-1.5 px-3 w-20 rounded-xl outline-none transition-all"
-                      style={neuInputStyle}
-                      value={billingYear}
-                      onChange={(e) => {
-                        const yr = Number(e.target.value);
-                        setBillingYear(yr);
-                        showToast('Tahun Diubah', `Menampilkan tagihan tahun ${yr}`, 'info', '📅');
-                      }}
-                    />
+                  {/* Period Range Selector */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Dari:</span>
+                      <select
+                        className="text-xs py-1.5 px-2.5 rounded-xl outline-none transition-all"
+                        style={neuInputStyle}
+                        value={billingStartMonth}
+                        onChange={(e) => setBillingStartMonth(Number(e.target.value))}
+                      >
+                        {months.map((m, idx) => (
+                          <option key={idx} value={idx + 1}>{m}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        className="text-xs py-1.5 px-2 w-18 rounded-xl outline-none transition-all text-center"
+                        style={neuInputStyle}
+                        value={billingStartYear}
+                        onChange={(e) => setBillingStartYear(Number(e.target.value))}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Sampai:</span>
+                      <select
+                        className="text-xs py-1.5 px-2.5 rounded-xl outline-none transition-all"
+                        style={neuInputStyle}
+                        value={billingEndMonth}
+                        onChange={(e) => setBillingEndMonth(Number(e.target.value))}
+                      >
+                        {months.map((m, idx) => (
+                          <option key={idx} value={idx + 1}>{m}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        className="text-xs py-1.5 px-2 w-18 rounded-xl outline-none transition-all text-center"
+                        style={neuInputStyle}
+                        value={billingEndYear}
+                        onChange={(e) => setBillingEndYear(Number(e.target.value))}
+                      />
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div className="flex items-center gap-1.5 ml-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSetPreset('thisMonth')}
+                        className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-[var(--neu-border)] transition-all hover:bg-white/5 cursor-pointer"
+                        style={{ background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface)' }}
+                      >
+                        Bulan Ini
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetPreset('last3Months')}
+                        className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-[var(--neu-border)] transition-all hover:bg-white/5 cursor-pointer"
+                        style={{ background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface)' }}
+                      >
+                        3 Bulan
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetPreset('thisYear')}
+                        className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-[var(--neu-border)] transition-all hover:bg-white/5 cursor-pointer"
+                        style={{ background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface)' }}
+                      >
+                        Tahun Ini
+                      </button>
+                    </div>
                   </div>
 
                   {/* Status Filter */}
@@ -1053,7 +1195,7 @@ export default function OwnerFinance() {
                           : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
                       }
                     >
-                      Belum Lunas ({totalUnpaidSelectedMonth})
+                      Belum Lunas ({totalUnpaidSelectedRange})
                     </button>
                     <button
                       type="button"
@@ -1065,7 +1207,7 @@ export default function OwnerFinance() {
                           : { background: 'transparent', color: 'var(--md-sys-color-on-surface-variant)' }
                       }
                     >
-                      Lunas ({totalPaidSelectedMonth})
+                      Lunas ({totalPaidSelectedRange})
                     </button>
                     <button
                       type="button"
@@ -1087,12 +1229,12 @@ export default function OwnerFinance() {
                   <button
                     onClick={handleExportBillingCSV}
                     className="apple-btn-secondary px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer rounded-xl"
-                    title="Unduh data tagihan ke format CSV"
+                    title="Unduh data tagihan dan absensi ke format CSV"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    Ekspor CSV
+                    Ekspor CSV Rekap
                   </button>
                 </div>
               </div>
@@ -1143,10 +1285,10 @@ export default function OwnerFinance() {
               <div className="px-6 py-4 flex items-center justify-between border-b border-[var(--neu-border)]">
                 <div>
                   <h3 className="font-semibold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
-                    Daftar Penagihan Siswa ({months[billingMonth - 1]} {billingYear})
+                    Daftar Penagihan &amp; Rekap Siswa ({billingPeriodLabel})
                   </h3>
                   <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
-                    Menampilkan {filteredBillingList.length} siswa sesuai kriteria filter.
+                    Menampilkan {filteredBillingList.length} siswa sesuai filter rentang periode.
                   </p>
                 </div>
                 <div className="text-xs font-semibold px-3 py-1 rounded-full border border-[var(--neu-border)] flex items-center gap-1.5"
@@ -1166,7 +1308,7 @@ export default function OwnerFinance() {
                   </h4>
                   <p className="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-1">
                     {billingStatusFilter === 'belum_lunas'
-                      ? `Hebat! Semua siswa sudah melunasi iuran untuk periode ${months[billingMonth - 1]} ${billingYear}.`
+                      ? `Hebat! Semua siswa sudah melunasi iuran untuk periode ${billingPeriodLabel}.`
                       : 'Tidak ditemukan siswa dengan filter yang dipilih.'}
                   </p>
                 </div>
@@ -1182,10 +1324,10 @@ export default function OwnerFinance() {
                           Orang Tua / Kontak WA
                         </th>
                         <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                          Status {months[billingMonth - 1]}
+                          Rekap Kehadiran
                         </th>
                         <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                          Akumulasi Tunggakan
+                          Status Iuran Rentang Ini
                         </th>
                         <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-right" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
                           Aksi Penagihan
@@ -1193,7 +1335,7 @@ export default function OwnerFinance() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredBillingList.map(({ student, arrears, isPaid, fee }, idx) => {
+                      {filteredBillingList.map(({ student, rangeBilling, attendanceStats, isPaid }, idx) => {
                         const beltStyle = getBeltBadge(student.current_belt);
                         const hasPhone = Boolean(student.phone);
                         const isCopied = copiedStudentId === student.id;
@@ -1244,7 +1386,35 @@ export default function OwnerFinance() {
                               </div>
                             </td>
 
-                            {/* Status Selected Month */}
+                            {/* Attendance Stats Column */}
+                            <td className="px-5 py-4">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                      attendanceStats.attendancePct >= 80
+                                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                        : attendanceStats.attendancePct >= 60
+                                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                        : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                                    }`}
+                                  >
+                                    <span>🎯</span> {attendanceStats.attendancePct}% ({attendanceStats.hadir}/{attendanceStats.totalSessions} Sesi)
+                                  </span>
+                                </div>
+                                <div className="text-[10px] flex items-center gap-2" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                                  <span title="Hadir" className="text-emerald-400 font-semibold">H: {attendanceStats.hadir}</span>
+                                  <span>•</span>
+                                  <span title="Izin" className="text-sky-400 font-semibold">I: {attendanceStats.izin}</span>
+                                  <span>•</span>
+                                  <span title="Sakit" className="text-amber-400 font-semibold">S: {attendanceStats.sakit}</span>
+                                  <span>•</span>
+                                  <span title="Alpha" className="text-red-400 font-semibold">A: {attendanceStats.alpha}</span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Status Selected Range */}
                             <td className="px-5 py-4">
                               {isPaid ? (
                                 <div className="space-y-0.5">
@@ -1253,46 +1423,20 @@ export default function OwnerFinance() {
                                     <span>✓</span> Lunas
                                   </span>
                                   <p className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">
-                                    Rp {fee ? Number(fee.amount).toLocaleString('id-ID') : '20.000'} {fee?.payment_method ? `(${fee.payment_method})` : ''}
+                                    {rangeBilling.monthsRange.length} bulan telah terbayar
                                   </p>
                                 </div>
                               ) : (
-                                <div className="space-y-0.5">
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
-                                    style={{ background: 'var(--md-sys-color-error-container)', color: 'var(--md-sys-color-on-error-container)' }}>
-                                    <span>⚠️</span> Belum Lunas
-                                  </span>
-                                  <p className="text-[10px] text-[var(--md-sys-color-on-surface-variant)] font-medium">
-                                    Tagihan: Rp {fee ? Number(fee.amount).toLocaleString('id-ID') : '20.000'}
-                                  </p>
-                                </div>
-                              )}
-                            </td>
-
-                            {/* Arrears Summary */}
-                            <td className="px-5 py-4">
-                              {arrears.unpaidCount > 1 ? (
                                 <div className="space-y-1">
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
-                                    🚨 Nunggak {arrears.unpaidCount} Bulan
+                                    ⚠️ {rangeBilling.unpaidCount} Bulan Belum Lunas
                                   </span>
                                   <p className="text-xs font-bold text-red-500">
-                                    Total: Rp {arrears.totalUnpaidAmount.toLocaleString('id-ID')}
+                                    Rp {rangeBilling.totalUnpaidAmount.toLocaleString('id-ID')}
                                   </p>
-                                  <p className="text-[9px] text-[var(--md-sys-color-on-surface-variant)] max-w-xs truncate" title={arrears.unpaidMonthDetails.join(', ')}>
-                                    {arrears.unpaidMonthDetails.join(', ')}
+                                  <p className="text-[9px] text-[var(--md-sys-color-on-surface-variant)] max-w-xs truncate" title={rangeBilling.unpaidMonthDetails.join(', ')}>
+                                    {rangeBilling.unpaidMonthDetails.join(', ')}
                                   </p>
-                                </div>
-                              ) : arrears.unpaidCount === 1 ? (
-                                <div className="text-xs">
-                                  <span className="text-[var(--md-sys-color-on-surface)] font-medium">1 Periode</span>
-                                  <p className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">
-                                    Rp {arrears.totalUnpaidAmount.toLocaleString('id-ID')}
-                                  </p>
-                                </div>
-                              ) : (
-                                <div className="text-xs text-emerald-500 font-semibold flex items-center gap-1">
-                                  <span>✨</span> Semua Lunas
                                 </div>
                               )}
                             </td>
@@ -1300,12 +1444,12 @@ export default function OwnerFinance() {
                             {/* Action Buttons */}
                             <td className="px-5 py-4 text-right">
                               <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                {/* 1-Click WhatsApp Reminder */}
+                                {/* 1-Click WhatsApp Recap & Reminder */}
                                 <button
                                   type="button"
-                                  onClick={() => handleSendWhatsApp(student, arrears)}
+                                  onClick={() => handleSendWhatsApp(student, rangeBilling, attendanceStats)}
                                   className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm flex items-center gap-1 cursor-pointer"
-                                  title="Kirim pesan penagihan otomatis ke WhatsApp Orang Tua"
+                                  title="Kirim pesan rekap kehadiran & iuran ke WhatsApp Orang Tua"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.044c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z" />
@@ -1316,9 +1460,9 @@ export default function OwnerFinance() {
                                 {/* Copy Message */}
                                 <button
                                   type="button"
-                                  onClick={() => handleCopyWhatsAppText(student, arrears)}
+                                  onClick={() => handleCopyWhatsAppText(student, rangeBilling, attendanceStats)}
                                   className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-[var(--md-sys-color-outline-variant)] hover:bg-[var(--md-sys-color-surface-container)] text-[var(--md-sys-color-on-surface)] transition-all flex items-center gap-1 cursor-pointer"
-                                  title="Salin teks tagihan lengkap ke clipboard"
+                                  title="Salin teks rekap lengkap ke clipboard"
                                 >
                                   {isCopied ? (
                                     <span className="text-emerald-500 font-bold">✓ Tersalin</span>
@@ -1336,7 +1480,10 @@ export default function OwnerFinance() {
                                 {!isPaid ? (
                                   <button
                                     type="button"
-                                    onClick={() => openQuickPay(student, fee)}
+                                    onClick={() => {
+                                      const firstUnpaid = rangeBilling.periodDetails.find((p) => !p.isPaid);
+                                      openQuickPay(student, firstUnpaid?.fee, firstUnpaid?.month, firstUnpaid?.year);
+                                    }}
                                     className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--md-sys-color-primary)] hover:opacity-90 text-white transition-all cursor-pointer"
                                   >
                                     Bayar
@@ -1705,11 +1852,27 @@ export default function OwnerFinance() {
 
             <div className="p-3.5 rounded-2xl border border-[var(--neu-border)] space-y-1.5"
               style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
-              <div className="flex justify-between text-xs">
-                <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Periode Iuran:</span>
-                <span className="font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
-                  {months[billingMonth - 1]} {billingYear}
-                </span>
+              <div className="flex justify-between items-center text-xs">
+                <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Target Bulan:</span>
+                <div className="flex items-center gap-1.5">
+                  <select
+                    className="text-xs py-1 px-2 rounded-lg outline-none"
+                    style={neuInputStyle}
+                    value={quickPayMonth}
+                    onChange={(e) => setQuickPayMonth(Number(e.target.value))}
+                  >
+                    {months.map((m, idx) => (
+                      <option key={idx} value={idx + 1}>{m}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    className="text-xs py-1 px-2 w-16 rounded-lg outline-none text-center"
+                    style={neuInputStyle}
+                    value={quickPayYear}
+                    onChange={(e) => setQuickPayYear(Number(e.target.value))}
+                  />
+                </div>
               </div>
               <div className="flex justify-between text-xs">
                 <span style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Siswa:</span>

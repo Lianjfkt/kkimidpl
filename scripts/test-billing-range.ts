@@ -68,7 +68,7 @@ console.log('✓ Test 3 passed\n');
 
 // Test 4: calculateStudentRangeBilling
 console.log('Test 4: calculateStudentRangeBilling');
-const mockFees = [
+const mockFees: Fee[] = [
   { id: 'f1', student_id: 's1', period_month: 1, period_year: 2026, amount: 20000, status: 'lunas' },
   { id: 'f2', student_id: 's1', period_month: 2, period_year: 2026, amount: 25000, status: 'belum_lunas' },
   // Month 3 has no fee row (unbilled)
@@ -139,3 +139,4 @@ assert(csv.includes('Januari 2026 - Maret 2026'), 'CSV should mention period in 
 console.log('✓ Test 6 passed\n');
 
 console.log('All tests completed successfully!');
+
