@@ -29,30 +29,26 @@
 - Create: `scripts/test-billing-range.ts` (test harness)
 - Modify: `src/lib/billingUtils.ts`
 
-- [ ] **Step 1: Write test harness in `scripts/test-billing-range.ts`**
-  Write a test script that tests:
-  1. `getMonthsInRange(startMonth, startYear, endMonth, endYear)` for single-month, multi-month in same year, and cross-year range.
-  2. `getDateRangeBounds(startMonth, startYear, endMonth, endYear)` for valid ISO date strings.
-  3. `calculateStudentAttendanceStats` for correct counts of Hadir, Izin, Sakit, Alpha, total sessions, and percentage.
-  4. `generateWhatsAppMessage` to verify proper rendering of attendance stats, unpaid dues, and Bank JAGO details.
+- [x] **Step 1: Write test harness in `scripts/test-billing-range.ts`**
+  Write a test script that tests range parsing, attendance stats, and WhatsApp message formatting.
 
-- [ ] **Step 2: Run test harness to observe expected failure (initial state)**
+- [x] **Step 2: Run test harness to observe expected failure (initial state)**
   Run: `node --experimental-strip-types scripts/test-billing-range.ts`
   Verify that functions not yet exported fail with reference errors.
 
-- [ ] **Step 3: Implement range utilities and calculation functions in `src/lib/billingUtils.ts`**
-  - Implement `getMonthsInRange(startMonth: number, startYear: number, endMonth: number, endYear: number)`.
-  - Implement `getDateRangeBounds(startMonth: number, startYear: number, endMonth: number, endYear: number)`.
-  - Implement `AttendanceRecord` interface and `calculateStudentAttendanceStats(studentId: string, attendance: any[], startDate: string, endDate: string)`.
-  - Implement `calculateStudentRangeBilling(studentId: string, allFees: Fee[], monthsRange: Array<{month: number, year: number}>, defaultMonthlyAmount?: number)`.
-  - Update `WhatsAppMessageParams` and `generateWhatsAppMessage` to include attendance statistics and list of unpaid months.
-  - Implement `generateIntegratedBillingCsv(items: any[], startMonth: number, startYear: number, endMonth: number, endYear: number)`.
+- [x] **Step 3: Implement range utilities and calculation functions in `src/lib/billingUtils.ts`**
+  - Implement `getMonthsInRange(startMonth, startYear, endMonth, endYear)`.
+  - Implement `getDateRangeBounds(startMonth, startYear, endMonth, endYear)`.
+  - Implement `calculateStudentAttendanceStats(studentId, attendance, startDate, endDate)`.
+  - Implement `calculateStudentRangeBilling(studentId, allFees, monthsRange, defaultMonthlyAmount)`.
+  - Update `generateWhatsAppMessage` to include attendance statistics and list of unpaid months.
+  - Implement `generateIntegratedBillingCsv(items, startMonth, startYear, endMonth, endYear)`.
 
-- [ ] **Step 4: Run test harness to verify all assertions pass**
+- [x] **Step 4: Run test harness to verify all assertions pass**
   Run: `node --experimental-strip-types scripts/test-billing-range.ts`
   Ensure all tests output `PASSED`.
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
   Run: `git add src/lib/billingUtils.ts scripts/test-billing-range.ts && git commit -m "feat(billing): add range calculations, attendance aggregation, and enhanced WhatsApp template"`
 
 ---
@@ -62,12 +58,12 @@
 **Files:**
 - Modify: `src/app/owner/finance/page.tsx`
 
-- [ ] **Step 1: Inspect and prepare state in `src/app/owner/finance/page.tsx`**
+- [x] **Step 1: Inspect and prepare state in `src/app/owner/finance/page.tsx`**
   - Add state for `billingStartMonth`, `billingStartYear`, `billingEndMonth`, `billingEndYear`.
   - Add `attendance: StudentAttendance[]` to fetched datasets in `loadData()` by calling `supabase.from('attendance_students').select('*')`.
   - Set default range to current month (`startMonth = currentMonth`, `endMonth = currentMonth`).
 
-- [ ] **Step 2: Update Filter Bar & Quick Preset Buttons**
+- [x] **Step 2: Update Filter Bar & Quick Preset Buttons**
   - Replace the single month/year selector with dual selectors:
     - "Dari: [Bulan] [Tahun]"
     - "Sampai: [Bulan] [Tahun]"
@@ -76,15 +72,15 @@
     - "3 Bulan Terakhir" (`start = currentMonth - 2, end = currentMonth`)
     - "Tahun Berjalan" (`start = 1, end = 12, year = currentYear`)
 
-- [ ] **Step 3: Update KPI calculations for the selected range**
+- [x] **Step 3: Update KPI calculations for the selected range**
   - Filter and calculate:
     - Number of active students with at least 1 unpaid month in range.
     - Total unpaid amount across the range.
     - Dojo average attendance percentage across all active students in the range.
     - Number of students with > 1 month arrears.
 
-- [ ] **Step 4: Update Billing Table Columns**
-  - Add Column **"Rekap Absensi (Periode Ini)"**:
+- [x] **Step 4: Update Billing Table Columns**
+  - Add Column **"Rekap Kehadiran"**:
     - Display attendance rate badge (`%` and sessions attended/total) with conditional color coding (green >= 80%, yellow 60-79%, red < 60%).
     - Display sub-breakdown: `H: [hadir] · I: [izin] · S: [sakit] · A: [alpha]`.
   - Update Column **"Status Iuran Rentang Ini"**:
@@ -94,11 +90,11 @@
     - "Salin" calls `handleCopyWhatsAppText` with range parameters.
     - Update CSV export button to call `generateIntegratedBillingCsv`.
 
-- [ ] **Step 5: Verify build and compile stability**
+- [x] **Step 5: Verify build and compile stability**
   Run: `npm run build`
   Verify that TypeScript compiles with 0 errors.
 
-- [ ] **Step 6: Commit changes**
+- [x] **Step 6: Commit changes**
   Run: `git add src/app/owner/finance/page.tsx && git commit -m "feat(finance): add period range selector, attendance stats, and enhanced WhatsApp billing in penagihan tab"`
 
 ---
@@ -108,25 +104,25 @@
 **Files:**
 - Modify: `src/app/owner/reports/page.tsx`
 
-- [ ] **Step 1: Add Range Selection State in `src/app/owner/reports/page.tsx`**
-  - Add `startMonth`, `startYear`, `endMonth`, `endYear` states (or separate states for fees and attendance).
-  - Add quick presets or synchronize default to current month.
+- [x] **Step 1: Add Range Selection State in `src/app/owner/reports/page.tsx`**
+  - Add `startMonth`, `startYear`, `endMonth`, `endYear` states.
+  - Add quick presets ("Bulan Ini", "3 Bulan", "Tahun Ini").
 
-- [ ] **Step 2: Update Fee and Attendance Export Cards to Support Range**
-  - In "Laporan Iuran Bulanan" card: allow selecting Dari Bulan/Tahun s/d Sampai Bulan/Tahun.
+- [x] **Step 2: Update Fee and Attendance Export Cards to Support Range**
+  - In "Laporan Iuran Siswa" card: allow selecting Dari Bulan/Tahun s/d Sampai Bulan/Tahun.
   - In "Laporan Absensi Siswa" card: allow selecting Dari Bulan/Tahun s/d Sampai Bulan/Tahun.
   - Update `exportFees` and `exportAttendance` filter logic to filter across the selected range.
 
-- [ ] **Step 3: Add "Laporan Terpadu Tagihan & Absensi Siswa" Card**
-  - Create a new 4th card (or featured section) that integrates both dues and attendance.
+- [x] **Step 3: Add "Laporan Terpadu Tagihan & Absensi Siswa" Card**
+  - Create a new featured card that integrates both dues and attendance.
   - Add button "📥 Unduh Rekap Terpadu (CSV)" using `generateIntegratedBillingCsv`.
-  - Add button "↗ Buka Menu Penagihan WA" linking to `/owner/finance` (with activeTab = 'penagihan').
+  - Add button "💬 Buka Menu Penagihan WA ↗" linking to `/owner/finance`.
 
-- [ ] **Step 4: Verify build and compile stability**
+- [x] **Step 4: Verify build and compile stability**
   Run: `npm run build`
   Verify no syntax, typing, or compilation errors.
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
   Run: `git add src/app/owner/reports/page.tsx && git commit -m "feat(reports): add range-based exports and integrated billing & attendance recap card"`
 
 ---
@@ -136,14 +132,14 @@
 **Files:**
 - Test scripts and build artifacts
 
-- [ ] **Step 1: Run comprehensive tests**
+- [x] **Step 1: Run comprehensive tests**
   Run: `node --experimental-strip-types scripts/test-billing-range.ts`
   Verify all assertions pass.
 
-- [ ] **Step 2: Run Next.js production build**
+- [x] **Step 2: Run Next.js production build**
   Run: `npm run build`
   Ensure production bundle builds cleanly.
 
-- [ ] **Step 3: Review git status and final commit**
+- [x] **Step 3: Review git status and final commit**
   Run: `git status`
   Ensure working directory is clean and documented.
