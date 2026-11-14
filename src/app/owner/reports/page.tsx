@@ -151,8 +151,13 @@ export default function ReportsPage() {
     const activeStudents = students.filter(s => s.status === 'active');
 
     const items = activeStudents.map(student => {
-      const rangeBilling = calculateStudentRangeBilling(student.id, fees, range, 20000);
+      const rangeBilling = calculateStudentRangeBilling(student.id, fees, range, 20000, student.join_date);
       const attStats = calculateStudentAttendanceStats(student.id, attendance, startDate, endDate);
+      const statusLabel = rangeBilling.isBeforeJoinEntirely
+        ? 'Belum Bergabung'
+        : rangeBilling.isRangeFullyPaid
+        ? 'Lunas'
+        : 'Belum Lunas';
       return {
         studentName: student.full_name,
         belt: student.current_belt || 'Putih',
@@ -164,7 +169,7 @@ export default function ReportsPage() {
         sakit: attStats.sakit,
         alpha: attStats.alpha,
         attendancePct: attStats.attendancePct,
-        status: rangeBilling.isRangeFullyPaid ? 'Lunas' : 'Belum Lunas',
+        status: statusLabel,
         unpaidMonths: rangeBilling.unpaidMonthDetails.join('; '),
         totalUnpaid: rangeBilling.totalUnpaidAmount,
       };

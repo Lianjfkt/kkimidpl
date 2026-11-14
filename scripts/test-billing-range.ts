@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import {
   getMonthsInRange,
   getDateRangeBounds,
+  isBeforeJoinMonth,
   calculateStudentAttendanceStats,
   calculateStudentRangeBilling,
   generateWhatsAppMessage,
@@ -137,6 +138,76 @@ assert(csv.includes('Kenji Sato'), 'CSV should contain student name');
 assert(csv.includes('45000'), 'CSV should contain total unpaid');
 assert(csv.includes('Januari 2026 - Maret 2026'), 'CSV should mention period in header comments');
 console.log('✓ Test 6 passed\n');
+
+// Test 7: isBeforeJoinMonth
+console.log('Test 7: isBeforeJoinMonth');
+assert.strictEqual(isBeforeJoinMonth(4, 2026, '2026-05-15'), true, 'April is before May');
+assert.strictEqual(isBeforeJoinMonth(5, 2026, '2026-05-15'), false, 'May is the join month');
+assert.strictEqual(isBeforeJoinMonth(6, 2026, '2026-05-15'), false, 'June is after join month');
+assert.strictEqual(isBeforeJoinMonth(12, 2025, '2026-01-01'), true, 'Dec 2025 is before Jan 2026');
+assert.strictEqual(isBeforeJoinMonth(1, 2026, null), false, 'No joinDate returns false');
+console.log('✓ Test 7 passed\n');
+
+// Test 8: calculateStudentRangeBilling with joinDate
+console.log('Test 8: calculateStudentRangeBilling with joinDate');
+// Student joined in February 2026 ('2026-02-15')
+// Range is January - March 2026 (Jan, Feb, Mar)
+// Month 1 (Jan) has no fee row, but should NOT be counted because student joined in Feb!
+// Month 2 (Feb) has lunas fee
+// Month 3 (Mar) has no fee row -> unpaid (20000)
+const billingWithJoin = calculateStudentRangeBilling(
+  's1',
+  [{ id: 'f2', student_id: 's1', period_month: 2, period_year: 2026, amount: 20000, status: 'lunas' }],
+  [
+    { month: 1, year: 2026 },
+    { month: 2, year: 2026 },
+    { month: 3, year: 2026 },
+  ],
+  20000,
+  '2026-02-15'
+);
+
+assert.strictEqual(billingWithJoin.applicableMonthsCount, 2, 'Only Feb & Mar are applicable');
+assert.strictEqual(billingWithJoin.unpaidCount, 1, 'Only March is unpaid');
+assert.strictEqual(billingWithJoin.totalUnpaidAmount, 20000, 'Total unpaid should be 20000 (not 40000)');
+assert.deepStrictEqual(billingWithJoin.unpaidMonthDetails, ['Maret 2026']);
+assert.strictEqual(billingWithJoin.periodDetails[0].isBeforeJoin, true, 'Jan should be marked as before join');
+assert.strictEqual(billingWithJoin.isBeforeJoinEntirely, false);
+
+// Student joined in April 2026 ('2026-04-01')
+// Range is January - March 2026 (all months before join)
+const billingEntirelyBefore = calculateStudentRangeBilling(
+  's1',
+  [],
+  [
+    { month: 1, year: 2026 },
+    { month: 2, year: 2026 },
+    { month: 3, year: 2026 },
+  ],
+  20000,
+  '2026-04-01'
+);
+
+assert.strictEqual(billingEntirelyBefore.applicableMonthsCount, 0, 'No applicable months');
+assert.strictEqual(billingEntirelyBefore.unpaidCount, 0, 'No unpaid months');
+assert.strictEqual(billingEntirelyBefore.totalUnpaidAmount, 0, 'Zero debt');
+assert.strictEqual(billingEntirelyBefore.isBeforeJoinEntirely, true, 'Should be entirely before join');
+
+const waEntirelyBefore = generateWhatsAppMessage({
+  studentName: 'Kenji Sato',
+  parentName: 'Budi Santoso',
+  belt: 'Kuning',
+  startMonthName: 'Januari',
+  startYear: 2026,
+  endMonthName: 'Maret',
+  endYear: 2026,
+  attendanceStats: stats,
+  isBeforeJoinEntirely: true,
+  joinDate: '2026-04-01',
+});
+
+assert(waEntirelyBefore.includes('Belum Terdaftar / Belum Bergabung'), 'WA should state student had not joined yet');
+console.log('✓ Test 8 passed\n');
 
 console.log('All tests completed successfully!');
 

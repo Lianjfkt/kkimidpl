@@ -396,6 +396,8 @@ export default function OwnerFinance() {
       totalArrearsAmount: rangeBilling.totalUnpaidAmount,
       unpaidMonthDetails: rangeBilling.unpaidMonthDetails,
       isRangeFullyPaid: rangeBilling.isRangeFullyPaid,
+      isBeforeJoinEntirely: rangeBilling.isBeforeJoinEntirely,
+      joinDate: student.join_date,
     });
 
     const url = generateWhatsAppUrl(student.phone, message);
@@ -427,6 +429,8 @@ export default function OwnerFinance() {
       totalArrearsAmount: rangeBilling.totalUnpaidAmount,
       unpaidMonthDetails: rangeBilling.unpaidMonthDetails,
       isRangeFullyPaid: rangeBilling.isRangeFullyPaid,
+      isBeforeJoinEntirely: rangeBilling.isBeforeJoinEntirely,
+      joinDate: student.join_date,
     });
 
     try {
@@ -557,7 +561,7 @@ export default function OwnerFinance() {
   const activeStudents = students.filter((s) => s.status === 'active');
   const studentBillingList = useMemo(() => {
     return activeStudents.map((student) => {
-      const rangeBilling = calculateStudentRangeBilling(student.id, fees, billingMonthsRange, 20000);
+      const rangeBilling = calculateStudentRangeBilling(student.id, fees, billingMonthsRange, 20000, student.join_date);
       const attendanceStats = calculateStudentAttendanceStats(student.id, attendance, billingStartDate, billingEndDate);
       return {
         student,
@@ -1416,14 +1420,24 @@ export default function OwnerFinance() {
 
                             {/* Status Selected Range */}
                             <td className="px-5 py-4">
-                              {isPaid ? (
+                              {rangeBilling.isBeforeJoinEntirely ? (
+                                <div className="space-y-0.5">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
+                                    style={{ background: 'var(--neu-surface-low)', color: 'var(--md-sys-color-on-surface-variant)', border: '1px solid var(--neu-border)' }}>
+                                    <span>ℹ️</span> Belum Bergabung
+                                  </span>
+                                  <p className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">
+                                    Join: {student.join_date || '-'}
+                                  </p>
+                                </div>
+                              ) : isPaid ? (
                                 <div className="space-y-0.5">
                                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
                                     style={{ background: 'var(--md-sys-color-tertiary-container)', color: 'var(--md-sys-color-on-tertiary-container)' }}>
                                     <span>✓</span> Lunas
                                   </span>
                                   <p className="text-[10px] text-[var(--md-sys-color-on-surface-variant)]">
-                                    {rangeBilling.monthsRange.length} bulan telah terbayar
+                                    {rangeBilling.paidMonthsCount} bulan sejak bergabung telah terbayar
                                   </p>
                                 </div>
                               ) : (
@@ -1477,20 +1491,24 @@ export default function OwnerFinance() {
                                 </button>
 
                                 {/* Quick Pay Button */}
-                                {!isPaid ? (
+                                {!rangeBilling.isBeforeJoinEntirely && !isPaid ? (
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const firstUnpaid = rangeBilling.periodDetails.find((p) => !p.isPaid);
+                                      const firstUnpaid = rangeBilling.periodDetails.find((p) => !p.isPaid && !p.isBeforeJoin);
                                       openQuickPay(student, firstUnpaid?.fee, firstUnpaid?.month, firstUnpaid?.year);
                                     }}
                                     className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--md-sys-color-primary)] hover:opacity-90 text-white transition-all cursor-pointer"
                                   >
                                     Bayar
                                   </button>
-                                ) : (
+                                ) : isPaid && !rangeBilling.isBeforeJoinEntirely ? (
                                   <span className="px-2.5 py-1 text-xs font-semibold text-emerald-500 flex items-center gap-1">
                                     ✓ Lunas
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)] flex items-center gap-1">
+                                    —
                                   </span>
                                 )}
                               </div>

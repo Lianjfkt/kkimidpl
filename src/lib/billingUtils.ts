@@ -141,43 +141,72 @@ export function calculateStudentAttendanceStats(
   };
 }
 
+export interface PeriodBillingDetail {
+  month: number;
+  year: number;
+  monthName: string;
+  isPaid: boolean;
+  isBeforeJoin: boolean;
+  fee?: Fee;
+  amount: number;
+}
+
 export interface StudentRangeBillingInfo {
   monthsRange: Array<{ month: number; year: number }>;
+  applicableMonthsCount: number;
   paidMonthsCount: number;
   unpaidCount: number;
   totalUnpaidAmount: number;
   unpaidFees: Fee[];
   unpaidMonthDetails: string[];
   isRangeFullyPaid: boolean;
-  periodDetails: Array<{
-    month: number;
-    year: number;
-    monthName: string;
-    isPaid: boolean;
-    fee?: Fee;
-    amount: number;
-  }>;
+  isBeforeJoinEntirely: boolean;
+  joinDate?: string | null;
+  periodDetails: PeriodBillingDetail[];
 }
 
 /**
- * Calculates fee status across a custom range of months for a student
+ * Checks whether a given (month, year) is strictly before a student's join date month/year
+ */
+export function isBeforeJoinMonth(month: number, year: number, joinDate?: string | null): boolean {
+  if (!joinDate) return false;
+  const clean = joinDate.slice(0, 10);
+  const parts = clean.split('-');
+  if (parts.length < 2) return false;
+  const joinYear = parseInt(parts[0], 10);
+  const joinMonth = parseInt(parts[1], 10);
+  if (isNaN(joinYear) || isNaN(joinMonth)) return false;
+
+  if (year < joinYear) return true;
+  if (year === joinYear && month < joinMonth) return true;
+  return false;
+}
+
+/**
+ * Calculates fee status across a custom range of months for a student.
+ * If joinDate is provided, months prior to the student's join month will NOT
+ * be counted as unpaid dues.
  */
 export function calculateStudentRangeBilling(
   studentId: string,
   allFees: Fee[],
   monthsRange: Array<{ month: number; year: number }>,
-  defaultMonthlyAmount: number = 20000
+  defaultMonthlyAmount: number = 20000,
+  joinDate?: string | null
 ): StudentRangeBillingInfo {
   const studentFees = allFees.filter((f) => f.student_id === studentId);
 
+  let applicableMonthsCount = 0;
   let paidMonthsCount = 0;
   let unpaidCount = 0;
   let totalUnpaidAmount = 0;
   const unpaidFees: Fee[] = [];
   const unpaidMonthDetails: string[] = [];
 
-  const periodDetails = monthsRange.map(({ month, year }) => {
+  const periodDetails: PeriodBillingDetail[] = monthsRange.map(({ month, year }) => {
     const monthName = `${MONTH_NAMES[month - 1] || month} ${year}`;
+    const beforeJoin = isBeforeJoinMonth(month, year, joinDate);
+
     // Look for fee record
     const feeRecord = studentFees.find(
       (f) => Number(f.period_month) === Number(month) && Number(f.period_year) === Number(year) && f.status === 'lunas'
@@ -187,6 +216,20 @@ export function calculateStudentRangeBilling(
 
     const isPaid = feeRecord ? feeRecord.status === 'lunas' : false;
     const amount = feeRecord ? Number(feeRecord.amount) : defaultMonthlyAmount;
+
+    // If month is before join date and there is NO explicit fee row, it is not an unpaid fee obligation
+    if (beforeJoin && !feeRecord) {
+      return {
+        month,
+        year,
+        monthName,
+        isPaid: false,
+        isBeforeJoin: true,
+        amount: 0,
+      };
+    }
+
+    applicableMonthsCount++;
 
     if (isPaid) {
       paidMonthsCount++;
@@ -202,19 +245,25 @@ export function calculateStudentRangeBilling(
       year,
       monthName,
       isPaid,
+      isBeforeJoin: beforeJoin,
       fee: feeRecord,
       amount,
     };
   });
 
+  const isBeforeJoinEntirely = applicableMonthsCount === 0;
+
   return {
     monthsRange,
+    applicableMonthsCount,
     paidMonthsCount,
     unpaidCount,
     totalUnpaidAmount,
     unpaidFees,
     unpaidMonthDetails,
     isRangeFullyPaid: unpaidCount === 0,
+    isBeforeJoinEntirely,
+    joinDate,
     periodDetails,
   };
 }
@@ -233,6 +282,8 @@ export interface WhatsAppMessageParams {
   endYear?: number;
   attendanceStats?: AttendanceStats;
   isRangeFullyPaid?: boolean;
+  isBeforeJoinEntirely?: boolean;
+  joinDate?: string | null;
   totalArrearsAmount?: number;
   unpaidMonthsCount?: number;
   unpaidMonthDetails?: string[];
@@ -255,6 +306,8 @@ export function generateWhatsAppMessage(params: WhatsAppMessageParams): string {
     endYear,
     attendanceStats,
     isRangeFullyPaid,
+    isBeforeJoinEntirely,
+    joinDate,
     totalArrearsAmount,
     unpaidMonthsCount,
     unpaidMonthDetails,
@@ -282,7 +335,10 @@ export function generateWhatsAppMessage(params: WhatsAppMessageParams): string {
     let duesSection = '';
     const totalDue = totalArrearsAmount !== undefined ? totalArrearsAmount : (amount || 0);
 
-    if (isRangeFullyPaid || (unpaidMonthsCount === 0 && totalDue === 0)) {
+    if (isBeforeJoinEntirely) {
+      const joinLabel = joinDate ? `pada tanggal ${joinDate}` : 'pada periode setelahnya';
+      duesSection = `• Status Iuran: *Belum Terdaftar / Belum Bergabung* pada periode ini (Ananda baru bergabung dojo ${joinLabel}).`;
+    } else if (isRangeFullyPaid || (unpaidMonthsCount === 0 && totalDue === 0)) {
       duesSection = `• Status Iuran: *LUNAS* (Seluruh iuran periode ini telah terbayar. Terima kasih banyak!) ✨`;
     } else {
       const detailsList = unpaidMonthDetails && unpaidMonthDetails.length > 0
@@ -384,7 +440,8 @@ export function calculateStudentArrears(
   allFees: Fee[],
   selectedMonth: number,
   selectedYear: number,
-  defaultMonthlyAmount: number = 20000
+  defaultMonthlyAmount: number = 20000,
+  joinDate?: string | null
 ): StudentArrearsInfo {
   const studentFees = allFees.filter((f) => f.student_id === studentId);
 
@@ -409,7 +466,9 @@ export function calculateStudentArrears(
   let totalUnpaidAmount = unpaidFees.reduce((sum, f) => sum + Number(f.amount), 0);
   let unpaidCount = unpaidFees.length;
 
-  if (!currentMonthFee) {
+  const beforeJoin = isBeforeJoinMonth(selectedMonth, selectedYear, joinDate);
+
+  if (!currentMonthFee && !beforeJoin) {
     totalUnpaidAmount += defaultMonthlyAmount;
     unpaidCount += 1;
     unpaidMonthDetails.push(`${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`);
@@ -420,7 +479,7 @@ export function calculateStudentArrears(
     totalUnpaidAmount,
     unpaidFees,
     unpaidMonthDetails,
-    isCurrentMonthPaid,
+    isCurrentMonthPaid: beforeJoin ? true : isCurrentMonthPaid,
     currentMonthFee
   };
 }
