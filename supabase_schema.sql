@@ -14,14 +14,40 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles enable row level security;
-drop policy if exists "Allow public read access to profiles" on public.profiles;
-create policy "Allow public read access to profiles" on public.profiles for select using (true);
-drop policy if exists "Allow users to update own profile" on public.profiles;
-create policy "Allow users to update own profile" on public.profiles for update using (auth.uid() = id);
 drop policy if exists "Allow owners to do anything on profiles" on public.profiles;
-create policy "Allow owners to do anything on profiles" on public.profiles for all using (
-  exists (select 1 from public.profiles where id = auth.uid() and role = 'owner')
-);
+drop policy if exists "Allow public read access to profiles" on public.profiles;
+drop policy if exists "Allow users to update own profile" on public.profiles;
+drop policy if exists "Allow public insert to profiles" on public.profiles;
+drop policy if exists "Allow owners to update any profile" on public.profiles;
+drop policy if exists "Allow owners to delete any profile" on public.profiles;
+
+-- Helper function non-rekursif (SECURITY DEFINER bypasses RLS)
+create or replace function public.is_owner()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.profiles where id = auth.uid() and role = 'owner'
+  );
+$$;
+
+create policy "Allow public read access to profiles" on public.profiles
+  for select using (true);
+
+create policy "Allow users to update own profile" on public.profiles
+  for update using (auth.uid() = id);
+
+create policy "Allow public insert to profiles" on public.profiles
+  for insert with check (true);
+
+create policy "Allow owners to update any profile" on public.profiles
+  for update using (public.is_owner());
+
+create policy "Allow owners to delete any profile" on public.profiles
+  for delete using (public.is_owner());
 
 -- ============================================================
 -- 2. Create Students Table
