@@ -18,18 +18,25 @@ export default function OrtuHistory() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: studentsData } = await supabase.from('students').eq('parent_id', user?.id || 'user-parent-id').select();
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+      const { data: studentsData } = await supabase.from('students').eq('parent_id', user.id).select();
       const childList = (studentsData || []) as Student[];
       setStudents(childList);
       const childIds = childList.map((s: Student) => s.id);
 
-      const { data: examPData } = await supabase.from('exam_participants').select();
-      const filteredExamP = ((examPData || []) as ExamParticipant[]).filter((ep: ExamParticipant) => childIds.includes(ep.student_id));
-      setExamParticipants(filteredExamP);
+      if (childIds.length > 0) {
+        const { data: examPData } = await supabase.from('exam_participants').select('*').in('student_id', childIds);
+        setExamParticipants((examPData || []) as ExamParticipant[]);
 
-      const { data: tournPData } = await supabase.from('tournament_participants').select();
-      const filteredTournP = ((tournPData || []) as TournamentParticipant[]).filter((tp: TournamentParticipant) => childIds.includes(tp.student_id));
-      setTournamentParticipants(filteredTournP);
+        const { data: tournPData } = await supabase.from('tournament_participants').select('*').in('student_id', childIds);
+        setTournamentParticipants((tournPData || []) as TournamentParticipant[]);
+      } else {
+        setExamParticipants([]);
+        setTournamentParticipants([]);
+      }
 
       const { data: examsData } = await supabase.from('belt_exams').select();
       if (examsData) setExams(examsData as BeltExam[]);

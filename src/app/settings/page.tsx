@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { Profile } from '@/lib/mockData';
+import { normalizePhoneToAuthEmail, getAuthHeaders } from '@/lib/authUtils';
 
 const roleLabel: Record<string, string> = {
   owner: 'Pemilik / Pengelola Dojo',
@@ -56,7 +58,14 @@ async function generateSHA256(message: string): Promise<string> {
 }
 
 export default function SettingsPage() {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !profile) {
+      router.push('/login');
+    }
+  }, [loading, profile, router]);
   
   // Own profile states
   const [fullName, setFullName] = useState('');
@@ -180,9 +189,10 @@ export default function SettingsPage() {
 
         // 2. Jika password baru diisi oleh Owner, update via API server
         if (formPassword.trim() !== '') {
+          const authHeaders = await getAuthHeaders();
           await fetch('/api/admin/users', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders,
             body: JSON.stringify({
               action: 'update_password',
               userId: editingUser.id,
@@ -192,12 +202,12 @@ export default function SettingsPage() {
         }
       } else {
         // Create User Profile via API server tanpa logout
-        const digitsOnly = formPhone.trim().replace(/\D/g, '') || String(Date.now()).slice(-8);
-        const generatedEmail = `${digitsOnly}@kkidpl.com`;
+        const generatedEmail = normalizePhoneToAuthEmail(formPhone.trim()) || `${String(Date.now()).slice(-8)}@kkidpl.com`;
 
+        const authHeaders = await getAuthHeaders();
         await fetch('/api/admin/users', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify({
             action: 'create',
             email: generatedEmail,
@@ -224,9 +234,10 @@ export default function SettingsPage() {
     }
     if (confirm('Apakah Anda yakin ingin menghapus akun pengguna ini?')) {
       try {
+        const authHeaders = await getAuthHeaders();
         await fetch('/api/admin/users', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify({
             action: 'delete_user',
             userId,
@@ -690,9 +701,11 @@ function DangerZone() {
     for (const tableKey of targets) {
       const cfg = TABLES_CONFIG.find(t => t.key === tableKey);
       try {
-        // Delete all rows — Supabase requires a filter; use neq on id with empty string
-        // For real Supabase: use RPC or delete with a tautological filter
-        const res = await (supabase as any).from(tableKey).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        // Delete all rows — Supabase requires a filter; use neq with tautological filter
+        // Note: class_students uses composite primary key (class_id, student_id) without an id column
+        const res = tableKey === 'class_students'
+          ? await (supabase as any).from(tableKey).delete().neq('class_id', '00000000-0000-0000-0000-000000000000')
+          : await (supabase as any).from(tableKey).delete().neq('id', '00000000-0000-0000-0000-000000000000');
         if (res.error) {
           log.push(`❌ ${cfg?.label || tableKey}: ${res.error.message}`);
         } else {

@@ -215,7 +215,7 @@ function AttendanceFormContent() {
   const performSubmit = async () => {
     setSubmitLoading(true);
     const { data: userData } = await supabase.auth.getUser();
-    const markedBy = userData?.user?.id || 'user-coach-id';
+    const markedBy = userData?.user?.id || null;
 
     // Delete existing if overwriting
     await supabase.from('attendance_students')
@@ -231,7 +231,12 @@ function AttendanceFormContent() {
       marked_by: markedBy
     }));
 
-    await supabase.from('attendance_students').insert(attendanceRecords);
+    const { error: insertErr } = await supabase.from('attendance_students').insert(attendanceRecords);
+    if (insertErr) {
+      alert('Gagal menyimpan presensi: ' + insertErr.message);
+      setSubmitLoading(false);
+      return;
+    }
 
     // Coach attendance duplicate prevention
     const { data: coachExisting } = await supabase

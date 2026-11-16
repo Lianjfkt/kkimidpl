@@ -45,8 +45,10 @@ export default function OrtuAttendance() {
 
       const kidIds = kids.map((k: Student) => k.id);
       if (kidIds.length > 0) {
-        const { data: attData } = await supabase.from('attendance_students').select('*');
-        setAttendance(((attData || []) as StudentAttendance[]).filter(a => kidIds.includes(a.student_id)));
+        const { data: attData } = await supabase.from('attendance_students').select('*').in('student_id', kidIds);
+        setAttendance((attData || []) as StudentAttendance[]);
+      } else {
+        setAttendance([]);
       }
 
       const { data: classData } = await supabase.from('classes').select('*');

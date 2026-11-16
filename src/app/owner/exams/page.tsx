@@ -491,18 +491,20 @@ export default function OwnerExams() {
 
       // Notify parent secara aman
       const student = students.find(s => s.id === participant.student_id);
-      if (student && student.parent_id) {
-        try {
-          await supabase.from('notifications').insert({
-            id: `notif-${Date.now()}-${student.id}`,
-            user_id: student.parent_id,
-            title: 'Hasil Ujian Kenaikan Sabuk',
-            message: `Selamat! ${student.full_name} dinyatakan LULUS ujian dan naik ke tingkat ${participant.target_belt}.`,
-            type: 'ujian',
-            is_read: false
-          });
-        } catch (e) {
-          console.warn('Gagal notifikasi ortu:', e);
+      if (student) {
+        if (student.parent_id) {
+          try {
+            await supabase.from('notifications').insert({
+              id: `notif-${Date.now()}-${student.id}`,
+              user_id: student.parent_id,
+              title: 'Hasil Ujian Kenaikan Sabuk',
+              message: `Selamat! ${student.full_name} dinyatakan LULUS ujian dan naik ke tingkat ${participant.target_belt}.`,
+              type: 'ujian',
+              is_read: false
+            });
+          } catch (e) {
+            console.warn('Gagal notifikasi ortu:', e);
+          }
         }
 
         // 🎉 Trigger belt level up celebration overlay

@@ -119,11 +119,14 @@ export function getBeltHex(belt?: string): string {
 }
 
 export function getNextBelt(currentBelt?: string): string {
-  if (!currentBelt) return 'Kuning';
+  if (!currentBelt) return OFFICIAL_BELTS[1] || 'Kuning';
   const c = currentBelt.trim().toLowerCase();
   const idx = OFFICIAL_BELTS.findIndex((b) => b.toLowerCase() === c);
-  if (idx !== -1 && idx < OFFICIAL_BELTS.length - 1) {
-    return OFFICIAL_BELTS[idx + 1];
+  if (idx !== -1) {
+    if (idx < OFFICIAL_BELTS.length - 1) {
+      return OFFICIAL_BELTS[idx + 1];
+    }
+    return OFFICIAL_BELTS[idx]; // Max belt reached, stay at current belt
   }
   return 'Kuning';
 }

@@ -47,12 +47,6 @@ export default function OrtuDashboard() {
 
   useEffect(() => { loadData(); }, []);
 
-  const notifTypeColor = (type: string): React.CSSProperties => {
-    if (type === 'iuran') return { background: 'rgba(248,113,113,0.12)', color: 'var(--md-sys-color-error)' };
-    if (type === 'ujian') return { background: 'rgba(52,211,153,0.12)', color: '#10b981' };
-    return { background: 'rgba(96,165,250,0.12)', color: '#60a5fa' };
-  };
-
   return (
     <Navigation>
       <div className="space-y-6">

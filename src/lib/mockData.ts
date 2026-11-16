@@ -59,7 +59,7 @@ export interface StudentAttendance {
   class_id: string;
   session_date: string;
   status: 'hadir' | 'izin' | 'sakit' | 'alpha';
-  marked_by: string;
+  marked_by?: string | null;
   created_at: string;
 }
 
@@ -181,11 +181,14 @@ export interface ClassStudentEnrollment {
 export interface CurriculumMaterial {
   id: string;
   belt_level: string;
-  category: 'Kihon' | 'Kata' | 'Kumite';
   title: string;
   description: string;
+  type?: 'video' | 'pdf' | 'teks';
+  url?: string | null;
+  category?: 'Kihon' | 'Kata' | 'Kumite';
   video_url?: string;
-  checklist_items: string[];
+  checklist_items?: string[];
+  created_at?: string;
 }
 
 export const initialProfiles: Profile[] = [

@@ -275,7 +275,7 @@ export default function OwnerFinance() {
       const currentUserId = userData?.user?.id || null;
 
       // Find if fee row already exists for this student & selected target period
-      const existingFee = quickPayFee || fees.find(
+      const existingFee = fees.find(
         (f) => f.student_id === quickPayStudent.id && Number(f.period_month) === Number(quickPayMonth) && Number(f.period_year) === Number(quickPayYear)
       );
 
@@ -1877,7 +1877,17 @@ export default function OwnerFinance() {
                     className="text-xs py-1 px-2 rounded-lg outline-none"
                     style={neuInputStyle}
                     value={quickPayMonth}
-                    onChange={(e) => setQuickPayMonth(Number(e.target.value))}
+                    onChange={(e) => {
+                      const newMonth = Number(e.target.value);
+                      setQuickPayMonth(newMonth);
+                      if (quickPayStudent) {
+                        const matched = fees.find(
+                          (f) => f.student_id === quickPayStudent.id && Number(f.period_month) === newMonth && Number(f.period_year) === Number(quickPayYear)
+                        );
+                        setQuickPayFee(matched || null);
+                        if (matched) setQuickPayAmount(Number(matched.amount));
+                      }
+                    }}
                   >
                     {months.map((m, idx) => (
                       <option key={idx} value={idx + 1}>{m}</option>
@@ -1888,7 +1898,17 @@ export default function OwnerFinance() {
                     className="text-xs py-1 px-2 w-16 rounded-lg outline-none text-center"
                     style={neuInputStyle}
                     value={quickPayYear}
-                    onChange={(e) => setQuickPayYear(Number(e.target.value))}
+                    onChange={(e) => {
+                      const newYear = Number(e.target.value);
+                      setQuickPayYear(newYear);
+                      if (quickPayStudent) {
+                        const matched = fees.find(
+                          (f) => f.student_id === quickPayStudent.id && Number(f.period_month) === Number(quickPayMonth) && Number(f.period_year) === newYear
+                        );
+                        setQuickPayFee(matched || null);
+                        if (matched) setQuickPayAmount(Number(matched.amount));
+                      }
+                    }}
                   />
                 </div>
               </div>

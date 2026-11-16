@@ -153,7 +153,7 @@ export default function OrtuFees() {
                 {
                   title: 'Transfer Bank',
                   body: 'Transfer ke Rekening Resmi Dojo KKI DPL:',
-                  detail: 'Bank Mandiri: 123-00-987654-32\na/n Dojo KKI DPL Indonesia',
+                  detail: 'Bank JAGO: 501072411966\na/n KKI DPL / Pengurus Dojo',
                 },
                 {
                   title: 'Bayar Tunai',

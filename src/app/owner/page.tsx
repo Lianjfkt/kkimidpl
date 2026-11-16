@@ -142,7 +142,7 @@ export default function OwnerDashboard() {
   // Iuran bulan ini
   const thisMonthFees = fees.filter(f => f.period_month === currentMonth && f.period_year === currentYear);
   const thisMonthLunas = thisMonthFees.filter(f => f.status === 'lunas').length;
-  const thisMonthBelum = thisMonthFees.filter(f => f.status !== 'lunas').length;
+  const thisMonthBelum = Math.max(0, activeStudents.length > 0 ? activeStudents.length - thisMonthLunas : thisMonthFees.filter(f => f.status !== 'lunas').length);
   const thisMonthIncome = fees.filter(f => f.status === 'lunas' && f.period_month === currentMonth && f.period_year === currentYear).reduce((s, f) => s + Number(f.amount), 0);
   // Total iuran belum lunas (seluruh periode)
   const totalUnpaid = fees.filter(f => f.status !== 'lunas').reduce((s, f) => s + Number(f.amount), 0);
@@ -380,7 +380,7 @@ export default function OwnerDashboard() {
                     </div>
                     <div className="h-2 rounded-full" style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
                       <div className="h-2 rounded-full transition-all duration-700"
-                        style={{ width: `${Math.round((thisMonthLunas / (thisMonthLunas + thisMonthBelum)) * 100)}%`, background: 'var(--neu-accent-grad)' }} />
+                        style={{ width: `${(thisMonthLunas + thisMonthBelum) > 0 ? Math.round((thisMonthLunas / (thisMonthLunas + thisMonthBelum)) * 100) : 0}%`, background: 'var(--neu-accent-grad)' }} />
                     </div>
                   </div>
                   {/* Unpaid list */}

@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import Navigation from '@/components/Navigation';
 import { useSearchParams } from 'next/navigation';
 import { OFFICIAL_BELTS } from '@/lib/constants/belts';
+import { normalizePhoneToAuthEmail, getAuthHeaders } from '@/lib/authUtils';
 
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
@@ -283,13 +284,14 @@ function RegistrationsContent() {
       }
 
       // Buat akun orang tua secara aman via API server tanpa membajak sesi login Owner
-      const phoneDigits = newParentPhone.trim().replace(/\D/g, '');
-      const generatedEmail = `${phoneDigits}@kkidpl.com`;
+      const generatedEmail = normalizePhoneToAuthEmail(newParentPhone);
+      const phoneDigits = generatedEmail.split('@')[0];
 
       try {
+        const authHeaders = await getAuthHeaders();
         const res = await fetch('/api/admin/users', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify({
             action: 'create',
             email: generatedEmail,

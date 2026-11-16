@@ -93,10 +93,14 @@ export default function StudentDetailPage() {
   const saveNotes = async () => {
     setSavingNotes(true);
     try {
-      await supabase.from('students').eq('id', studentId).update({ medical_history: coachNotes });
+      const { error } = await supabase.from('students').eq('id', studentId).update({ medical_history: coachNotes });
+      if (error) {
+        throw error;
+      }
       alert('Catatan pelatih berhasil disimpan!');
-    } catch (err) {
-      alert('Gagal menyimpan catatan.');
+    } catch (err: any) {
+      console.error('Error saving notes:', err);
+      alert('Gagal menyimpan catatan: ' + (err?.message || 'Terjadi kesalahan.'));
     } finally {
       setSavingNotes(false);
     }

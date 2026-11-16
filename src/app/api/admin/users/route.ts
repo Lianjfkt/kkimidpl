@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -16,8 +17,45 @@ const supabaseAdmin = createClient(
   }
 );
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // -------------------------------------------------------------
+    // Security Guard: Authenticate and authorize Owner
+    // -------------------------------------------------------------
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    let isOwner = false;
+
+    if (token && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+      if (!userError && userData?.user?.id) {
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('role')
+          .eq('id', userData.user.id)
+          .maybeSingle();
+
+        if (profile?.role === 'owner') {
+          isOwner = true;
+        }
+      }
+    }
+
+    // Secondary fallback: check user_role cookie if service role key is absent or in local dev
+    if (!isOwner) {
+      const roleCookie = request.cookies.get('user_role')?.value;
+      if (roleCookie === 'owner') {
+        isOwner = true;
+      }
+    }
+
+    if (!isOwner) {
+      return NextResponse.json(
+        { error: 'Akses ditolak. Tindakan ini memerlukan hak akses Pengelola / Pemilik (Owner).' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { action = 'create', email, password, fullName, phone, role = 'ortu', userId } = body;
 

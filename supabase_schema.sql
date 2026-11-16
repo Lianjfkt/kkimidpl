@@ -1,8 +1,10 @@
 -- SQL Migration Schema for Dojo Karate KKI DPL
--- Copy and paste this script into your Supabase SQL Editor and click RUN.
+-- Script ini bersifat IDEMPOTENT (aman dijalankan berulang kali, baik pada database baru maupun yang sudah ada).
 
+-- ============================================================
 -- 1. Create Profiles Table (extends auth.users)
-create table public.profiles (
+-- ============================================================
+create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   full_name text not null,
   role text not null check (role in ('owner', 'pelatih', 'ortu')),
@@ -11,16 +13,20 @@ create table public.profiles (
   created_at timestamptz default now()
 );
 
--- Enable RLS on profiles
 alter table public.profiles enable row level security;
+drop policy if exists "Allow public read access to profiles" on public.profiles;
 create policy "Allow public read access to profiles" on public.profiles for select using (true);
+drop policy if exists "Allow users to update own profile" on public.profiles;
 create policy "Allow users to update own profile" on public.profiles for update using (auth.uid() = id);
+drop policy if exists "Allow owners to do anything on profiles" on public.profiles;
 create policy "Allow owners to do anything on profiles" on public.profiles for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role = 'owner')
 );
 
+-- ============================================================
 -- 2. Create Students Table
-create table public.students (
+-- ============================================================
+create table if not exists public.students (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
   dob date not null,
@@ -37,19 +43,28 @@ create table public.students (
   weight numeric,
   height numeric,
   parent_name text,
-  parent_job text
+  parent_job text,
+  medical_history text
 );
 
--- Enable RLS on students
+-- Kolom tambahan untuk database yang sudah terbuat sebelumnya
+alter table public.students add column if not exists parent_name text;
+alter table public.students add column if not exists parent_job text;
+alter table public.students add column if not exists medical_history text;
+
 alter table public.students enable row level security;
+drop policy if exists "Allow read access to students" on public.students;
 create policy "Allow read access to students" on public.students for select using (true);
+drop policy if exists "Allow profiles to modify students" on public.students;
 create policy "Allow profiles to modify students" on public.students for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih')) 
   or parent_id = auth.uid()
 );
 
+-- ============================================================
 -- 3. Create Coaches Table
-create table public.coaches (
+-- ============================================================
+create table if not exists public.coaches (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid references public.profiles(id) on delete cascade unique,
   full_name text not null,
@@ -59,15 +74,18 @@ create table public.coaches (
   honor_rate numeric not null default 50000
 );
 
--- Enable RLS on coaches
 alter table public.coaches enable row level security;
+drop policy if exists "Allow read access to coaches" on public.coaches;
 create policy "Allow read access to coaches" on public.coaches for select using (true);
+drop policy if exists "Allow owner to manage coaches" on public.coaches;
 create policy "Allow owner to manage coaches" on public.coaches for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role = 'owner')
 );
 
+-- ============================================================
 -- 4. Create Classes Table
-create table public.classes (
+-- ============================================================
+create table if not exists public.classes (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   day_of_week integer not null check (day_of_week between 0 and 6),
@@ -77,28 +95,35 @@ create table public.classes (
   category text not null check (category in ('anak', 'remaja', 'kompetisi'))
 );
 
--- Enable RLS on classes
 alter table public.classes enable row level security;
+drop policy if exists "Allow read access to classes" on public.classes;
 create policy "Allow read access to classes" on public.classes for select using (true);
+drop policy if exists "Allow owner to manage classes" on public.classes;
 create policy "Allow owner to manage classes" on public.classes for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role = 'owner')
 );
 
+-- ============================================================
 -- 5. Create Class Students Join Table
-create table public.class_students (
+-- ============================================================
+create table if not exists public.class_students (
   class_id uuid references public.classes(id) on delete cascade,
   student_id uuid references public.students(id) on delete cascade,
   primary key (class_id, student_id)
 );
 
 alter table public.class_students enable row level security;
+drop policy if exists "Allow read access to class_students" on public.class_students;
 create policy "Allow read access to class_students" on public.class_students for select using (true);
+drop policy if exists "Allow managers to write class_students" on public.class_students;
 create policy "Allow managers to write class_students" on public.class_students for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih'))
 );
 
+-- ============================================================
 -- 6. Create Student Attendance Table
-create table public.attendance_students (
+-- ============================================================
+create table if not exists public.attendance_students (
   id uuid primary key default gen_random_uuid(),
   student_id uuid references public.students(id) on delete cascade,
   class_id uuid references public.classes(id) on delete cascade,
@@ -109,13 +134,17 @@ create table public.attendance_students (
 );
 
 alter table public.attendance_students enable row level security;
+drop policy if exists "Allow read access to attendance_students" on public.attendance_students;
 create policy "Allow read access to attendance_students" on public.attendance_students for select using (true);
+drop policy if exists "Allow managers to write attendance_students" on public.attendance_students;
 create policy "Allow managers to write attendance_students" on public.attendance_students for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih'))
 );
 
+-- ============================================================
 -- 7. Create Coach Attendance Table
-create table public.attendance_coaches (
+-- ============================================================
+create table if not exists public.attendance_coaches (
   id uuid primary key default gen_random_uuid(),
   coach_id uuid references public.coaches(id) on delete cascade,
   class_id uuid references public.classes(id) on delete cascade,
@@ -125,13 +154,17 @@ create table public.attendance_coaches (
 );
 
 alter table public.attendance_coaches enable row level security;
+drop policy if exists "Allow read access to attendance_coaches" on public.attendance_coaches;
 create policy "Allow read access to attendance_coaches" on public.attendance_coaches for select using (true);
+drop policy if exists "Allow owner to manage attendance_coaches" on public.attendance_coaches;
 create policy "Allow owner to manage attendance_coaches" on public.attendance_coaches for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role = 'owner')
 );
 
+-- ============================================================
 -- 8. Create Fees Table
-create table public.fees (
+-- ============================================================
+create table if not exists public.fees (
   id uuid primary key default gen_random_uuid(),
   student_id uuid references public.students(id) on delete cascade,
   period_month integer not null check (period_month between 1 and 12),
@@ -144,13 +177,17 @@ create table public.fees (
 );
 
 alter table public.fees enable row level security;
+drop policy if exists "Allow read access to fees" on public.fees;
 create policy "Allow read access to fees" on public.fees for select using (true);
+drop policy if exists "Allow owners to manage fees" on public.fees;
 create policy "Allow owners to manage fees" on public.fees for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role = 'owner')
 );
 
+-- ============================================================
 -- 9. Create Finance Transactions Table
-create table public.finance_transactions (
+-- ============================================================
+create table if not exists public.finance_transactions (
   id uuid primary key default gen_random_uuid(),
   type text not null check (type in ('pemasukan', 'pengeluaran')),
   category text not null,
@@ -161,13 +198,17 @@ create table public.finance_transactions (
 );
 
 alter table public.finance_transactions enable row level security;
+drop policy if exists "Allow read access to finance_transactions" on public.finance_transactions;
 create policy "Allow read access to finance_transactions" on public.finance_transactions for select using (true);
+drop policy if exists "Allow owners to manage finance_transactions" on public.finance_transactions;
 create policy "Allow owners to manage finance_transactions" on public.finance_transactions for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role = 'owner')
 );
 
+-- ============================================================
 -- 10. Create Belt Exams Table
-create table public.belt_exams (
+-- ============================================================
+create table if not exists public.belt_exams (
   id uuid primary key default gen_random_uuid(),
   exam_date date not null,
   location text not null,
@@ -180,13 +221,17 @@ create table public.belt_exams (
 );
 
 alter table public.belt_exams enable row level security;
+drop policy if exists "Allow read access to belt_exams" on public.belt_exams;
 create policy "Allow read access to belt_exams" on public.belt_exams for select using (true);
+drop policy if exists "Allow manager to manage belt_exams" on public.belt_exams;
 create policy "Allow manager to manage belt_exams" on public.belt_exams for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih'))
 );
 
+-- ============================================================
 -- 11. Create Exam Participants Table
-create table public.exam_participants (
+-- ============================================================
+create table if not exists public.exam_participants (
   id uuid primary key default gen_random_uuid(),
   exam_id uuid references public.belt_exams(id) on delete cascade,
   student_id uuid references public.students(id) on delete cascade,
@@ -201,13 +246,17 @@ create table public.exam_participants (
 );
 
 alter table public.exam_participants enable row level security;
+drop policy if exists "Allow read access to exam_participants" on public.exam_participants;
 create policy "Allow read access to exam_participants" on public.exam_participants for select using (true);
+drop policy if exists "Allow managers to write exam_participants" on public.exam_participants;
 create policy "Allow managers to write exam_participants" on public.exam_participants for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih'))
 );
 
+-- ============================================================
 -- 12. Create Tournaments Table
-create table public.tournaments (
+-- ============================================================
+create table if not exists public.tournaments (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   location text not null,
@@ -222,13 +271,17 @@ create table public.tournaments (
 );
 
 alter table public.tournaments enable row level security;
+drop policy if exists "Allow read access to tournaments" on public.tournaments;
 create policy "Allow read access to tournaments" on public.tournaments for select using (true);
+drop policy if exists "Allow manager to manage tournaments" on public.tournaments;
 create policy "Allow manager to manage tournaments" on public.tournaments for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih'))
 );
 
+-- ============================================================
 -- 13. Create Tournament Participants Table
-create table public.tournament_participants (
+-- ============================================================
+create table if not exists public.tournament_participants (
   id uuid primary key default gen_random_uuid(),
   tournament_id uuid references public.tournaments(id) on delete cascade,
   student_id uuid references public.students(id) on delete cascade,
@@ -241,16 +294,18 @@ create table public.tournament_participants (
 );
 
 alter table public.tournament_participants enable row level security;
+drop policy if exists "Allow read access to tournament_participants" on public.tournament_participants;
 create policy "Allow read access to tournament_participants" on public.tournament_participants for select using (true);
+drop policy if exists "Allow managers to write tournament_participants" on public.tournament_participants;
 create policy "Allow managers to write tournament_participants" on public.tournament_participants for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih'))
 );
-  exists (select 1 from public.profiles where id = auth.uid() and role in ('owner', 'pelatih'))
-);
 
+-- ============================================================
 -- 14. Create Registrations (Public Registrations) Table
-create table public.registrations (
-  id text primary key, -- Custom text key (e.g., reg-xxxxx)
+-- ============================================================
+create table if not exists public.registrations (
+  id text primary key,
   full_name text not null,
   dob date not null,
   birth_place text,
@@ -266,17 +321,25 @@ create table public.registrations (
   submitted_at timestamptz default now()
 );
 
+-- Kolom tambahan untuk database yang sudah terbuat sebelumnya
+alter table public.registrations add column if not exists parent_job text;
+
 alter table public.registrations enable row level security;
+drop policy if exists "Allow anyone to insert registrations" on public.registrations;
 create policy "Allow anyone to insert registrations" on public.registrations for insert with check (true);
+drop policy if exists "Allow read access to registrations" on public.registrations;
 create policy "Allow read access to registrations" on public.registrations for select using (true);
+drop policy if exists "Allow owner to modify registrations" on public.registrations;
 create policy "Allow owner to modify registrations" on public.registrations for update using (
   exists (select 1 from public.profiles where id = auth.uid() and role = 'owner')
 );
 
+-- ============================================================
 -- 15. Create Notifications Table
-create table public.notifications (
+-- ============================================================
+create table if not exists public.notifications (
   id text primary key default gen_random_uuid()::text,
-  user_id text, -- Custom text or uuid
+  user_id text,
   title text not null,
   message text not null,
   type text not null default 'umum',
@@ -285,11 +348,15 @@ create table public.notifications (
 );
 
 alter table public.notifications enable row level security;
+drop policy if exists "Allow read access to notifications" on public.notifications;
 create policy "Allow read access to notifications" on public.notifications for select using (true);
+drop policy if exists "Allow read/write access to notifications" on public.notifications;
 create policy "Allow read/write access to notifications" on public.notifications for all using (true);
 
+-- ============================================================
 -- 16. Create Curriculum Materials Table
-create table public.curriculum_materials (
+-- ============================================================
+create table if not exists public.curriculum_materials (
   id uuid primary key default gen_random_uuid(),
   belt_level text not null,
   title text not null,
@@ -300,14 +367,16 @@ create table public.curriculum_materials (
 );
 
 alter table public.curriculum_materials enable row level security;
+drop policy if exists "Allow read access to curriculum_materials" on public.curriculum_materials;
 create policy "Allow read access to curriculum_materials" on public.curriculum_materials for select using (true);
+drop policy if exists "Allow owner to manage curriculum_materials" on public.curriculum_materials;
 create policy "Allow owner to manage curriculum_materials" on public.curriculum_materials for all using (
   exists (select 1 from public.profiles where id = auth.uid() and role = 'owner')
 );
 
-
--- ==================== AUTH TRIGGERS ====================
--- Trigger to automatically create a public profile for a new auth user
+-- ============================================================
+-- 17. Auth Triggers & Helper Functions
+-- ============================================================
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
@@ -319,11 +388,13 @@ begin
     coalesce(new.raw_user_meta_data->>'phone', ''),
     '',
     now()
-  );
+  )
+  on conflict (id) do nothing;
   return new;
 end;
 $$ language plpgsql security definer;
 
-create or replace trigger on_auth_user_created
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();

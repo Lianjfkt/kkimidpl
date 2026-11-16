@@ -225,13 +225,15 @@ export default function ImportPage() {
           status: 'active' as const,
         };
 
-        const { error } = await supabase.from('students').insert(studentData);
+        const { data: insertedData, error } = await supabase.from('students').insert(studentData).select('id').single();
         if (error) {
           errors.push(`Baris ${i + 2}: "${full_name}" — gagal disimpan: ${error.message}`);
         } else {
           success++;
-          // Update local cache
-          studentMap.set(full_name.toLowerCase(), 'imported');
+          // Update local cache with real UUID
+          if (insertedData?.id) {
+            studentMap.set(normalizeName(full_name), insertedData.id);
+          }
         }
       } 
       
@@ -254,7 +256,7 @@ export default function ImportPage() {
         else rawStatus = 'alpha';
 
         // Normalize name same way as DB cache
-        const normalizedStudentName = studentName.toLowerCase().replace(/\s+/g, ' ').trim();
+        const normalizedStudentName = normalizeName(studentName);
         const studentId = studentMap.get(normalizedStudentName);
         if (!studentId || studentId === 'imported') {
           const availableNames = Array.from(studentMap.keys()).join(', ');
@@ -296,8 +298,8 @@ export default function ImportPage() {
         else if (rawStatus.includes('sebagian')) rawStatus = 'sebagian';
         else rawStatus = 'belum_lunas';
 
-        const studentId = studentMap.get(studentName.toLowerCase());
-        if (!studentId) {
+        const studentId = studentMap.get(normalizeName(studentName));
+        if (!studentId || studentId === 'imported') {
           errors.push(`Baris ${i + 2}: Siswa "${studentName}" tidak ditemukan.`);
           continue;
         }

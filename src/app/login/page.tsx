@@ -21,6 +21,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { OFFICIAL_BELTS } from '@/lib/constants/belts';
+import { normalizePhoneToAuthEmail } from '@/lib/authUtils';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -50,16 +51,7 @@ export default function LoginPage() {
 
   // Konversi no HP ke format email internal yang digunakan Supabase Auth
   const resolveLoginIdentifier = (input: string): string => {
-    const trimmed = input.trim();
-    const isPhone = /^(\+62|62|0)\d{7,}$/.test(trimmed) || /^\d{8,}$/.test(trimmed);
-    if (isPhone) {
-      let digitsOnly = trimmed.replace(/\D/g, '');
-      if (digitsOnly.startsWith('62')) {
-        digitsOnly = '0' + digitsOnly.slice(2);
-      }
-      return `${digitsOnly}@kkidpl.com`;
-    }
-    return trimmed;
+    return normalizePhoneToAuthEmail(input);
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {

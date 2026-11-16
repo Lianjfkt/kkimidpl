@@ -13,10 +13,11 @@ export function proxy(request: NextRequest) {
   const isOwnerPath = path.startsWith('/owner');
   const isPelatihPath = path.startsWith('/pelatih');
   const isOrtuPath = path.startsWith('/ortu');
+  const isSettingsPath = path.startsWith('/settings');
   const isLoginPath = path === '/login';
 
-  // If user is not logged in and attempts to access protected dashboard
-  if (!role && (isOwnerPath || isPelatihPath || isOrtuPath)) {
+  // If user is not logged in and attempts to access protected dashboard or settings
+  if (!role && (isOwnerPath || isPelatihPath || isOrtuPath || isSettingsPath)) {
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
@@ -47,7 +48,7 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Configure proxy matcher to intercept dashboard and login routes
+// Configure proxy matcher to intercept dashboard, settings, and login routes
 export const config = {
-  matcher: ['/', '/login', '/owner/:path*', '/pelatih/:path*', '/ortu/:path*'],
+  matcher: ['/', '/login', '/owner/:path*', '/pelatih/:path*', '/ortu/:path*', '/settings', '/settings/:path*'],
 };

@@ -135,17 +135,10 @@ export default function OwnerStudents() {
       error = res.error;
     } else {
       // Create
-      const res = await supabase.from('students').insert(studentData);
+      const res = await supabase.from('students').insert(studentData).select('id').single();
       error = res.error;
-      // Get the newly created student's ID
-      if (!error) {
-        const { data: newStudents } = await supabase
-          .from('students')
-          .eq('full_name', fullName)
-          .select('id');
-        if (newStudents && newStudents.length > 0) {
-          savedStudentId = newStudents[newStudents.length - 1].id;
-        }
+      if (!error && res.data?.id) {
+        savedStudentId = res.data.id;
       }
     }
 

@@ -37,22 +37,39 @@ export default function CurriculumPage() {
   const handleAddMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
     const itemsArray = techItems.split('\n').map(i => i.trim()).filter(i => i.length > 0);
+    const fullDescription = itemsArray.length > 0
+      ? `${techDescription.trim()}\n\n[Syarat Penguasaan]:\n${itemsArray.join('\n')}`
+      : techDescription.trim();
+
     const newMaterial = {
-      id: `mat-${Date.now()}`,
       belt_level: selectedBelt,
-      category: techCategory,
-      title: techTitle,
-      description: techDescription,
-      video_url: techVideo || undefined,
-      checklist_items: itemsArray
+      title: techCategory ? `[${techCategory}] ${techTitle}` : techTitle,
+      type: techVideo ? 'video' : 'teks',
+      url: techVideo || null,
+      description: fullDescription,
     };
 
-    await supabase.from('curriculum_materials').insert(newMaterial);
+    const { error } = await supabase.from('curriculum_materials').insert(newMaterial);
+    if (error) {
+      alert('Gagal menyimpan materi: ' + error.message);
+      return;
+    }
+
     setIsModalOpen(false);
     setTechTitle('');
     setTechDescription('');
     setTechVideo('');
     setTechItems('');
+    loadMaterials();
+  };
+
+  const handleDeleteMaterial = async (id: string) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus materi ini?')) return;
+    const { error } = await supabase.from('curriculum_materials').delete().eq('id', id);
+    if (error) {
+      alert('Gagal menghapus materi: ' + error.message);
+      return;
+    }
     loadMaterials();
   };
 
@@ -132,54 +149,86 @@ export default function CurriculumPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredMaterials.map(mat => (
-              <div
-                key={mat.id}
-                className="rounded-3xl border border-[var(--neu-border)] p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 group"
-                style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3.5">
-                    <span
-                      className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-                      style={{
-                        background: 'var(--neu-surface-low)',
-                        boxShadow: 'var(--neu-shadow-pressed-sm)',
-                        color: mat.category === 'Kihon' ? 'var(--md-sys-color-primary)' : mat.category === 'Kata' ? '#3b82f6' : '#10b981'
-                      }}
-                    >
-                      {mat.category}
-                    </span>
-                    {mat.video_url && (
-                      <a
-                        href={mat.video_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="apple-btn-secondary px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+            {filteredMaterials.map(mat => {
+              const matchCategory = mat.title.match(/^\[(Kihon|Kata|Kumite)\]\s*(.*)$/);
+              const category = mat.category || (matchCategory ? matchCategory[1] : (mat.type === 'video' ? 'Kata' : 'Kihon'));
+              const displayTitle = matchCategory ? matchCategory[2] : mat.title;
+              const mediaUrl = mat.url || mat.video_url;
+
+              let displayDescription = mat.description || '';
+              let checklistItems = mat.checklist_items || [];
+              if (checklistItems.length === 0 && displayDescription.includes('[Syarat Penguasaan]:')) {
+                const parts = displayDescription.split('[Syarat Penguasaan]:');
+                displayDescription = parts[0].trim();
+                checklistItems = parts[1]
+                  .split('\n')
+                  .map(i => i.trim())
+                  .filter(i => i.length > 0);
+              }
+
+              return (
+                <div
+                  key={mat.id}
+                  className="rounded-3xl border border-[var(--neu-border)] p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 group"
+                  style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3.5">
+                      <span
+                        className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+                        style={{
+                          background: 'var(--neu-surface-low)',
+                          boxShadow: 'var(--neu-shadow-pressed-sm)',
+                          color: category === 'Kihon' ? 'var(--md-sys-color-primary)' : category === 'Kata' ? '#3b82f6' : '#10b981'
+                        }}
                       >
-                        🎬 Video Materi
-                      </a>
+                        {category}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {mediaUrl && (
+                          <a
+                            href={mediaUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="apple-btn-secondary px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                          >
+                            🎬 Video Materi
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleDeleteMaterial(mat.id)}
+                          title="Hapus materi"
+                          className="w-7 h-7 rounded-xl flex items-center justify-center text-xs opacity-60 hover:opacity-100 hover:text-red-500 transition-all cursor-pointer"
+                          style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-flat-sm)' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <h4 className="font-bold text-lg mb-2 tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>{displayTitle}</h4>
+                    {displayDescription && (
+                      <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{displayDescription}</p>
+                    )}
+                    
+                    {checklistItems.length > 0 && (
+                      <div className="space-y-2 mt-4 pt-4 border-t border-[var(--neu-border)]">
+                        <span className="block text-[11px] font-bold uppercase tracking-wider opacity-60">Syarat Penguasaan:</span>
+                        {checklistItems.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2.5 text-xs p-2.5 rounded-xl border border-[var(--neu-border)]"
+                            style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
+                          >
+                            <span className="text-emerald-400 font-bold">✓</span>
+                            <span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>{item}</span>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  <h4 className="font-bold text-lg mb-2 tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>{mat.title}</h4>
-                  <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{mat.description}</p>
-                  
-                  <div className="space-y-2 mt-4 pt-4 border-t border-[var(--neu-border)]">
-                    <span className="block text-[11px] font-bold uppercase tracking-wider opacity-60">Syarat Penguasaan:</span>
-                    {mat.checklist_items.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2.5 text-xs p-2.5 rounded-xl border border-[var(--neu-border)]"
-                        style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}
-                      >
-                        <span className="text-emerald-400 font-bold">✓</span>
-                        <span className="font-medium" style={{ color: 'var(--md-sys-color-on-surface)' }}>{item}</span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
