@@ -46,6 +46,22 @@ export function isPhoneNumber(input: string): boolean {
 }
 
 /**
+ * Normalizes an Indonesian phone number to standard leading '0' digits (e.g. "081234567890")
+ */
+export function normalizePhoneDigits(input: string): string {
+  const trimmed = (input || '').trim();
+  if (!trimmed) return '';
+  let digits = trimmed.replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('62')) {
+    digits = '0' + digits.slice(2);
+  } else if (digits.startsWith('8')) {
+    digits = '0' + digits;
+  }
+  return digits;
+}
+
+/**
  * Returns JSON headers including caller's Bearer token for secure internal API routes
  */
 export async function getAuthHeaders(): Promise<Record<string, string>> {

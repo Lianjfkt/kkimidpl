@@ -18,10 +18,13 @@ import {
   CheckCircle2,
   Briefcase,
   Shield,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff,
+  Info
 } from 'lucide-react';
 import { OFFICIAL_BELTS } from '@/lib/constants/belts';
-import { normalizePhoneToAuthEmail } from '@/lib/authUtils';
+import { normalizePhoneToAuthEmail, isPhoneNumber, normalizePhoneDigits } from '@/lib/authUtils';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,6 +33,7 @@ export default function LoginPage() {
   const [view, setView] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const [regData, setRegData] = useState({
     studentName: '',
@@ -62,9 +66,27 @@ export default function LoginPage() {
 
     try {
       const loginId = resolveLoginIdentifier(email);
-      const response = await signIn(loginId, password) as any;
+      let response = await signIn(loginId, password) as any;
+
+      // Fallback: Jika gagal dan input terdeteksi nomor telepon, coba variasi normalisasi password angka (cth: 821... -> 0821...)
+      if (response && response.error && isPhoneNumber(email)) {
+        const altPassword = normalizePhoneDigits(password);
+        if (altPassword && altPassword !== password) {
+          const retryRes = await signIn(loginId, altPassword) as any;
+          if (!retryRes?.error) {
+            response = retryRes;
+          }
+        }
+      }
+
       if (response && response.error) {
-        setError(response.error.message);
+        if (isPhoneNumber(email)) {
+          setError(
+            'Nomor WhatsApp atau kata sandi tidak cocok. Pastikan nomor HP Anda sudah didaftarkan pada data siswa Dojo. (Kata sandi default akun orang tua adalah nomor HP yang sama).'
+          );
+        } else {
+          setError(response.error.message || 'Kredensial login tidak valid.');
+        }
         setLoading(false);
       } else {
         const role = response.role;
@@ -373,6 +395,24 @@ export default function LoginPage() {
             {view === 'login' ? (
               /* LOGIN FORM */
               <form onSubmit={handleLoginSubmit} className="space-y-5">
+                {/* Information Tip for Parents */}
+                <div 
+                  className="p-3.5 rounded-2xl text-xs space-y-1 border border-[var(--neu-border)] transition-all"
+                  style={{
+                    backgroundColor: 'var(--neu-surface-low)',
+                    boxShadow: 'var(--neu-shadow-pressed-sm)',
+                  }}
+                >
+                  <div className="flex items-center gap-1.5 font-bold text-[var(--md-sys-color-primary)]">
+                    <Info className="w-3.5 h-3.5 shrink-0" />
+                    <span>Petunjuk Masuk Akun Orang Tua / Wali</span>
+                  </div>
+                  <p className="text-[var(--md-sys-color-on-surface-variant)] leading-relaxed text-[11px]">
+                    • <strong>ID Pengguna:</strong> Nomor WhatsApp terdaftar (contoh: <span className="font-mono text-white/90">081234567890</span>).<br />
+                    • <strong>Kata Sandi Default:</strong> Nomor WhatsApp yang sama dengan ID pengguna Anda.
+                  </p>
+                </div>
+
                 <div className={fieldWrap}>
                   <label htmlFor="email" className={labelClass}>Email / No. WhatsApp (Orang Tua)</label>
                   <div className="relative">
@@ -382,7 +422,7 @@ export default function LoginPage() {
                       type="text"
                       required
                       className={neuInputClass}
-                      placeholder="contoh: owner@dojo.com atau 08xxxx..."
+                      placeholder="contoh: owner@dojo.com atau 0812xxxx"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
@@ -395,13 +435,21 @@ export default function LoginPage() {
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--md-sys-color-on-surface-variant)]" />
                     <input
                       id="password"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
-                      className={neuInputClass}
-                      placeholder="Masukkan kata sandi Anda"
+                      className={`${neuInputClass} pr-11`}
+                      placeholder="Masukkan kata sandi (default: nomor HP)"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)] transition-colors cursor-pointer"
+                      title={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 

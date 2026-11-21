@@ -39,15 +39,56 @@ export default function OwnerStudents() {
   const [search, setSearch] = useState('');
   const [beltFilter, setBeltFilter] = useState('');
 
+  // Physical assessment state
+  const [physicalMap, setPhysicalMap] = useState<Map<string, { total_score: number; grade: string; test_date: string }>>(new Map());
+  const [syncingParents, setSyncingParents] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<{ text: string; isError?: boolean } | null>(null);
+
   const loadStudents = async () => {
     setLoading(true);
-    const [studRes, clsRes] = await Promise.all([
+    const [studRes, clsRes, physRes] = await Promise.all([
       supabase.from('students').select('*'),
       supabase.from('classes').select('*'),
+      supabase.from('student_physical_tests').select('student_id, total_score, grade, test_date').order('test_date', { ascending: false }),
     ]);
     if (studRes.data) setStudents(studRes.data);
     if (clsRes.data) setClasses(clsRes.data);
+    if (physRes.data) {
+      const map = new Map<string, { total_score: number; grade: string; test_date: string }>();
+      physRes.data.forEach((p: any) => {
+        if (!map.has(p.student_id)) {
+          map.set(p.student_id, {
+            total_score: Number(p.total_score) || 0,
+            grade: p.grade || 'C',
+            test_date: p.test_date,
+          });
+        }
+      });
+      setPhysicalMap(map);
+    }
     setLoading(false);
+  };
+
+  const handleSyncParents = async () => {
+    if (!confirm('Sinkronkan dan buatkan akun login orang tua otomatis untuk seluruh nomor HP siswa? Password default adalah Nomor HP masing-masing.')) return;
+    setSyncingParents(true);
+    setSyncMsg(null);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync_parents' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Gagal sinkronisasi');
+      setSyncMsg({ text: data.message || 'Sinkronisasi berhasil!' });
+      await loadStudents();
+    } catch (err: any) {
+      setSyncMsg({ text: err.message || 'Gagal sinkronisasi akun orang tua', isError: true });
+    } finally {
+      setSyncingParents(false);
+      setTimeout(() => setSyncMsg(null), 6000);
+    }
   };
 
   useEffect(() => {
@@ -193,13 +234,45 @@ export default function OwnerStudents() {
               Daftar siswa karate aktif dan tidak aktif di Dojo KKI DPL.
             </p>
           </div>
-          <button
-            onClick={openAddModal}
-            className="apple-btn px-4 py-2 text-sm font-semibold cursor-pointer rounded-2xl"
-          >
-            ＋ Tambah Siswa Baru
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => router.push('/pelatih/physical-tests')}
+              className="apple-btn-secondary px-3.5 py-2 text-xs font-semibold cursor-pointer rounded-2xl flex items-center gap-1.5"
+            >
+              <span>⚡</span>
+              <span>Input &amp; Leaderboard Tes Fisik</span>
+            </button>
+            <button
+              onClick={handleSyncParents}
+              disabled={syncingParents}
+              className="apple-btn-secondary px-3.5 py-2 text-xs font-semibold cursor-pointer rounded-2xl flex items-center gap-1.5"
+            >
+              <span>🔄</span>
+              <span>{syncingParents ? 'Menyinkronkan...' : 'Sinkronkan Akun Ortu'}</span>
+            </button>
+            <button
+              onClick={openAddModal}
+              className="apple-btn px-4 py-2 text-sm font-semibold cursor-pointer rounded-2xl"
+            >
+              ＋ Tambah Siswa Baru
+            </button>
+          </div>
         </div>
+
+        {/* Sync message alert */}
+        {syncMsg && (
+          <div
+            className="p-4 rounded-2xl border text-xs font-medium flex items-center justify-between"
+            style={{
+              background: syncMsg.isError ? 'rgba(248,113,113,0.12)' : 'rgba(52,211,153,0.12)',
+              borderColor: syncMsg.isError ? 'rgba(248,113,113,0.3)' : 'rgba(52,211,153,0.3)',
+              color: syncMsg.isError ? '#f87171' : '#34d399',
+            }}
+          >
+            <span>{syncMsg.text}</span>
+            <button onClick={() => setSyncMsg(null)} className="font-bold opacity-60 hover:opacity-100">×</button>
+          </div>
+        )}
 
         {/* Filters */}
         <div
@@ -262,6 +335,7 @@ export default function OwnerStudents() {
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>TTL</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Gender</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Sabuk</th>
+                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Kebugaran Fisik</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Telepon</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-left" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Status</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-right" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Aksi</th>
@@ -299,6 +373,44 @@ export default function OwnerStudents() {
                         >
                           {student.current_belt}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {(() => {
+                          const phys = physicalMap.get(student.id);
+                          if (!phys) {
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => router.push('/pelatih/physical-tests')}
+                                className="text-xs px-2.5 py-1 rounded-xl border border-dashed border-[var(--neu-border)] opacity-60 hover:opacity-100 hover:border-[var(--md-sys-color-primary)] transition-all cursor-pointer"
+                                style={{ color: 'var(--md-sys-color-on-surface-variant)' }}
+                                title="Belum pernah mengikuti tes fisik. Klik untuk input tes."
+                              >
+                                + Tes Fisik
+                              </button>
+                            );
+                          }
+                          const isHigh = phys.grade === 'S' || phys.grade === 'A';
+                          const isMid = phys.grade === 'B';
+                          return (
+                            <div
+                              onClick={() => router.push(`/owner/students/${student.id}`)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer transition-all hover:scale-105"
+                              style={{
+                                background: isHigh ? 'rgba(52,211,153,0.15)' : isMid ? 'rgba(96,165,250,0.15)' : 'rgba(251,191,36,0.15)',
+                                border: '1px solid var(--neu-border)',
+                              }}
+                              title={`Tes Terakhir: ${phys.test_date} - Klik untuk buka profil analitik`}
+                            >
+                              <span className="font-bold text-xs" style={{ color: isHigh ? '#34d399' : isMid ? '#60a5fa' : '#fbbf24' }}>
+                                Skor {phys.total_score}
+                              </span>
+                              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-md bg-black/20 text-white">
+                                Grade {phys.grade}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>{student.phone}</td>
                       <td className="px-6 py-4 text-sm">

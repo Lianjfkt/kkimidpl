@@ -72,6 +72,7 @@ export default function OwnerDashboard() {
   const [pastExams, setPastExams] = useState<BeltExam[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [classes, setClasses] = useState<ClassSession[]>([]);
+  const [physicalTests, setPhysicalTests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const now = new Date();
@@ -83,7 +84,7 @@ export default function OwnerDashboard() {
 
   const loadData = async () => {
     setLoading(true);
-    const [studRes, regRes, feeRes, attRes, examRes, tournRes, classRes] = await Promise.all([
+    const [studRes, regRes, feeRes, attRes, examRes, tournRes, classRes, physRes] = await Promise.all([
       supabase.from('students').select('*'),
       supabase.from('registrations').select('*'),
       supabase.from('fees').select('*'),
@@ -91,6 +92,7 @@ export default function OwnerDashboard() {
       supabase.from('belt_exams').select('*'),
       supabase.from('tournaments').select('*'),
       supabase.from('classes').select('*'),
+      supabase.from('student_physical_tests').select('*').order('test_date', { ascending: false }),
     ]);
     if (studRes.data) setStudents(studRes.data);
     if (regRes.data) setRegistrations(regRes.data);
@@ -102,6 +104,7 @@ export default function OwnerDashboard() {
     }
     if (tournRes.data) setTournaments(tournRes.data as Tournament[]);
     if (classRes.data) setClasses(classRes.data as ClassSession[]);
+    if (physRes.data) setPhysicalTests(physRes.data);
     setLastUpdated(new Date());
     setLoading(false);
   };
@@ -187,6 +190,40 @@ export default function OwnerDashboard() {
   // Iuran belum lunas
   const unpaidFees = fees.filter(f => f.status !== 'lunas').slice(0, 8);
 
+  // Kebugaran Fisik Derived Stats
+  const latestPhysicalMap = new Map<string, any>();
+  physicalTests.forEach((t) => {
+    if (!latestPhysicalMap.has(t.student_id)) {
+      latestPhysicalMap.set(t.student_id, t);
+    }
+  });
+
+  const testedCount = latestPhysicalMap.size;
+  const testedList = Array.from(latestPhysicalMap.values());
+  const avgPhysicalScore = testedCount > 0
+    ? Math.round(testedList.reduce((acc, t) => acc + (t.total_score || 0), 0) / testedCount)
+    : 0;
+
+  const physicalGradeCounts = {
+    S: testedList.filter(t => t.grade === 'S').length,
+    A: testedList.filter(t => t.grade === 'A').length,
+    B: testedList.filter(t => t.grade === 'B').length,
+    C: testedList.filter(t => t.grade === 'C').length,
+    D: testedList.filter(t => t.grade === 'D').length,
+  };
+
+  const topPhysicalPerformers = [...testedList]
+    .sort((a, b) => (b.total_score || 0) - (a.total_score || 0))
+    .slice(0, 4)
+    .map(t => {
+      const student = students.find(s => s.id === t.student_id);
+      return {
+        ...t,
+        studentName: student?.full_name || 'Siswa',
+        currentBelt: student?.current_belt || 'Putih',
+      };
+    });
+
   const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
   return (
@@ -214,11 +251,15 @@ export default function OwnerDashboard() {
               )}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button onClick={() => loadData()} className="apple-btn-secondary px-3 py-2 text-xs font-medium flex items-center gap-1.5 cursor-pointer rounded-2xl">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
               Refresh Data
             </button>
+            <Link href="/pelatih/physical-tests" className="apple-btn-secondary px-3 py-2 text-sm font-medium rounded-2xl flex items-center gap-1.5" title="Buka Penilaian & Leaderboard Tes Fisik">
+              <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              Tes Fisik
+            </Link>
             <Link href="/owner/students" className="apple-btn-secondary px-4 py-2 text-sm font-medium rounded-2xl">
               + Tambah Siswa
             </Link>
@@ -355,6 +396,131 @@ export default function OwnerDashboard() {
               </div>
             </div>
 
+            {/* Kartu Analisis Status Kebugaran Fisik Atlet Dojo */}
+            <div className="rounded-3xl p-6 border border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+                    <h3 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                      Evaluasi Kebugaran Fisik Atlet (Physical Fitness Index)
+                    </h3>
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                    Berdasarkan 7 parameter tes fisik (Push Up, Sit Up, Pukulan, Tendangan, Skipping, Split Depan & Samping) + Kedisiplinan
+                  </p>
+                </div>
+                <Link
+                  href="/pelatih/physical-tests"
+                  className="apple-btn px-4 py-2 text-xs font-bold rounded-2xl flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <svg className="w-3.5 h-3.5 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  Buka Asisten Mat & Leaderboard →
+                </Link>
+              </div>
+
+              {loading ? (
+                <div className="h-28 rounded-2xl animate-pulse" style={{ background: 'var(--neu-surface-low)' }} />
+              ) : testedCount === 0 ? (
+                <div className="p-6 text-center rounded-2xl border border-dashed border-[var(--neu-border)]" style={{ background: 'var(--neu-surface-low)' }}>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>Belum ada data tes fisik yang direkam.</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Pelatih atau Pengurus dapat memulai input tes fisik melalui Asisten Mat.</p>
+                  <Link href="/pelatih/physical-tests" className="inline-flex items-center gap-1.5 mt-3 apple-btn-secondary px-3 py-1.5 text-xs font-bold rounded-xl">
+                    + Mulai Tes Fisik Pertama
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* Top Stats Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3.5 rounded-2xl border border-[var(--neu-border)]" style={{ background: 'var(--neu-surface-low)' }}>
+                      <p className="text-[10px] uppercase font-bold tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Cakupan Tes</p>
+                      <p className="text-xl font-bold mt-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                        {testedCount} <span className="text-xs font-normal opacity-70">/ {activeStudents.length} Atlet</span>
+                      </p>
+                      <div className="w-full bg-white/10 h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-400 rounded-full"
+                          style={{ width: `${Math.min(100, Math.round((testedCount / (activeStudents.length || 1)) * 100))}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl border border-[var(--neu-border)]" style={{ background: 'var(--neu-surface-low)' }}>
+                      <p className="text-[10px] uppercase font-bold tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Rata-rata Skor</p>
+                      <div className="flex items-baseline gap-2 mt-1">
+                        <span className="text-xl font-bold text-amber-400">{avgPhysicalScore}</span>
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300">
+                          {avgPhysicalScore >= 90 ? 'Grade S' : avgPhysicalScore >= 80 ? 'Grade A' : avgPhysicalScore >= 70 ? 'Grade B' : 'Grade C'}
+                        </span>
+                      </div>
+                      <p className="text-[10px] mt-2 opacity-70" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Skala standar dojo 0-100</p>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl border border-[var(--neu-border)] col-span-2" style={{ background: 'var(--neu-surface-low)' }}>
+                      <p className="text-[10px] uppercase font-bold tracking-wider mb-2" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>Sebaran Grade Kebugaran</p>
+                      <div className="flex items-center gap-2">
+                        {[
+                          { g: 'S', color: '#10b981', count: physicalGradeCounts.S, desc: 'Istimewa' },
+                          { g: 'A', color: '#3b82f6', count: physicalGradeCounts.A, desc: 'Sangat Baik' },
+                          { g: 'B', color: '#f59e0b', count: physicalGradeCounts.B, desc: 'Baik' },
+                          { g: 'C', color: '#f97316', count: physicalGradeCounts.C, desc: 'Cukup' },
+                          { g: 'D', color: '#ef4444', count: physicalGradeCounts.D, desc: 'Perlu Latihan' },
+                        ].map((item) => (
+                          <div key={item.g} className="flex-1 text-center py-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--neu-border)' }} title={`${item.desc}: ${item.count} siswa`}>
+                            <span className="text-xs font-black block" style={{ color: item.color }}>{item.g}</span>
+                            <span className="text-[11px] font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>{item.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top Performers Preview */}
+                  {topPhysicalPerformers.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        Top Performer Fisik Terkini
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {topPhysicalPerformers.map((tp, idx) => (
+                          <Link
+                            key={tp.id}
+                            href={`/owner/students/${tp.student_id}`}
+                            className="flex items-center justify-between p-2.5 rounded-2xl border border-[var(--neu-border)] transition-all hover:scale-[1.01]"
+                            style={{ background: 'var(--neu-surface-low)' }}
+                          >
+                            <div className="flex items-center gap-2.5 overflow-hidden">
+                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${idx === 0 ? 'bg-amber-400 text-black' : idx === 1 ? 'bg-slate-300 text-black' : idx === 2 ? 'bg-amber-700 text-white' : 'bg-white/10 text-white'}`}>
+                                {idx + 1}
+                              </span>
+                              <div className="truncate">
+                                <p className="text-xs font-bold truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                                  {tp.studentName}
+                                </p>
+                                <p className="text-[10px] opacity-70" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                                  Sabuk {tp.currentBelt} · {tp.test_date}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="text-xs font-extrabold text-amber-400">
+                                {tp.total_score} pts
+                              </span>
+                              <span className="text-[10px] font-bold ml-1.5 px-1.5 py-0.5 rounded bg-black/30 text-white border border-white/10">
+                                {tp.grade}
+                              </span>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Status iuran bulan ini */}
             <div className="rounded-3xl p-6 border border-[var(--neu-border)]"
               style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
@@ -478,6 +644,7 @@ export default function OwnerDashboard() {
               <div className="space-y-1">
                 {[
                   { href: '/owner/students', label: 'Kelola Siswa' },
+                  { href: '/pelatih/physical-tests', label: '⚡ Tes Fisik & Leaderboard' },
                   { href: '/owner/attendance', label: 'Input Absensi' },
                   { href: '/owner/finance', label: 'Tagih Iuran Bulanan' },
                   { href: '/owner/exams', label: 'Ujian Kenaikan Sabuk' },
