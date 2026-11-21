@@ -12,7 +12,7 @@ import {
 } from '@/lib/physicalScoring';
 import { supabase } from '@/lib/supabaseClient';
 import { Student } from '@/lib/mockData';
-import { getBeltStyle, getBeltHex, getBeltEmoji } from '@/lib/constants/belts';
+import { getBeltStyle } from '@/lib/constants/belts';
 
 // ─── Web Audio Synthesizer ────────────────────────────────────────────────────
 class WebAudioSynthesizer {
@@ -312,24 +312,8 @@ export default function PelatihPhysicalTestsPage() {
     if (timerRunning) {
       interval = setInterval(() => {
         setTimerSeconds((prev) => {
-          if (prev <= 1) {
-            audioSynth.playBuzzer();
-            if (typeof navigator !== 'undefined' && navigator.vibrate) {
-              navigator.vibrate([200, 100, 200]);
-            }
-            setTimerRunning(false);
-            return 0;
-          }
-
-          const nextSec = prev - 1;
-          if (nextSec <= 3 && nextSec > 0 && nextSec !== timerPrevSecRef.current) {
-            audioSynth.playBeep(880, 0.12);
-            if (typeof navigator !== 'undefined' && navigator.vibrate) {
-              navigator.vibrate(80);
-            }
-            timerPrevSecRef.current = nextSec;
-          }
-          return nextSec;
+          if (prev <= 1) return 0;
+          return prev - 1;
         });
       }, 1000);
     }
@@ -338,6 +322,23 @@ export default function PelatihPhysicalTestsPage() {
       if (interval) clearInterval(interval);
     };
   }, [timerRunning]);
+
+  // Handle timer reaching zero — side effects extracted from updater for purity
+  useEffect(() => {
+    if (timerSeconds === 0 && timerRunning) {
+      setTimerRunning(false);
+      audioSynth.playBuzzer();
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
+    } else if (timerSeconds > 0 && timerSeconds <= 3 && timerRunning && timerSeconds !== timerPrevSecRef.current) {
+      audioSynth.playBeep(880, 0.12);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(80);
+      }
+      timerPrevSecRef.current = timerSeconds;
+    }
+  }, [timerSeconds, timerRunning]);
 
   const handleStartTimer = () => {
     if (timerSeconds === 0) {
@@ -506,10 +507,12 @@ export default function PelatihPhysicalTestsPage() {
 
       await loadLeaderboardData();
 
-      // Reset tools for next test
+      // Reset tools and form for next test
       setTapCount(0);
       handleResetStopwatch();
       handleResetTimer();
+      setMetrics(DEFAULT_METRICS);
+      setNotes('');
     } catch (err: any) {
       console.error('Error saving physical test:', err);
       setToastMessage({
@@ -589,6 +592,7 @@ export default function PelatihPhysicalTestsPage() {
 
     // Filter by Age Category
     const ageFiltered = list.filter((item) => {
+      if (!item.student) return false; // skip tests with no matching student
       if (lbAgeFilter === 'all') return true;
       return item.ageCategory === lbAgeFilter;
     });
@@ -626,9 +630,6 @@ export default function PelatihPhysicalTestsPage() {
     kicks_30s: 'Tendangan (30s)',
   };
 
-  const selectedBeltStyle = selectedStudent
-    ? getBeltStyle(selectedStudent.current_belt)
-    : { hex: '#94a3b8', bg: '', text: '', border: '', emoji: '🥋' };
 
   return (
     <Navigation>
