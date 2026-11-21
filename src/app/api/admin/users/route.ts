@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
     let isOwner = false;
 
-    if (token && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (token) {
+      // Verify token authenticity with Supabase Auth
       const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
       if (!userError && userData?.user?.id) {
         const { data: profile } = await supabaseAdmin
@@ -42,17 +43,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Secondary fallback: check user_role cookie if service role key is absent or in local dev
-    if (!isOwner) {
-      const roleCookie = request.cookies.get('user_role')?.value;
-      if (roleCookie === 'owner') {
-        isOwner = true;
-      }
-    }
-
     if (!isOwner) {
       return NextResponse.json(
-        { error: 'Akses ditolak. Tindakan ini memerlukan hak akses Pengelola / Pemilik (Owner).' },
+        { error: 'Akses ditolak. Tindakan ini memerlukan token sesi valid dengan hak akses Pengelola / Pemilik (Owner).' },
         { status: 403 }
       );
     }

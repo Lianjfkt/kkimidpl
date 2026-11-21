@@ -49,14 +49,6 @@ function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: 
   );
 }
 
-// SHA-256 hashing helper
-async function generateSHA256(message: string): Promise<string> {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 export default function SettingsPage() {
   const { profile, loading } = useAuth();
   const router = useRouter();
@@ -721,8 +713,6 @@ function DangerZone() {
     setDone(true);
     loadCounts();
   };
-
-  const totalSelected = deleteMode === 'all' ? TABLES_CONFIG.length : selected.size;
 
   return (
     <>

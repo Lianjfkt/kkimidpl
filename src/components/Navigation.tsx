@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import NotificationBell from './NotificationBell';
 
@@ -11,11 +11,41 @@ interface NavigationProps {
 }
 
 export default function Navigation({ children }: NavigationProps) {
-  const { profile, signOut } = useAuth();
+  const { profile, loading, signOut } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  if (!profile) return <>{children}</>;
+  useEffect(() => {
+    if (loading) return;
+
+    if (!profile) {
+      router.push('/login');
+      return;
+    }
+
+    const role = profile.role;
+    if (pathname.startsWith('/owner') && role !== 'owner') {
+      router.push(`/${role}`);
+    } else if (pathname.startsWith('/pelatih') && role !== 'pelatih' && role !== 'owner') {
+      router.push(`/${role}`);
+    } else if (pathname.startsWith('/ortu') && role !== 'ortu' && role !== 'owner') {
+      router.push(`/${role}`);
+    }
+  }, [loading, profile, pathname, router]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[var(--neu-bg,#181514)]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl animate-spin border-2 border-red-500/20 border-t-red-500" />
+          <span className="text-xs font-semibold text-gray-400">Memverifikasi akses dojo...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) return null;
 
   const role = profile.role;
 

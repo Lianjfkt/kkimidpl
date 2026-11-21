@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase, rawClient } from '@/lib/supabaseClient';
 import { Profile } from '@/lib/mockData';
 
@@ -27,6 +28,7 @@ const deleteCookie = (name: string) => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter();
   const [user, setUser] = useState<any | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,7 +116,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setProfile(null);
     deleteCookie('user_role');
     setLoading(false);
-    window.location.href = '/login';
+    router.push('/login');
+    router.refresh();
   };
 
   return (

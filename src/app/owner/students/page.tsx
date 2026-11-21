@@ -6,6 +6,7 @@ import Navigation from '@/components/Navigation';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Student } from '@/lib/mockData';
 import { OFFICIAL_BELTS, getBeltStyle } from '@/lib/constants/belts';
+import { getAuthHeaders } from '@/lib/authUtils';
 
 interface ClassSession {
   id: string;
@@ -74,9 +75,10 @@ export default function OwnerStudents() {
     setSyncingParents(true);
     setSyncMsg(null);
     try {
+      const authHeaders = await getAuthHeaders();
       const res = await fetch('/api/admin/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ action: 'sync_parents' }),
       });
       const data = await res.json();

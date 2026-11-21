@@ -184,7 +184,7 @@ export default function LoginPage() {
         address: '',
       });
       setView('login');
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan saat mengirim pendaftaran. Silakan coba lagi.');
     } finally {
       setLoading(false);

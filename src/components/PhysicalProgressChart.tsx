@@ -286,7 +286,7 @@ export default function PhysicalProgressChart({
         <div>
           <h4 className="text-sm font-semibold text-white">Tren Perkembangan Fisik</h4>
           <p className="text-xs text-gray-400">
-            {`${sortedRecords.length} kali tes (${formatDateShort(firstRecord.test_date)} – ${formatDateShort(latestRecord.test_date)})`}
+            {`${sortedRecords.length} kali tes (${formatDateShort(firstRecord.test_date)} – ${formatDateShort(latestRecord.test_date)}) · Akumulasi: ${totalDelta >= 0 ? `+${totalDelta}` : totalDelta} pts`}
           </p>
         </div>
         <div className="flex items-center gap-2">

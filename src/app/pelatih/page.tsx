@@ -339,12 +339,6 @@ export default function PelatihDashboard() {
     return Math.round((hadir / recentAttendance.length) * 100);
   }, [recentAttendance]);
 
-  // Active sessions this week
-  const weekSessionCount = useMemo(() => {
-    const unique = new Set(recentAttendance.map(a => `${a.class_id}-${a.session_date}`));
-    return unique.size;
-  }, [recentAttendance]);
-
   // Students per class
   const classStudentMap = useMemo(() => {
     const map: Record<string, Student[]> = {};
@@ -357,8 +351,6 @@ export default function PelatihDashboard() {
     });
     return map;
   }, [classes, enrollments, students]);
-
-  const studentName = (id: string) => students.find(s => s.id === id)?.full_name || '-';
 
   return (
     <Navigation>

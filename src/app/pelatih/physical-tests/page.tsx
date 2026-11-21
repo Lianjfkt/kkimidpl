@@ -185,6 +185,21 @@ export default function PelatihPhysicalTestsPage() {
   const [lbCategory, setLbCategory] = useState<LeaderboardTab>('general');
   const [lbAgeFilter, setLbAgeFilter] = useState<'all' | 'anak' | 'remaja' | 'dewasa'>('all');
 
+  const loadLeaderboardData = useCallback(async () => {
+    try {
+      const { data: testData } = await supabase
+        .from('student_physical_tests')
+        .select('*')
+        .order('test_date', { ascending: false });
+
+      if (testData) {
+        setAllTests(testData as RawPhysicalTest[]);
+      }
+    } catch (err) {
+      console.error('Error fetching leaderboard tests:', err);
+    }
+  }, []);
+
   // ─── Fetch Students & Authenticated User ──────────────────────────────────────
   const loadInitialData = useCallback(async () => {
     setLoadingStudents(true);
@@ -204,8 +219,8 @@ export default function PelatihPhysicalTestsPage() {
           (s) => !s.status || s.status === 'active'
         );
         setStudents(active);
-        if (active.length > 0 && !selectedStudent) {
-          setSelectedStudent(active[0]);
+        if (active.length > 0) {
+          setSelectedStudent((prev) => prev || active[0]);
         }
       }
 
@@ -215,22 +230,7 @@ export default function PelatihPhysicalTestsPage() {
     } finally {
       setLoadingStudents(false);
     }
-  }, []);
-
-  const loadLeaderboardData = async () => {
-    try {
-      const { data: testData } = await supabase
-        .from('student_physical_tests')
-        .select('*')
-        .order('test_date', { ascending: false });
-
-      if (testData) {
-        setAllTests(testData as RawPhysicalTest[]);
-      }
-    } catch (err) {
-      console.error('Error fetching leaderboard tests:', err);
-    }
-  };
+  }, [loadLeaderboardData]);
 
   useEffect(() => {
     loadInitialData();
@@ -621,15 +621,6 @@ export default function PelatihPhysicalTestsPage() {
 
     return ageFiltered;
   }, [allTests, studentMap, lbCategory, lbAgeFilter]);
-
-  // Copy target labels
-  const targetLabelMap: Record<MetricCopyTarget, string> = {
-    push_up_30s: 'Push Up (30s)',
-    sit_up_30s: 'Sit Up (30s)',
-    punches_30s: 'Pukulan (30s)',
-    kicks_30s: 'Tendangan (30s)',
-  };
-
 
   return (
     <Navigation>
