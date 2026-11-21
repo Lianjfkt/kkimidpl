@@ -63,6 +63,25 @@ export interface StudentAttendance {
   created_at: string;
 }
 
+export interface StudentPhysicalTest {
+  id: string;
+  student_id: string;
+  tester_id?: string;
+  test_date: string;
+  push_up_30s: number;
+  sit_up_30s: number;
+  punches_30s: number;
+  kicks_30s: number;
+  skipping_sec: number;
+  split_front_cm: number;
+  split_side_cm: number;
+  total_score: number;
+  grade: 'S' | 'A' | 'B' | 'C' | 'D';
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface CoachAttendance {
   id: string;
   coach_id: string;
