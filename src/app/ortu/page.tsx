@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Student, Fee, Notification, BeltExam, Tournament } from '@/lib/mockData';
+import { Student, Fee, Notification, BeltExam, Tournament, StudentPhysicalTest } from '@/lib/mockData';
 import { useAuth } from '@/context/AuthContext';
+import PhysicalRadarChart from '@/components/PhysicalRadarChart';
+import { calculatePhysicalAssessment, PhysicalAssessmentResult } from '@/lib/physicalScoring';
+import { getBeltStyle } from '@/lib/constants/belts';
 
 export default function OrtuDashboard() {
   const { profile } = useAuth();
@@ -13,6 +16,9 @@ export default function OrtuDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [upcomingExams, setUpcomingExams] = useState<BeltExam[]>([]);
   const [upcomingTournaments, setUpcomingTournaments] = useState<Tournament[]>([]);
+  const [physicalTests, setPhysicalTests] = useState<StudentPhysicalTest[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
@@ -20,12 +26,22 @@ export default function OrtuDashboard() {
     const { data: userData } = await supabase.auth.getUser();
     if (userData?.user) {
       const { data: kidsData } = await supabase.from('students').eq('parent_id', userData.user.id).select('*');
-      const kids = (kidsData && kidsData.length > 0) ? kidsData : [];
+      const kids = (kidsData && kidsData.length > 0) ? (kidsData as Student[]) : [];
       setChildren(kids);
+      if (kids.length > 0 && !selectedChildId) {
+        setSelectedChildId(kids[0].id);
+      }
       const kidIds = kids.map((k: Student) => k.id);
       if (kidIds.length > 0) {
-        const { data: feesData } = await supabase.from('fees').in('student_id', kidIds).select('*');
-        if (feesData) setFees(feesData);
+        const [feesRes, physicalRes, attRes] = await Promise.all([
+          supabase.from('fees').in('student_id', kidIds).select('*'),
+          supabase.from('student_physical_tests').in('student_id', kidIds).order('test_date', { ascending: false }).select('*'),
+          supabase.from('attendance_students').in('student_id', kidIds).select('*'),
+        ]);
+
+        if (feesRes.data) setFees(feesRes.data as Fee[]);
+        if (physicalRes.data) setPhysicalTests(physicalRes.data as StudentPhysicalTest[]);
+        if (attRes.data) setAttendanceRecords(attRes.data);
       }
       const today = new Date().toISOString().split('T')[0];
       const [examsRes, tournsRes, notifRes] = await Promise.all([
@@ -47,15 +63,62 @@ export default function OrtuDashboard() {
 
   useEffect(() => { loadData(); }, []);
 
+  const activeChild = useMemo(() => {
+    return children.find(c => c.id === selectedChildId) || children[0] || null;
+  }, [children, selectedChildId]);
+
+  const activeChildPhysicalData = useMemo(() => {
+    if (!activeChild) return null;
+    const childTests = physicalTests.filter(t => t.student_id === activeChild.id);
+    const latestTest = childTests[0] || null;
+
+    const childAtt = attendanceRecords.filter(a => a.student_id === activeChild.id);
+    const totalAtt = childAtt.length;
+    const hadirAtt = childAtt.filter(a => a.status === 'hadir').length;
+    const attendanceRate = totalAtt > 0 ? Math.round((hadirAtt / totalAtt) * 100) : 0;
+
+    let assessment: PhysicalAssessmentResult | null = null;
+    if (latestTest) {
+      assessment = calculatePhysicalAssessment(
+        {
+          push_up_30s: latestTest.push_up_30s,
+          sit_up_30s: latestTest.sit_up_30s,
+          punches_30s: latestTest.punches_30s,
+          kicks_30s: latestTest.kicks_30s,
+          skipping_sec: latestTest.skipping_sec,
+          split_front_cm: latestTest.split_front_cm,
+          split_side_cm: latestTest.split_side_cm,
+        },
+        attendanceRate,
+        activeChild.dob,
+        activeChild.current_belt
+      );
+    }
+
+    return {
+      tests: childTests,
+      latestTest,
+      attendanceRate,
+      hadirAtt,
+      totalAtt,
+      assessment,
+    };
+  }, [activeChild, physicalTests, attendanceRecords]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <Navigation>
       <div className="space-y-6">
+        {/* Header */}
         <div>
           <h2 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--md-sys-color-on-surface)' }}>
             Halo, {profile ? profile.full_name.split(' ')[0] : 'Orang Tua'} 👋
           </h2>
           <p className="mt-1 text-sm" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-            Status perkembangan latihan dan rincian iuran anak Anda.
+            Status perkembangan latihan, kebugaran fisik, dan rincian iuran ananda di Dojo.
           </p>
         </div>
 
@@ -77,22 +140,38 @@ export default function OrtuDashboard() {
               {children.map((kid) => {
                 const kidFees = fees.filter((f) => f.student_id === kid.id);
                 const unpaidCount = kidFees.filter((f) => f.status !== 'lunas').length;
+                const isSelected = activeChild?.id === kid.id;
+                const beltStyle = getBeltStyle(kid.current_belt);
+
                 return (
                   <div key={kid.id}
-                    className="rounded-3xl p-5 flex flex-col gap-4 border border-[var(--neu-border)] transition-all duration-200 cursor-default"
-                    style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
-                    onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-hover)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--neu-shadow-flat)'; e.currentTarget.style.transform = ''; }}
+                    onClick={() => setSelectedChildId(kid.id)}
+                    className="rounded-3xl p-5 flex flex-col gap-4 border transition-all duration-200 cursor-pointer"
+                    style={{
+                      background: 'var(--neu-surface)',
+                      boxShadow: isSelected ? '0 0 0 2px var(--md-sys-color-primary), var(--neu-shadow-flat)' : 'var(--neu-shadow-flat)',
+                      borderColor: isSelected ? 'var(--md-sys-color-primary)' : 'var(--neu-border)'
+                    }}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0 border border-[var(--neu-border)]"
                         style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', color: 'var(--md-sys-color-on-surface)' }}>
                         {kid.full_name.charAt(0)}
                       </div>
-                      <div>
-                        <h4 className="font-semibold text-lg" style={{ color: 'var(--md-sys-color-on-surface)' }}>{kid.full_name}</h4>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
-                          Sabuk: <span className="font-semibold" style={{ color: 'var(--md-sys-color-primary)' }}>{kid.current_belt}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-lg truncate" style={{ color: 'var(--md-sys-color-on-surface)' }}>{kid.full_name}</h4>
+                          {isSelected && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--md-sys-color-primary)' }}>
+                              Aktif Dipilih
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs mt-0.5 flex items-center gap-1.5" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          <span>Sabuk:</span>
+                          <span className="font-semibold px-2 py-0.5 rounded-md text-[11px]" style={{ background: beltStyle.bg || 'rgba(239,68,68,0.15)', color: beltStyle.hex }}>
+                            {beltStyle.emoji} {kid.current_belt}
+                          </span>
                         </p>
                       </div>
                     </div>
@@ -136,6 +215,227 @@ export default function OrtuDashboard() {
             </div>
           )}
         </div>
+
+        {/* ─── Rapor Kebugaran & Fisik Ananda ──────────────────────────────────── */}
+        {activeChild && (
+          <div className="rounded-3xl p-6 border border-[var(--neu-border)] space-y-6"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4" style={{ borderColor: 'var(--neu-border)' }}>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📊</span>
+                  <h3 className="text-lg font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                    Rapor Kebugaran &amp; Fisik: {activeChild.full_name}
+                  </h3>
+                </div>
+                <p className="text-xs mt-1" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Evaluasi kemampuan fisik berkala dan kesiapan ujian kenaikan sabuk.
+                </p>
+              </div>
+
+              {activeChildPhysicalData?.latestTest && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handlePrint}
+                    className="apple-btn-secondary px-3.5 py-2 text-xs font-semibold rounded-2xl flex items-center gap-2 cursor-pointer transition-all duration-200"
+                  >
+                    <span>🖨️</span>
+                    <span>Cetak Rapor Fisik</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {loading ? (
+              <div className="h-48 rounded-2xl animate-pulse" style={{ background: 'var(--neu-surface-low)' }} />
+            ) : !activeChildPhysicalData?.latestTest || !activeChildPhysicalData.assessment ? (
+              <div className="text-center py-10 px-4 rounded-2xl border border-dashed border-[var(--neu-border)]"
+                style={{ background: 'var(--neu-surface-low)' }}>
+                <span className="text-4xl block mb-3">🥋</span>
+                <h4 className="font-bold text-base mb-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  Belum Ada Catatan Tes Fisik
+                </h4>
+                <p className="text-xs max-w-md mx-auto leading-relaxed" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Pelatih dojo akan mencatat hasil tes fisik (push up, sit up, pukulan, tendangan, skipping, dan split) saat sesi evaluasi berkala.
+                </p>
+                <div className="mt-4 p-3 rounded-xl max-w-md mx-auto text-left text-xs space-y-1.5"
+                  style={{ background: 'var(--neu-surface)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  <p className="font-semibold text-xs" style={{ color: 'var(--md-sys-color-on-surface)' }}>💡 Dukungan Orang Tua di Rumah:</p>
+                  <p>• Ajak ananda peregangan kaki ringan 10 menit setiap pagi.</p>
+                  <p>• Jaga hidrasi air putih dan tidur cukup minimal 8 jam sebelum jadwal latihan dojo.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Highlights Card */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Total Score & Grade */}
+                  <div className="p-4 rounded-2xl border border-[var(--neu-border)] text-center flex flex-col justify-center"
+                    style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)' }}>
+                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                      Total Skor Kebugaran
+                    </span>
+                    <div className="flex items-center justify-center gap-2 mt-1">
+                      <span className="text-3xl font-black" style={{ color: 'var(--md-sys-color-primary)' }}>
+                        {activeChildPhysicalData.assessment.totalScore}
+                      </span>
+                      <span className="text-xs opacity-50">/ 100</span>
+                      <span
+                        className="px-2.5 py-0.5 rounded-full text-xs font-black"
+                        style={{
+                          background:
+                            activeChildPhysicalData.assessment.grade === 'S' || activeChildPhysicalData.assessment.grade === 'A'
+                              ? 'rgba(52,211,153,0.2)'
+                              : activeChildPhysicalData.assessment.grade === 'B'
+                              ? 'rgba(96,165,250,0.2)'
+                              : 'rgba(251,191,36,0.2)',
+                          color:
+                            activeChildPhysicalData.assessment.grade === 'S' || activeChildPhysicalData.assessment.grade === 'A'
+                              ? '#34d399'
+                              : activeChildPhysicalData.assessment.grade === 'B'
+                              ? '#60a5fa'
+                              : '#fbbf24',
+                        }}
+                      >
+                        Grade {activeChildPhysicalData.assessment.grade}
+                      </span>
+                    </div>
+                    <span className="text-[10px] mt-1 opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                      Tes: {new Date(activeChildPhysicalData.latestTest.test_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+
+                  {/* Exam Readiness Status */}
+                  <div className="p-4 rounded-2xl border border-[var(--neu-border)] text-center flex flex-col justify-center sm:col-span-2"
+                    style={{
+                      background:
+                        activeChildPhysicalData.assessment.examReadiness.statusColor === 'emerald'
+                          ? 'rgba(52,211,153,0.1)'
+                          : activeChildPhysicalData.assessment.examReadiness.statusColor === 'amber'
+                          ? 'rgba(251,191,36,0.1)'
+                          : 'rgba(248,113,113,0.1)',
+                      borderColor:
+                        activeChildPhysicalData.assessment.examReadiness.statusColor === 'emerald'
+                          ? 'rgba(52,211,153,0.3)'
+                          : activeChildPhysicalData.assessment.examReadiness.statusColor === 'amber'
+                          ? 'rgba(251,191,36,0.3)'
+                          : 'rgba(248,113,113,0.3)',
+                    }}>
+                    <span className="text-[10px] font-bold uppercase tracking-wider"
+                      style={{
+                        color:
+                          activeChildPhysicalData.assessment.examReadiness.statusColor === 'emerald'
+                            ? '#34d399'
+                            : activeChildPhysicalData.assessment.examReadiness.statusColor === 'amber'
+                            ? '#fbbf24'
+                            : '#f87171',
+                      }}>
+                      Status Kesiapan Ujian Kenaikan Sabuk
+                    </span>
+                    <p className="font-bold text-sm mt-1" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                      {activeChildPhysicalData.assessment.examReadiness.statusText}
+                    </p>
+                    <p className="text-xs mt-0.5 opacity-80" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                      {activeChildPhysicalData.assessment.examReadiness.reason}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Radar Chart & Drill Support Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                  <div className="flex flex-col items-center justify-center p-3 rounded-2xl border border-[var(--neu-border)]"
+                    style={{ background: 'var(--neu-surface-low)' }}>
+                    <span className="text-xs font-bold mb-2 opacity-75" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                      Grafik Karakteristik Kemampuan 6 Dimensi
+                    </span>
+                    <PhysicalRadarChart
+                      dimensions={activeChildPhysicalData.assessment.radarDimensions}
+                      showTarget={true}
+                      size={290}
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Raw Metrics Summary */}
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider mb-2.5 opacity-70" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                        Rincian Capaian Latihan
+                      </h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                        <div className="p-2 rounded-xl border border-[var(--neu-border)]" style={{ background: 'var(--neu-surface-low)' }}>
+                          <span className="block text-[10px] opacity-60">Push Up (30d)</span>
+                          <span className="font-bold text-sm" style={{ color: 'var(--md-sys-color-primary)' }}>
+                            {activeChildPhysicalData.latestTest.push_up_30s}x
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-xl border border-[var(--neu-border)]" style={{ background: 'var(--neu-surface-low)' }}>
+                          <span className="block text-[10px] opacity-60">Sit Up (30d)</span>
+                          <span className="font-bold text-sm" style={{ color: 'var(--md-sys-color-primary)' }}>
+                            {activeChildPhysicalData.latestTest.sit_up_30s}x
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-xl border border-[var(--neu-border)]" style={{ background: 'var(--neu-surface-low)' }}>
+                          <span className="block text-[10px] opacity-60">Pukulan (30d)</span>
+                          <span className="font-bold text-sm" style={{ color: 'var(--md-sys-color-primary)' }}>
+                            {activeChildPhysicalData.latestTest.punches_30s}x
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-xl border border-[var(--neu-border)]" style={{ background: 'var(--neu-surface-low)' }}>
+                          <span className="block text-[10px] opacity-60">Tendangan (30d)</span>
+                          <span className="font-bold text-sm" style={{ color: 'var(--md-sys-color-primary)' }}>
+                            {activeChildPhysicalData.latestTest.kicks_30s}x
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-xl border border-[var(--neu-border)]" style={{ background: 'var(--neu-surface-low)' }}>
+                          <span className="block text-[10px] opacity-60">Skipping</span>
+                          <span className="font-bold text-sm" style={{ color: 'var(--md-sys-color-primary)' }}>
+                            {activeChildPhysicalData.latestTest.skipping_sec} detik
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-xl border border-[var(--neu-border)]" style={{ background: 'var(--neu-surface-low)' }}>
+                          <span className="block text-[10px] opacity-60">Split (Depan / Samping)</span>
+                          <span className="font-bold text-sm" style={{ color: 'var(--md-sys-color-primary)' }}>
+                            {activeChildPhysicalData.latestTest.split_front_cm} / {activeChildPhysicalData.latestTest.split_side_cm} cm
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Home Support Guidance */}
+                    <div className="p-4 rounded-2xl border border-[var(--neu-border)] space-y-2.5"
+                      style={{ background: 'var(--neu-surface-low)' }}>
+                      <div className="flex items-center gap-2">
+                        <span>🏡</span>
+                        <h4 className="font-bold text-xs" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                          Panduan Pendampingan Orang Tua di Rumah
+                        </h4>
+                      </div>
+                      <div className="space-y-1.5 text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                        {activeChildPhysicalData.assessment.recommendations.map((rec, idx) => (
+                          <div key={idx} className="flex items-start gap-2">
+                            <span className="text-emerald-400 font-bold">•</span>
+                            <p className="leading-relaxed">{rec}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {activeChildPhysicalData.latestTest.notes && (
+                      <div className="p-3 rounded-xl border border-dashed border-[var(--neu-border)] text-xs"
+                        style={{ background: 'var(--neu-surface)' }}>
+                        <span className="font-semibold block mb-0.5" style={{ color: 'var(--md-sys-color-on-surface)' }}>Catatan Pelatih:</span>
+                        <p className="italic opacity-80" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                          &ldquo;{activeChildPhysicalData.latestTest.notes}&rdquo;
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Notifications + Info grid */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
