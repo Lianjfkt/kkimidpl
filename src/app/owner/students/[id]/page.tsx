@@ -4,8 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Student, Fee, StudentAttendance, TournamentParticipant, Tournament, BeltExam, ExamParticipant } from '@/lib/mockData';
+import { Student, Fee, StudentAttendance, TournamentParticipant, Tournament, BeltExam, ExamParticipant, StudentPhysicalTest } from '@/lib/mockData';
 import { OFFICIAL_BELTS } from '@/lib/constants/belts';
+import PhysicalRadarChart from '@/components/PhysicalRadarChart';
+import PhysicalProgressChart from '@/components/PhysicalProgressChart';
+import { calculatePhysicalAssessment } from '@/lib/physicalScoring';
 
 const beltOrder = OFFICIAL_BELTS;
 
@@ -27,6 +30,7 @@ export default function StudentDetailPage() {
   const [attendance, setAttendance] = useState<StudentAttendance[]>([]);
   const [tournamentRuns, setTournamentRuns] = useState<any[]>([]);
   const [examsPlayed, setExamsPlayed] = useState<any[]>([]);
+  const [physicalTests, setPhysicalTests] = useState<StudentPhysicalTest[]>([]);
   const [coachNotes, setCoachNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -52,17 +56,20 @@ export default function StudentDetailPage() {
         setCoachNotes(studRes.data.medical_history || '');
 
         // Load related data in parallel, each independently
-        const [feesRes, attRes, tournPartsRes, tournsRes, examPartsRes, examsRes] = await Promise.all([
+        const [feesRes, attRes, tournPartsRes, tournsRes, examPartsRes, examsRes, physicalTestsRes] = await Promise.all([
           supabase.from('fees').eq('student_id', studentId).select('*'),
           supabase.from('attendance_students').eq('student_id', studentId).select('*'),
           supabase.from('tournament_participants').eq('student_id', studentId).select('*'),
           supabase.from('tournaments').select('*'),
           supabase.from('exam_participants').eq('student_id', studentId).select('*'),
           supabase.from('belt_exams').select('*'),
+          supabase.from('student_physical_tests').eq('student_id', studentId).order('test_date', { ascending: false }).select('*'),
         ]);
 
         if (feesRes.data) setFees(feesRes.data as Fee[]);
         if (attRes.data) setAttendance(attRes.data as StudentAttendance[]);
+
+        if (physicalTestsRes.data) setPhysicalTests(physicalTestsRes.data as StudentPhysicalTest[]);
 
         if (tournPartsRes.data && tournsRes.data) {
           const matches = (tournPartsRes.data as TournamentParticipant[]).map(tp => {
@@ -152,6 +159,35 @@ export default function StudentDetailPage() {
   const totalAtt = attendance.length;
   const hadirAtt = attendance.filter(a => a.status === 'hadir').length;
   const attPct = totalAtt > 0 ? Math.round((hadirAtt / totalAtt) * 100) : 100;
+
+  // Physical assessment computation
+  const latestTest = physicalTests[0] ?? null;
+  const attendanceRate = totalAtt > 0 ? Math.round((hadirAtt / totalAtt) * 100) : 0;
+  const physicalAssessment = latestTest
+    ? calculatePhysicalAssessment(
+        {
+          push_up_30s: latestTest.push_up_30s,
+          sit_up_30s: latestTest.sit_up_30s,
+          punches_30s: latestTest.punches_30s,
+          kicks_30s: latestTest.kicks_30s,
+          skipping_sec: latestTest.skipping_sec,
+          split_front_cm: latestTest.split_front_cm,
+          split_side_cm: latestTest.split_side_cm,
+        },
+        attendanceRate,
+        student.dob,
+        student.current_belt
+      )
+    : null;
+
+  // Grade color helper for history table
+  const gradeColors: Record<string, React.CSSProperties> = {
+    S: { background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.4)' },
+    A: { background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.4)' },
+    B: { background: 'rgba(96,165,250,0.15)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.4)' },
+    C: { background: 'rgba(251,146,60,0.15)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.4)' },
+    D: { background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.4)' },
+  };
 
   return (
     <Navigation>
@@ -341,6 +377,213 @@ export default function StudentDetailPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* ── Kemampuan Fisik & Kebugaran ── */}
+        <div
+          className="rounded-3xl p-6 border border-[var(--neu-border)]"
+          style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-shadow-flat)' }}
+        >
+          {/* Section heading */}
+          <div className="flex flex-wrap items-baseline gap-3 mb-5">
+            <h4 className="font-bold text-base" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+              💪 Kemampuan Fisik &amp; Kebugaran
+            </h4>
+            {latestTest && (
+              <span className="text-[10px] font-semibold opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Tes terakhir: {latestTest.test_date}
+              </span>
+            )}
+          </div>
+
+          {!physicalTests.length ? (
+            /* Empty state */
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
+              <div className="text-4xl">🏋️</div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Belum ada data tes fisik.
+              </p>
+              <p className="text-xs opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                Minta pelatih untuk input tes pertama di halaman Tes Fisik.
+              </p>
+              <a
+                href="/pelatih/physical-tests"
+                className="apple-btn mt-2 py-2 px-5 text-xs font-semibold rounded-2xl inline-block"
+              >
+                → Buka Halaman Tes Fisik
+              </a>
+            </div>
+          ) : physicalAssessment ? (
+            <div className="space-y-6">
+              {/* ── Exam Readiness Dual-Gate Badge ── */}
+              <div
+                className="rounded-2xl p-4 border flex flex-col sm:flex-row sm:items-start gap-4"
+                style={
+                  physicalAssessment.examReadiness.statusColor === 'emerald'
+                    ? { background: 'rgba(52,211,153,0.07)', borderColor: 'rgba(52,211,153,0.3)' }
+                    : physicalAssessment.examReadiness.statusColor === 'amber'
+                      ? { background: 'rgba(251,191,36,0.07)', borderColor: 'rgba(251,191,36,0.3)' }
+                      : { background: 'rgba(248,113,113,0.07)', borderColor: 'rgba(248,113,113,0.3)' }
+                }
+              >
+                {/* Overall status */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-bold"
+                      style={
+                        physicalAssessment.examReadiness.statusColor === 'emerald'
+                          ? { background: 'rgba(52,211,153,0.2)', color: '#34d399', border: '1px solid rgba(52,211,153,0.5)' }
+                          : physicalAssessment.examReadiness.statusColor === 'amber'
+                            ? { background: 'rgba(251,191,36,0.2)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.5)' }
+                            : { background: 'rgba(248,113,113,0.2)', color: '#f87171', border: '1px solid rgba(248,113,113,0.5)' }
+                      }
+                    >
+                      {physicalAssessment.examReadiness.isEligible ? '✓' : '✗'}{' '}
+                      {physicalAssessment.examReadiness.statusText}
+                    </span>
+                    <span className="text-xs font-bold" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                      Skor: {physicalAssessment.totalScore} · Grade {physicalAssessment.grade}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-[11px] opacity-70" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                    {physicalAssessment.examReadiness.reason}
+                  </p>
+                </div>
+                {/* Gate indicators */}
+                <div className="flex gap-3 flex-shrink-0">
+                  {/* Physical gate */}
+                  <div className="flex flex-col items-center gap-1">
+                    <span
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                      style={
+                        physicalAssessment.totalScore >= (physicalAssessment.radarDimensions[0]?.target ?? 60)
+                          ? { background: 'rgba(52,211,153,0.2)', color: '#34d399' }
+                          : { background: 'rgba(248,113,113,0.2)', color: '#f87171' }
+                      }
+                    >
+                      {physicalAssessment.totalScore >= (physicalAssessment.radarDimensions[0]?.target ?? 60) ? '✓' : '✗'}
+                    </span>
+                    <span className="text-[9px] font-semibold opacity-70" style={{ color: 'var(--md-sys-color-on-surface)' }}>Fisik</span>
+                  </div>
+                  {/* Attendance gate */}
+                  <div className="flex flex-col items-center gap-1">
+                    <span
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                      style={
+                        attendanceRate >= 75
+                          ? { background: 'rgba(52,211,153,0.2)', color: '#34d399' }
+                          : { background: 'rgba(248,113,113,0.2)', color: '#f87171' }
+                      }
+                    >
+                      {attendanceRate >= 75 ? '✓' : '✗'}
+                    </span>
+                    <span className="text-[9px] font-semibold opacity-70" style={{ color: 'var(--md-sys-color-on-surface)' }}>Hadir</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Radar Chart + Recommendations ── */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <PhysicalRadarChart
+                  dimensions={physicalAssessment.radarDimensions}
+                  showTarget={true}
+                />
+                {/* Smart Drill Recommendations */}
+                <div className="space-y-3 flex flex-col justify-center">
+                  <h5 className="text-xs font-bold uppercase tracking-wider opacity-60" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                    Rekomendasi Latihan
+                  </h5>
+                  {physicalAssessment.recommendations.map((rec, i) => (
+                    <div
+                      key={i}
+                      className="p-3 rounded-2xl text-xs leading-relaxed border"
+                      style={{
+                        background: i === 0
+                          ? 'rgba(248,113,113,0.08)'
+                          : i === 1
+                            ? 'rgba(251,191,36,0.08)'
+                            : 'rgba(96,165,250,0.08)',
+                        borderColor: i === 0
+                          ? 'rgba(248,113,113,0.25)'
+                          : i === 1
+                            ? 'rgba(251,191,36,0.25)'
+                            : 'rgba(96,165,250,0.25)',
+                        color: 'var(--md-sys-color-on-surface)',
+                      }}
+                    >
+                      <span className="mr-1">{i === 0 ? '🔴' : i === 1 ? '🟡' : '🔵'}</span>
+                      {rec}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Progress Trend Chart ── */}
+              <div>
+                <h5 className="text-xs font-bold uppercase tracking-wider opacity-60 mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  Tren Perkembangan Fisik
+                </h5>
+                <PhysicalProgressChart
+                  records={physicalTests.map(t => ({
+                    id: t.id,
+                    test_date: t.test_date,
+                    total_score: t.total_score,
+                    grade: t.grade,
+                    push_up_30s: t.push_up_30s,
+                    sit_up_30s: t.sit_up_30s,
+                    punches_30s: t.punches_30s,
+                    kicks_30s: t.kicks_30s,
+                    skipping_sec: t.skipping_sec,
+                    split_front_cm: t.split_front_cm,
+                    split_side_cm: t.split_side_cm,
+                  }))}
+                />
+              </div>
+
+              {/* ── Historical Test Log Table ── */}
+              <div>
+                <h5 className="text-xs font-bold uppercase tracking-wider opacity-60 mb-3" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                  Riwayat Tes Fisik
+                </h5>
+                <div className="overflow-x-auto rounded-2xl border border-[var(--neu-border)]" style={{ background: 'var(--neu-surface-low)' }}>
+                  <table className="w-full text-[11px]" style={{ color: 'var(--md-sys-color-on-surface)' }}>
+                    <thead>
+                      <tr className="border-b" style={{ borderColor: 'var(--neu-border)' }}>
+                        {['Tanggal', 'Grade', 'Skor', 'Push-Up', 'Sit-Up', 'Pukulan', 'Tendangan', 'Skipping(s)', 'Split D(cm)', 'Split S(cm)', 'Catatan'].map(h => (
+                          <th key={h} className="px-3 py-2.5 text-left font-semibold opacity-60 whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y" style={{ borderColor: 'var(--neu-border)' }}>
+                      {physicalTests.map(t => (
+                        <tr key={t.id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-3 py-2.5 font-semibold whitespace-nowrap">{t.test_date}</td>
+                          <td className="px-3 py-2.5">
+                            <span
+                              className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                              style={gradeColors[t.grade] ?? gradeColors['D']}
+                            >
+                              {t.grade}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 font-bold" style={{ color: 'var(--md-sys-color-primary)' }}>{t.total_score}</td>
+                          <td className="px-3 py-2.5">{t.push_up_30s}</td>
+                          <td className="px-3 py-2.5">{t.sit_up_30s}</td>
+                          <td className="px-3 py-2.5">{t.punches_30s}</td>
+                          <td className="px-3 py-2.5">{t.kicks_30s}</td>
+                          <td className="px-3 py-2.5">{t.skipping_sec}</td>
+                          <td className="px-3 py-2.5">{t.split_front_cm}</td>
+                          <td className="px-3 py-2.5">{t.split_side_cm}</td>
+                          <td className="px-3 py-2.5 opacity-70 max-w-[160px] truncate" title={t.notes ?? ''}>{t.notes || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Lower Info Grid */}
