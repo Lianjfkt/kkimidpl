@@ -457,12 +457,12 @@ export default function StudentDetailPage() {
                     <span
                       className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                       style={
-                        physicalAssessment.totalScore >= (physicalAssessment.radarDimensions[0]?.target ?? 60)
+                        physicalAssessment.examReadiness.isPhysicalReady
                           ? { background: 'rgba(52,211,153,0.2)', color: '#34d399' }
                           : { background: 'rgba(248,113,113,0.2)', color: '#f87171' }
                       }
                     >
-                      {physicalAssessment.totalScore >= (physicalAssessment.radarDimensions[0]?.target ?? 60) ? '✓' : '✗'}
+                      {physicalAssessment.examReadiness.isPhysicalReady ? '✓' : '✗'}
                     </span>
                     <span className="text-[9px] font-semibold opacity-70" style={{ color: 'var(--md-sys-color-on-surface)' }}>Fisik</span>
                   </div>
@@ -471,12 +471,12 @@ export default function StudentDetailPage() {
                     <span
                       className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                       style={
-                        attendanceRate >= 75
+                        physicalAssessment.examReadiness.isAttendanceReady
                           ? { background: 'rgba(52,211,153,0.2)', color: '#34d399' }
                           : { background: 'rgba(248,113,113,0.2)', color: '#f87171' }
                       }
                     >
-                      {attendanceRate >= 75 ? '✓' : '✗'}
+                      {physicalAssessment.examReadiness.isAttendanceReady ? '✓' : '✗'}
                     </span>
                     <span className="text-[9px] font-semibold opacity-70" style={{ color: 'var(--md-sys-color-on-surface)' }}>Hadir</span>
                   </div>

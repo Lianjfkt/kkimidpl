@@ -21,6 +21,8 @@ export interface PhysicalAssessmentResult {
   radarDimensions: PhysicalRadarDimension[];
   examReadiness: {
     isEligible: boolean;
+    isPhysicalReady: boolean;
+    isAttendanceReady: boolean;
     statusText: string;
     statusColor: 'emerald' | 'amber' | 'red';
     reason: string;
@@ -292,6 +294,8 @@ export function calculatePhysicalAssessment(
     radarDimensions,
     examReadiness: {
       isEligible,
+      isPhysicalReady,
+      isAttendanceReady,
       statusText,
       statusColor,
       reason,
