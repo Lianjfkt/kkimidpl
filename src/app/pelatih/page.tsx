@@ -447,6 +447,7 @@ export default function PelatihDashboard() {
           <div className="flex flex-wrap gap-2">
             {[
               { label: 'Isi Absensi Hari Ini', href: '/pelatih/attendance', icon: '📋' },
+              { label: 'Tes & Uji Fisik Siswa', href: '/pelatih/physical-tests', icon: '⚡' },
               { label: 'Ujian & Turnamen', href: '/pelatih/exams', icon: '🏆' },
             ].map(({ label, href, icon }) => (
               <a
