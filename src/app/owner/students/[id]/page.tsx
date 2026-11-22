@@ -407,7 +407,7 @@ export default function StudentDetailPage() {
                 Minta pelatih untuk input tes pertama di halaman Tes Fisik.
               </p>
               <a
-                href="/pelatih/physical-tests"
+                href="/owner/physical-tests"
                 className="apple-btn mt-2 py-2 px-5 text-xs font-semibold rounded-2xl inline-block"
               >
                 → Buka Halaman Tes Fisik

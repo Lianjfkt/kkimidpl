@@ -256,7 +256,7 @@ export default function OwnerDashboard() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
               Refresh Data
             </button>
-            <Link href="/pelatih/physical-tests" className="apple-btn-secondary px-3 py-2 text-sm font-medium rounded-2xl flex items-center gap-1.5" title="Buka Penilaian & Leaderboard Tes Fisik">
+            <Link href="/owner/physical-tests" className="apple-btn-secondary px-3 py-2 text-sm font-medium rounded-2xl flex items-center gap-1.5" title="Buka Penilaian & Leaderboard Tes Fisik">
               <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               Tes Fisik
             </Link>
@@ -644,7 +644,7 @@ export default function OwnerDashboard() {
               <div className="space-y-1">
                 {[
                   { href: '/owner/students', label: 'Kelola Siswa' },
-                  { href: '/pelatih/physical-tests', label: '⚡ Tes Fisik & Leaderboard' },
+                  { href: '/owner/physical-tests', label: '⚡ Tes Fisik & Leaderboard' },
                   { href: '/owner/attendance', label: 'Input Absensi' },
                   { href: '/owner/finance', label: 'Tagih Iuran Bulanan' },
                   { href: '/owner/exams', label: 'Ujian Kenaikan Sabuk' },

@@ -238,7 +238,7 @@ export default function OwnerStudents() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => router.push('/pelatih/physical-tests')}
+              onClick={() => router.push('/owner/physical-tests')}
               className="apple-btn-secondary px-3.5 py-2 text-xs font-semibold cursor-pointer rounded-2xl flex items-center gap-1.5"
             >
               <span>⚡</span>
