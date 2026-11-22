@@ -55,6 +55,8 @@ function RegistrationsContent() {
   // Approval modal state
   const [approveTarget, setApproveTarget] = useState<Registration | null>(null);
   const [parentProfiles, setParentProfiles] = useState<Profile[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState('');
   const [parentMode, setParentMode] = useState<'existing' | 'new'>('existing');
   const [selectedParentId, setSelectedParentId] = useState('');
   const [newParentName, setNewParentName] = useState('');
@@ -210,8 +212,12 @@ function RegistrationsContent() {
     if (data) setParentProfiles(data as Profile[]);
   };
 
-  const openApproveModal = (reg: Registration) => {
+  const openApproveModal = (reg: Registration, availableClasses?: any[]) => {
     setApproveTarget(reg);
+    const clsList = availableClasses || classes;
+    if (clsList.length > 0 && !selectedClassId) {
+      setSelectedClassId(clsList[0].id);
+    }
     const phoneClean = reg.parent_phone?.trim().replace(/\D/g, '');
     const existingParent = parentProfiles.find(
       p => p.phone && p.phone.trim().replace(/\D/g, '') === phoneClean
@@ -235,17 +241,25 @@ function RegistrationsContent() {
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
-      const { data: regs } = await supabase.from('registrations').order('submitted_at', { ascending: false }).select();
-      const { data: parents } = await supabase.from('profiles').eq('role', 'ortu').select();
+      const [regsRes, parentsRes, classesRes] = await Promise.all([
+        supabase.from('registrations').order('submitted_at', { ascending: false }).select(),
+        supabase.from('profiles').eq('role', 'ortu').select(),
+        supabase.from('classes').select('*'),
+      ]);
 
-      if (regs) setRegistrations(regs as Registration[]);
-      if (parents) setParentProfiles(parents as Profile[]);
+      const loadedClasses = classesRes.data || [];
+      if (regsRes.data) setRegistrations(regsRes.data as Registration[]);
+      if (parentsRes.data) setParentProfiles(parentsRes.data as Profile[]);
+      if (loadedClasses.length > 0) {
+        setClasses(loadedClasses);
+        setSelectedClassId(loadedClasses[0].id);
+      }
       setLoading(false);
 
-      if (approveId && regs) {
-        const found = regs.find((r: Registration) => r.id === approveId && r.status === 'menunggu');
+      if (approveId && regsRes.data) {
+        const found = regsRes.data.find((r: Registration) => r.id === approveId && r.status === 'menunggu');
         if (found) {
-          openApproveModal(found as Registration);
+          openApproveModal(found as Registration, loadedClasses);
         }
       }
     };
@@ -359,6 +373,18 @@ function RegistrationsContent() {
       const { data: profileExists } = await supabase.from('profiles').select('id').eq('id', parentId).maybeSingle();
       if (profileExists) {
         await supabase.from('students').update({ parent_id: parentId }).eq('id', insertedStudentId);
+      }
+    }
+
+    // 1c. Daftarkan siswa ke kelas latihan (class_students) agar langsung muncul di absensi pelatih
+    const targetClassId = selectedClassId || (classes.length > 0 ? classes[0].id : null);
+    if (insertedStudentId && targetClassId) {
+      const { error: enrollError } = await supabase.from('class_students').insert({
+        student_id: insertedStudentId,
+        class_id: targetClassId
+      });
+      if (enrollError) {
+        console.warn('Gagal otomatis mendaftarkan ke class_students:', enrollError);
       }
     }
 
@@ -847,6 +873,34 @@ function RegistrationsContent() {
                 </p>
               </div>
             )}
+
+            {/* Class selection */}
+            <div className="space-y-2 pt-3 border-t border-[var(--neu-border)]">
+              <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                Kelas Latihan Siswa *
+              </label>
+              {classes.length === 0 ? (
+                <p className="text-xs italic py-2" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                  Belum ada kelas latihan aktif di dojo.
+                </p>
+              ) : (
+                <select
+                  value={selectedClassId}
+                  onChange={e => setSelectedClassId(e.target.value)}
+                  className={inputClass}
+                  style={{ background: 'var(--neu-surface-low)', boxShadow: 'var(--neu-shadow-pressed-sm)', border: '1px solid var(--neu-border)', color: 'var(--md-sys-color-on-surface)' }}
+                >
+                  {classes.map((cls: any) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name} ({cls.category || 'anak'}) · Pelatih: {cls.coach_name || 'Senpai'}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <p className="text-[11px]" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                💡 Siswa baru akan langsung terdaftar di kelas ini agar terdeteksi saat pelatih melakukan absensi.
+              </p>
+            </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-[var(--neu-border)]">
               <button

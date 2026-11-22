@@ -107,7 +107,7 @@ export default function OwnerStudents() {
     setPhone('');
     setParentName('');
     setParentJob('');
-    setSelectedClassId('');
+    setSelectedClassId(classes.length > 0 ? classes[0].id : '');
     setCurrentBelt('Putih');
     setStatus('active');
     setIsModalOpen(true);

@@ -204,6 +204,7 @@ export default function ImportPage() {
 
     // Cache student class mappings
     const { data: enrollList } = await supabase.from('class_students').select('student_id, class_id');
+    const { data: defaultClasses } = await supabase.from('classes').select('id');
     const studentClassMap = new Map<string, string>();
     enrollList?.forEach((e: { student_id: string; class_id: string }) => {
       studentClassMap.set(e.student_id, e.class_id);
@@ -248,6 +249,12 @@ export default function ImportPage() {
           // Update local cache with real UUID
           if (insertedData?.id) {
             studentMap.set(normalizeName(full_name), insertedData.id);
+            if (defaultClasses && defaultClasses.length > 0) {
+              await supabase.from('class_students').insert({
+                student_id: insertedData.id,
+                class_id: defaultClasses[0].id
+              });
+            }
           }
         }
       } 

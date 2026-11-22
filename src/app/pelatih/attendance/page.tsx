@@ -47,6 +47,7 @@ function AttendanceFormContent() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [studentToAdd, setStudentToAdd] = useState('');
 
   const loadData = async () => {
     setLoading(true);
@@ -126,15 +127,28 @@ function AttendanceFormContent() {
       .filter((e: any) => e.class_id === selectedClassId)
       .map((e: any) => e.student_id);
     
-    // Fallback: Jika kelas belum memiliki mapping siswa spesifik di class_students, tampilkan seluruh siswa aktif
-    const filtered = (enrolledIds.length > 0)
+    // Siswa aktif yang terdaftar di kelas ini
+    const enrolledStudents = (enrolledIds.length > 0)
       ? allStudents.filter(s => enrolledIds.includes(s.id))
       : allStudents;
 
-    setStudents(filtered);
+    // Siswa aktif yang belum dimasukkan ke kelas manapun di dojo (agar tidak ada siswa yang tercecer)
+    const unassignedStudents = allStudents.filter(
+      s => !enrollments.some((e: any) => e.student_id === s.id)
+    );
+
+    // Gabungkan siswa terdaftar dan siswa unassigned
+    const combinedStudents = [...enrolledStudents];
+    unassignedStudents.forEach(us => {
+      if (!combinedStudents.some(cs => cs.id === us.id)) {
+        combinedStudents.push(us);
+      }
+    });
+
+    setStudents(combinedStudents);
 
     const initialStates: Record<string, 'hadir' | 'izin' | 'sakit' | 'alpha'> = {};
-    filtered.forEach((s: Student) => {
+    combinedStudents.forEach((s: Student) => {
       initialStates[s.id] = 'hadir';
     });
     setAttendanceState(initialStates);
@@ -238,6 +252,24 @@ function AttendanceFormContent() {
       return;
     }
 
+    // Sinkronisasi otomatis ke class_students agar siswa yang diabsen selalu terdaftar permanen
+    const studentIdsMarked = Object.keys(attendanceState);
+    const missingEnrollmentIds = studentIdsMarked.filter(
+      id => !enrollments.some(e => e.class_id === selectedClassId && e.student_id === id)
+    );
+    if (missingEnrollmentIds.length > 0) {
+      for (const missingId of missingEnrollmentIds) {
+        await supabase.from('class_students').insert({
+          class_id: selectedClassId,
+          student_id: missingId
+        });
+      }
+      setEnrollments(prev => [
+        ...prev,
+        ...missingEnrollmentIds.map(id => ({ class_id: selectedClassId, student_id: id }))
+      ]);
+    }
+
     // Coach attendance duplicate prevention
     const { data: coachExisting } = await supabase
       .from('attendance_coaches')
@@ -336,6 +368,48 @@ function AttendanceFormContent() {
             </span>
           </div>
 
+          {/* Quick Add Siswa Aktif Lain ke Sesi Ini */}
+          {allStudents.some(s => !students.some(st => st.id === s.id)) && (
+            <div className="mb-4 p-3 rounded-2xl flex flex-col sm:flex-row items-center gap-2 border border-dashed border-[var(--neu-border)]"
+              style={{ background: 'var(--neu-surface-low)' }}>
+              <span className="text-xs font-semibold" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>
+                ➕ Atlet lain yang belum masuk daftar:
+              </span>
+              <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
+                <select
+                  value={studentToAdd}
+                  onChange={(e) => setStudentToAdd(e.target.value)}
+                  className="px-3 py-1.5 rounded-xl text-xs outline-none flex-1 border border-[var(--neu-border)]"
+                  style={{ background: 'var(--neu-surface)', color: 'var(--md-sys-color-on-surface)' }}
+                >
+                  <option value="">-- Pilih Atlet --</option>
+                  {allStudents
+                    .filter(s => !students.some(st => st.id === s.id))
+                    .map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.full_name} (Sabuk {s.current_belt || 'Putih'})
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!studentToAdd}
+                  onClick={() => {
+                    const st = allStudents.find(s => s.id === studentToAdd);
+                    if (st) {
+                      setStudents(prev => [...prev, st]);
+                      setAttendanceState(prev => ({ ...prev, [st.id]: 'hadir' }));
+                      setStudentToAdd('');
+                    }
+                  }}
+                  className="apple-btn-secondary px-3 py-1.5 text-xs font-semibold cursor-pointer whitespace-nowrap"
+                >
+                  + Tambahkan
+                </button>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -359,7 +433,14 @@ function AttendanceFormContent() {
                       {student.full_name.charAt(0)}
                     </div>
                     <div>
-                      <h4 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>{student.full_name}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-sm" style={{ color: 'var(--md-sys-color-on-surface)' }}>{student.full_name}</h4>
+                        {!enrollments.some(e => e.class_id === selectedClassId && e.student_id === student.id) && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                            Siswa Baru
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs" style={{ color: 'var(--md-sys-color-on-surface-variant)' }}>🥋 Sabuk {student.current_belt || 'Putih'}</p>
                     </div>
                   </div>

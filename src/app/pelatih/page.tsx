@@ -347,7 +347,13 @@ export default function PelatihDashboard() {
         .filter(e => e.class_id === cls.id)
         .map(e => students.find(s => s.id === e.student_id))
         .filter(Boolean) as Student[];
-      map[cls.id] = enrolled.length > 0 ? enrolled : students;
+      // Termasuk siswa aktif yang belum terdaftar di kelas manapun agar tetap terpantau oleh pelatih
+      const unassigned = students.filter(s => !enrollments.some(e => e.student_id === s.id));
+      const combined = [...enrolled];
+      unassigned.forEach(u => {
+        if (!combined.some(c => c.id === u.id)) combined.push(u);
+      });
+      map[cls.id] = combined.length > 0 ? combined : students;
     });
     return map;
   }, [classes, enrollments, students]);
