@@ -7,6 +7,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { Student } from '@/lib/mockData';
 import { OFFICIAL_BELTS, getBeltStyle } from '@/lib/constants/belts';
 import { getAuthHeaders } from '@/lib/authUtils';
+import { exportToExcel, exportToCSV } from '@/lib/exportUtils';
 
 interface ClassSession {
   id: string;
@@ -224,6 +225,56 @@ export default function OwnerStudents() {
     return matchesSearch && matchesBelt;
   });
 
+  const handleExportStudents = (format: 'xlsx' | 'csv' = 'xlsx') => {
+    const listToExport = filteredStudents.length > 0 ? filteredStudents : students;
+    const headers = [
+      'ID Siswa',
+      'Nama Lengkap',
+      'NIK',
+      'Tempat Lahir',
+      'Tanggal Lahir',
+      'Jenis Kelamin',
+      'Alamat',
+      'Nomor Telepon',
+      'Sabuk Saat Ini',
+      'Status',
+      'Tanggal Bergabung',
+      'Nama Orang Tua',
+      'Pekerjaan Orang Tua',
+      'Spesialisasi',
+    ];
+
+    const rows = listToExport.map((s) => [
+      s.id,
+      s.full_name,
+      s.nik || '-',
+      s.birth_place || '-',
+      s.dob || '-',
+      s.gender || '-',
+      s.address || '-',
+      s.phone || '-',
+      s.current_belt || 'Putih',
+      s.status === 'active' ? 'Aktif' : 'Non-Aktif',
+      s.join_date || '-',
+      s.parent_name || '-',
+      s.parent_job || '-',
+      s.specialization || '-',
+    ]);
+
+    const fileName = `Data_Siswa_Dojo_KKI_${new Date().toISOString().split('T')[0]}`;
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: 'Daftar Siswa',
+        headers,
+        rows,
+        colWidths: [18, 24, 18, 16, 14, 14, 28, 16, 16, 12, 16, 20, 18, 16],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
+  };
+
   return (
     <Navigation>
       <div className="space-y-6">
@@ -237,6 +288,24 @@ export default function OwnerStudents() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleExportStudents('xlsx')}
+              className="apple-btn-secondary px-3.5 py-2 text-xs font-semibold cursor-pointer rounded-2xl flex items-center gap-1.5 hover:text-white"
+              title="Ekspor daftar siswa ke Microsoft Excel (.xlsx)"
+            >
+              <span>📊</span>
+              <span>Excel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExportStudents('csv')}
+              className="apple-btn-secondary px-3.5 py-2 text-xs font-semibold cursor-pointer rounded-2xl flex items-center gap-1.5 hover:text-white"
+              title="Ekspor daftar siswa ke CSV (UTF-8 BOM)"
+            >
+              <span>📄</span>
+              <span>CSV</span>
+            </button>
             <button
               onClick={() => router.push('/owner/physical-tests')}
               className="apple-btn-secondary px-3.5 py-2 text-xs font-semibold cursor-pointer rounded-2xl flex items-center gap-1.5"

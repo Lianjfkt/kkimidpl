@@ -20,6 +20,7 @@ import {
   AttendanceStats,
   StudentRangeBillingInfo,
 } from '@/lib/billingUtils';
+import { exportToExcel, exportToCSV } from '@/lib/exportUtils';
 
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
@@ -600,59 +601,92 @@ export default function OwnerFinance() {
     return true;
   });
 
-  // Export CSV handler for Penagihan Tab
-  const handleExportBillingCSV = () => {
-    const exportItems = filteredBillingList.map((item) => ({
-      studentName: item.student.full_name,
-      belt: item.student.current_belt || 'Putih',
-      parentName: item.student.parent_name || '',
-      phone: item.student.phone || '',
-      totalSessions: item.attendanceStats.totalSessions,
-      hadir: item.attendanceStats.hadir,
-      izin: item.attendanceStats.izin,
-      sakit: item.attendanceStats.sakit,
-      alpha: item.attendanceStats.alpha,
-      attendancePct: item.attendanceStats.attendancePct,
-      status: item.isPaid ? 'Lunas' : 'Belum Lunas',
-      unpaidMonths: item.rangeBilling.unpaidMonthDetails.join('; '),
-      totalUnpaid: item.rangeBilling.totalUnpaidAmount,
-    }));
+  // Export handlers for Penagihan Tab
+  const handleExportBilling = (format: 'xlsx' | 'csv' = 'xlsx') => {
+    const headers = [
+      'Nama Siswa',
+      'Sabuk',
+      'Nama Orang Tua / Wali',
+      'No. WA / Telp',
+      'Total Sesi',
+      'Hadir',
+      'Izin',
+      'Sakit',
+      'Alpha',
+      'Kehadiran (%)',
+      'Status Tagihan',
+      'Rincian Bulan Tertunggak',
+      'Total Tagihan (Rp)',
+    ];
 
-    const csvContent = generateIntegratedBillingCsv(
-      exportItems,
-      billingStartMonth,
-      billingStartYear,
-      billingEndMonth,
-      billingEndYear
-    );
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Rekap_Tagihan_Absensi_Dojo_${months[billingStartMonth - 1]}_${billingStartYear}_sd_${months[billingEndMonth - 1]}_${billingEndYear}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const rows = filteredBillingList.map((item) => [
+      item.student.full_name,
+      item.student.current_belt || 'Putih',
+      item.student.parent_name || '-',
+      item.student.phone || '-',
+      item.attendanceStats.totalSessions,
+      item.attendanceStats.hadir,
+      item.attendanceStats.izin,
+      item.attendanceStats.sakit,
+      item.attendanceStats.alpha,
+      `${item.attendanceStats.attendancePct}%`,
+      item.isPaid ? 'Lunas' : 'Belum Lunas',
+      item.rangeBilling.unpaidMonthDetails.join('; ') || '-',
+      item.rangeBilling.totalUnpaidAmount,
+    ]);
+
+    const fileSuffix =
+      billingStartMonth === billingEndMonth && billingStartYear === billingEndYear
+        ? `${months[billingStartMonth - 1]}_${billingStartYear}`
+        : `${months[billingStartMonth - 1]}_${billingStartYear}_sd_${months[billingEndMonth - 1]}_${billingEndYear}`;
+    const fileName = `Rekap_Tagihan_Absensi_Dojo_${fileSuffix}`;
+
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: 'Tagihan & Absensi',
+        headers,
+        rows,
+        colWidths: [24, 14, 20, 16, 12, 10, 10, 10, 10, 14, 16, 26, 18],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
 
     showToast(
-      'Ekspor CSV Berhasil',
-      `File rekap tagihan & absensi (${exportItems.length} data siswa) berhasil diunduh.`,
+      `Ekspor ${format.toUpperCase()} Berhasil`,
+      `File rekap tagihan & absensi (${rows.length} siswa) berhasil diunduh.`,
       'success',
       '📥'
     );
   };
 
-  const exportKasCSV = () => {
-    const header = 'Tanggal,Tipe,Kategori,Keterangan,Nominal';
-    const rows = sortedTransactions.map((t) => `${t.transaction_date},${t.type},${t.category},"${t.description}",${t.amount}`);
-    const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `transaksi-dojo-${new Date().toISOString().split('T')[0]}.csv`; a.click();
-    URL.revokeObjectURL(url);
+  const handleExportKas = (format: 'xlsx' | 'csv' = 'xlsx') => {
+    const headers = ['Tanggal', 'Tipe Transaksi', 'Kategori', 'Keterangan', 'Nominal (Rp)'];
+    const rows = sortedTransactions.map((t) => [
+      t.transaction_date,
+      t.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran',
+      t.category,
+      t.description || '-',
+      Number(t.amount) || 0,
+    ]);
+
+    const fileName = `transaksi-kas-dojo-${new Date().toISOString().split('T')[0]}`;
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: 'Jurnal Kas',
+        headers,
+        rows,
+        colWidths: [14, 16, 18, 36, 18],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
 
     showToast(
-      'Ekspor CSV Kas Berhasil',
-      `Jurnal transaksi kas dojo (${sortedTransactions.length} baris) berhasil diunduh.`,
+      `Ekspor Kas ${format.toUpperCase()} Berhasil`,
+      `Jurnal transaksi kas dojo (${rows.length} baris) berhasil diunduh.`,
       'success',
       '📊'
     );
@@ -919,12 +953,26 @@ export default function OwnerFinance() {
                     <option value="umum">Umum</option>
                   </select>
 
-                  <button onClick={exportKasCSV} className="apple-btn-secondary px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer rounded-xl">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Unduh CSV Kas
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleExportKas('xlsx')}
+                      className="apple-btn-secondary px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer rounded-xl hover:text-white"
+                      title="Unduh Jurnal Kas ke format Excel (.xlsx)"
+                    >
+                      <span>📊</span>
+                      <span>Excel Kas</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleExportKas('csv')}
+                      className="apple-btn-secondary px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer rounded-xl hover:text-white"
+                      title="Unduh Jurnal Kas ke format CSV (UTF-8 BOM)"
+                    >
+                      <span>📄</span>
+                      <span>CSV Kas</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1228,17 +1276,25 @@ export default function OwnerFinance() {
                   </div>
                 </div>
 
-                {/* Export Action */}
-                <div className="flex items-center gap-2">
+                {/* Export Actions */}
+                <div className="flex items-center gap-1.5">
                   <button
-                    onClick={handleExportBillingCSV}
-                    className="apple-btn-secondary px-3.5 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer rounded-xl"
-                    title="Unduh data tagihan dan absensi ke format CSV"
+                    type="button"
+                    onClick={() => handleExportBilling('xlsx')}
+                    className="apple-btn-secondary px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer rounded-xl hover:text-white"
+                    title="Unduh rekap tagihan & absensi format Excel (.xlsx)"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Ekspor CSV Rekap
+                    <span>📊</span>
+                    <span>Excel Rekap</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExportBilling('csv')}
+                    className="apple-btn-secondary px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 cursor-pointer rounded-xl hover:text-white"
+                    title="Unduh rekap tagihan & absensi format CSV (UTF-8 BOM)"
+                  >
+                    <span>📄</span>
+                    <span>CSV Rekap</span>
                   </button>
                 </div>
               </div>

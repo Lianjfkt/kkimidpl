@@ -11,8 +11,8 @@ import {
   getDateRangeBounds,
   calculateStudentAttendanceStats,
   calculateStudentRangeBilling,
-  generateIntegratedBillingCsv,
 } from '@/lib/billingUtils';
+import { exportToExcel, exportToCSV } from '@/lib/exportUtils';
 
 const months = MONTH_NAMES;
 
@@ -87,70 +87,163 @@ export default function ReportsPage() {
     }
   };
 
-  const downloadCSV = (content: string, filename: string) => {
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const getFileSuffix = () => {
+    return startMonth === endMonth && startYear === endYear
+      ? `${months[startMonth - 1]}_${startYear}`
+      : `${months[startMonth - 1]}_${startYear}_sd_${months[endMonth - 1]}_${endYear}`;
   };
 
-  const exportStudents = () => {
-    const headers = 'ID,Nama Lengkap,Tanggal Lahir,Jenis Kelamin,Sabuk Saat Ini,Status,Tanggal Bergabung,No Telepon,Spesialisasi\n';
-    const rows = students.map(s => 
-      `"${s.id}","${s.full_name}","${s.dob}","${s.gender}","${s.current_belt}","${s.status}","${s.join_date}","${s.phone || ''}","${s.specialization || ''}"`
-    ).join('\n');
-    downloadCSV(headers + rows, `Siswa_Dojo_KKI_DPL_${new Date().toISOString().split('T')[0]}.csv`);
+  const exportStudents = (format: 'xlsx' | 'csv' = 'xlsx') => {
+    const headers = [
+      'ID Siswa',
+      'Nama Lengkap',
+      'NIK',
+      'Tempat Lahir',
+      'Tanggal Lahir',
+      'Jenis Kelamin',
+      'Alamat',
+      'Nomor Telepon',
+      'Sabuk Saat Ini',
+      'Status',
+      'Tanggal Bergabung',
+      'Nama Orang Tua',
+      'Pekerjaan Orang Tua',
+      'Spesialisasi',
+    ];
+
+    const rows = students.map((s) => [
+      s.id,
+      s.full_name,
+      s.nik || '-',
+      s.birth_place || '-',
+      s.dob || '-',
+      s.gender || '-',
+      s.address || '-',
+      s.phone || '-',
+      s.current_belt || 'Putih',
+      s.status === 'active' ? 'Aktif' : 'Non-Aktif',
+      s.join_date || '-',
+      s.parent_name || '-',
+      s.parent_job || '-',
+      s.specialization || '-',
+    ]);
+
+    const fileName = `Siswa_Dojo_KKI_DPL_${new Date().toISOString().split('T')[0]}`;
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: 'Data Siswa',
+        headers,
+        rows,
+        colWidths: [18, 24, 18, 16, 14, 14, 28, 16, 16, 12, 16, 20, 18, 16],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
   };
 
-  const exportFees = () => {
+  const exportFees = (format: 'xlsx' | 'csv' = 'xlsx') => {
     const range = getMonthsInRange(startMonth, startYear, endMonth, endYear);
-    const filtered = fees.filter(f => 
-      range.some(r => Number(f.period_month) === r.month && Number(f.period_year) === r.year)
+    const filtered = fees.filter((f) =>
+      range.some((r) => Number(f.period_month) === r.month && Number(f.period_year) === r.year)
     );
-    const headers = 'ID,Nama Siswa,Bulan,Tahun,Nominal,Status Pembayaran,Tanggal Bayar,Metode Pembayaran,Catatan\n';
-    const rows = filtered.map(f => {
-      const sName = students.find(s => s.id === f.student_id)?.full_name || 'Tidak Diketahui';
-      return `"${f.id}","${sName}","${months[f.period_month - 1] || f.period_month}",${f.period_year},"${f.amount}","${f.status}","${f.paid_date || ''}","${f.payment_method || ''}","${(f.notes || '').replace(/"/g, '""')}"`;
-    }).join('\n');
 
-    const fileSuffix = startMonth === endMonth && startYear === endYear
-      ? `${months[startMonth - 1]}_${startYear}`
-      : `${months[startMonth - 1]}_${startYear}_sd_${months[endMonth - 1]}_${endYear}`;
-    downloadCSV(headers + rows, `Laporan_Iuran_Dojo_${fileSuffix}.csv`);
+    const headers = [
+      'ID Iuran',
+      'Nama Siswa',
+      'Bulan',
+      'Tahun',
+      'Nominal (Rp)',
+      'Status Pembayaran',
+      'Tanggal Bayar',
+      'Metode Pembayaran',
+      'Catatan',
+    ];
+
+    const rows = filtered.map((f) => {
+      const sName = students.find((s) => s.id === f.student_id)?.full_name || 'Tidak Diketahui';
+      return [
+        f.id,
+        sName,
+        months[Number(f.period_month) - 1] || f.period_month,
+        f.period_year,
+        Number(f.amount) || 0,
+        f.status === 'lunas' ? 'Lunas' : 'Belum Lunas',
+        f.paid_date || '-',
+        f.payment_method || '-',
+        f.notes || '-',
+      ];
+    });
+
+    const fileName = `Laporan_Iuran_Dojo_${getFileSuffix()}`;
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: 'Laporan Iuran',
+        headers,
+        rows,
+        colWidths: [18, 24, 14, 10, 16, 18, 16, 18, 24],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
   };
 
-  const exportAttendance = () => {
+  const exportAttendance = (format: 'xlsx' | 'csv' = 'xlsx') => {
     const { startDate, endDate } = getDateRangeBounds(startMonth, startYear, endMonth, endYear);
-    const rows = attendance
-      .filter(a => {
-        if (!a.session_date) return false;
-        const d = a.session_date.slice(0, 10);
-        return d >= startDate && d <= endDate;
-      })
-      .map(a => {
-        const sName = students.find(s => s.id === a.student_id)?.full_name || 'Tidak Diketahui';
-        return `"${a.session_date}","${sName}","${a.status}"`;
-      }).join('\n');
+    const filtered = attendance.filter((a) => {
+      if (!a.session_date) return false;
+      const d = a.session_date.slice(0, 10);
+      return d >= startDate && d <= endDate;
+    });
 
-    const headers = 'Tanggal,Nama Siswa,Status Kehadiran\n';
-    const fileSuffix = startMonth === endMonth && startYear === endYear
-      ? `${months[startMonth - 1]}_${startYear}`
-      : `${months[startMonth - 1]}_${startYear}_sd_${months[endMonth - 1]}_${endYear}`;
-    downloadCSV(headers + rows, `Laporan_Absensi_Dojo_${fileSuffix}.csv`);
+    const headers = ['Tanggal Sesi', 'Nama Siswa', 'Sabuk', 'Status Kehadiran'];
+    const rows = filtered.map((a) => {
+      const student = students.find((s) => s.id === a.student_id);
+      return [
+        a.session_date,
+        student?.full_name || 'Tidak Diketahui',
+        student?.current_belt || '-',
+        a.status || '-',
+      ];
+    });
+
+    const fileName = `Laporan_Absensi_Dojo_${getFileSuffix()}`;
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: 'Laporan Absensi',
+        headers,
+        rows,
+        colWidths: [16, 26, 16, 18],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
   };
 
-  const exportIntegratedBilling = () => {
+  const exportIntegratedBilling = (format: 'xlsx' | 'csv' = 'xlsx') => {
     const range = getMonthsInRange(startMonth, startYear, endMonth, endYear);
     const { startDate, endDate } = getDateRangeBounds(startMonth, startYear, endMonth, endYear);
-    const activeStudents = students.filter(s => s.status === 'active');
+    const activeStudents = students.filter((s) => s.status === 'active');
 
-    const items = activeStudents.map(student => {
+    const headers = [
+      'Nama Siswa',
+      'Sabuk',
+      'Orang Tua / Wali',
+      'No. WA / Telp',
+      'Total Sesi',
+      'Hadir',
+      'Izin',
+      'Sakit',
+      'Alpha',
+      'Kehadiran (%)',
+      'Status Tagihan',
+      'Bulan Tertunggak',
+      'Total Tagihan (Rp)',
+    ];
+
+    const rows = activeStudents.map((student) => {
       const rangeBilling = calculateStudentRangeBilling(student.id, fees, range, 20000, student.join_date);
       const attStats = calculateStudentAttendanceStats(student.id, attendance, startDate, endDate);
       const statusLabel = rangeBilling.isBeforeJoinEntirely
@@ -158,28 +251,36 @@ export default function ReportsPage() {
         : rangeBilling.isRangeFullyPaid
         ? 'Lunas'
         : 'Belum Lunas';
-      return {
-        studentName: student.full_name,
-        belt: student.current_belt || 'Putih',
-        parentName: student.parent_name || '',
-        phone: student.phone || '',
-        totalSessions: attStats.totalSessions,
-        hadir: attStats.hadir,
-        izin: attStats.izin,
-        sakit: attStats.sakit,
-        alpha: attStats.alpha,
-        attendancePct: attStats.attendancePct,
-        status: statusLabel,
-        unpaidMonths: rangeBilling.unpaidMonthDetails.join('; '),
-        totalUnpaid: rangeBilling.totalUnpaidAmount,
-      };
+
+      return [
+        student.full_name,
+        student.current_belt || 'Putih',
+        student.parent_name || '-',
+        student.phone || '-',
+        attStats.totalSessions,
+        attStats.hadir,
+        attStats.izin,
+        attStats.sakit,
+        attStats.alpha,
+        `${attStats.attendancePct}%`,
+        statusLabel,
+        rangeBilling.unpaidMonthDetails.join('; ') || '-',
+        rangeBilling.totalUnpaidAmount,
+      ];
     });
 
-    const csvContent = generateIntegratedBillingCsv(items, startMonth, startYear, endMonth, endYear);
-    const fileSuffix = startMonth === endMonth && startYear === endYear
-      ? `${months[startMonth - 1]}_${startYear}`
-      : `${months[startMonth - 1]}_${startYear}_sd_${months[endMonth - 1]}_${endYear}`;
-    downloadCSV(csvContent, `Rekap_Terpadu_Tagihan_Absensi_${fileSuffix}.csv`);
+    const fileName = `Rekap_Terpadu_Tagihan_Absensi_${getFileSuffix()}`;
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: 'Rekap Terpadu',
+        headers,
+        rows,
+        colWidths: [24, 14, 20, 16, 12, 10, 10, 10, 10, 14, 16, 26, 18],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
   };
 
   return (
@@ -308,13 +409,26 @@ export default function ReportsPage() {
               </p>
             </div>
             <div className="space-y-2 mt-4">
-              <button
-                onClick={exportIntegratedBilling}
-                disabled={loading || students.length === 0}
-                className="apple-btn w-full cursor-pointer font-semibold text-xs py-2.5"
-              >
-                📥 Unduh Rekap Terpadu (CSV)
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => exportIntegratedBilling('xlsx')}
+                  disabled={loading || students.length === 0}
+                  className="apple-btn w-full cursor-pointer font-semibold text-xs py-2 text-center flex items-center justify-center gap-1"
+                  title="Unduh Rekap Terpadu format Microsoft Excel (.xlsx)"
+                >
+                  <span>📊</span> Excel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => exportIntegratedBilling('csv')}
+                  disabled={loading || students.length === 0}
+                  className="apple-btn-secondary w-full cursor-pointer font-semibold text-xs py-2 text-center rounded-xl flex items-center justify-center gap-1"
+                  title="Unduh Rekap Terpadu format CSV (UTF-8 BOM)"
+                >
+                  <span>📄</span> CSV
+                </button>
+              </div>
               <Link
                 href="/owner/finance"
                 className="apple-btn-secondary w-full cursor-pointer font-semibold text-xs py-2 text-center block rounded-xl"
@@ -343,13 +457,26 @@ export default function ReportsPage() {
                 Unduh rekapitulasi pembayaran iuran siswa karate pada rentang <b>{periodLabel}</b> beserta metode bayar dan tanggal pelunasan.
               </p>
             </div>
-            <button
-              onClick={exportFees}
-              disabled={loading}
-              className="apple-btn w-full mt-4 cursor-pointer font-semibold text-xs py-2.5"
-            >
-              📥 Unduh Laporan Iuran
-            </button>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => exportFees('xlsx')}
+                disabled={loading}
+                className="apple-btn w-full cursor-pointer font-semibold text-xs py-2 text-center flex items-center justify-center gap-1"
+                title="Unduh Laporan Iuran format Excel (.xlsx)"
+              >
+                <span>📊</span> Excel
+              </button>
+              <button
+                type="button"
+                onClick={() => exportFees('csv')}
+                disabled={loading}
+                className="apple-btn-secondary w-full cursor-pointer font-semibold text-xs py-2 text-center rounded-xl flex items-center justify-center gap-1"
+                title="Unduh Laporan Iuran format CSV (UTF-8 BOM)"
+              >
+                <span>📄</span> CSV
+              </button>
+            </div>
           </div>
 
           {/* Card 3: Attendance */}
@@ -371,13 +498,26 @@ export default function ReportsPage() {
                 Unduh rekap kehadiran seluruh siswa karate pada rentang <b>{periodLabel}</b> untuk seluruh sesi latihan tercatat.
               </p>
             </div>
-            <button
-              onClick={exportAttendance}
-              disabled={loading}
-              className="apple-btn w-full mt-4 cursor-pointer font-semibold text-xs py-2.5"
-            >
-              📥 Unduh Laporan Absensi
-            </button>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => exportAttendance('xlsx')}
+                disabled={loading}
+                className="apple-btn w-full cursor-pointer font-semibold text-xs py-2 text-center flex items-center justify-center gap-1"
+                title="Unduh Laporan Absensi format Excel (.xlsx)"
+              >
+                <span>📊</span> Excel
+              </button>
+              <button
+                type="button"
+                onClick={() => exportAttendance('csv')}
+                disabled={loading}
+                className="apple-btn-secondary w-full cursor-pointer font-semibold text-xs py-2 text-center rounded-xl flex items-center justify-center gap-1"
+                title="Unduh Laporan Absensi format CSV (UTF-8 BOM)"
+              >
+                <span>📄</span> CSV
+              </button>
+            </div>
           </div>
 
           {/* Card 4: Students Master Data */}
@@ -399,13 +539,26 @@ export default function ReportsPage() {
                 Ekspor seluruh data profil siswa karate aktif beserta tingkatan sabuk resmi, kontak wali, dan riwayat bergabung dojo.
               </p>
             </div>
-            <button
-              onClick={exportStudents}
-              disabled={loading || students.length === 0}
-              className="apple-btn w-full mt-4 cursor-pointer font-semibold text-xs py-2.5"
-            >
-              📥 Unduh Data Siswa
-            </button>
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => exportStudents('xlsx')}
+                disabled={loading || students.length === 0}
+                className="apple-btn w-full cursor-pointer font-semibold text-xs py-2 text-center flex items-center justify-center gap-1"
+                title="Unduh Data Siswa format Excel (.xlsx)"
+              >
+                <span>📊</span> Excel
+              </button>
+              <button
+                type="button"
+                onClick={() => exportStudents('csv')}
+                disabled={loading || students.length === 0}
+                className="apple-btn-secondary w-full cursor-pointer font-semibold text-xs py-2 text-center rounded-xl flex items-center justify-center gap-1"
+                title="Unduh Data Siswa format CSV (UTF-8 BOM)"
+              >
+                <span>📄</span> CSV
+              </button>
+            </div>
           </div>
         </div>
       </div>

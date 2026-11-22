@@ -7,12 +7,14 @@ import PhysicalProgressChart, { PhysicalTestRecordItem } from '@/components/Phys
 import {
   calculatePhysicalAssessment,
   getAgeCategory,
+  getBeltTargetScore,
   PhysicalAssessmentResult,
   PhysicalMetricsInput,
 } from '@/lib/physicalScoring';
 import { supabase } from '@/lib/supabaseClient';
 import { Student } from '@/lib/mockData';
 import { getBeltStyle, getBeltHex, OFFICIAL_BELTS } from '@/lib/constants/belts';
+import { exportToExcel, exportToCSV } from '@/lib/exportUtils';
 import Link from 'next/link';
 import {
   Award,
@@ -334,6 +336,79 @@ export default function OwnerPhysicalTestsPage() {
     return found ? found.full_name : 'Pelatih Dojo';
   };
 
+  const handleExportPhysicalTests = (format: 'xlsx' | 'csv' = 'xlsx') => {
+    const listToExport =
+      activeTab === 'leaderboard'
+        ? leaderboardList
+        : filteredReadinessList.length > 0
+        ? filteredReadinessList
+        : studentEvaluations;
+
+    const headers = [
+      'Nama Siswa',
+      'Sabuk',
+      'Kategori Usia',
+      'Tanggal Tes Terakhir',
+      'Total Skor Fisik',
+      'Grade',
+      'Target Skor Sabuk',
+      'Kesiapan Ujian Sabuk',
+      'Tingkat Kehadiran (%)',
+      'Push Up 30s',
+      'Sit Up 30s',
+      'Pukulan 30s',
+      'Tendangan 30s',
+      'Skipping (detik)',
+      'Split Depan (cm)',
+      'Split Samping (cm)',
+      'Catatan Evaluasi',
+    ];
+
+    const rows = listToExport.map((e) => {
+      const t = e.latestTest;
+      const a = e.assessment;
+      const ageCat = getAgeCategory(e.student.dob);
+      const readinessLabel = a
+        ? a.examReadiness.isEligible
+          ? 'Siap Ujian'
+          : 'Belum Siap'
+        : 'Belum Tes';
+
+      return [
+        e.student.full_name,
+        e.student.current_belt || 'Putih',
+        ageCat === 'anak' ? 'Anak-anak' : ageCat === 'remaja' ? 'Remaja' : 'Dewasa',
+        t?.test_date || '-',
+        a ? a.totalScore : '-',
+        a ? a.grade : '-',
+        getBeltTargetScore(e.student.current_belt, ageCat),
+        readinessLabel,
+        `${e.attendanceRate}%`,
+        t ? t.push_up_30s : '-',
+        t ? t.sit_up_30s : '-',
+        t ? t.punches_30s : '-',
+        t ? t.kicks_30s : '-',
+        t ? t.skipping_sec : '-',
+        t ? t.split_front_cm : '-',
+        t ? t.split_side_cm : '-',
+        t?.notes || '-',
+      ];
+    });
+
+    const fileName = `Rekap_Kebugaran_Fisik_Dojo_${new Date().toISOString().split('T')[0]}`;
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: 'Kebugaran Atlet',
+        headers,
+        rows,
+        colWidths: [24, 14, 16, 20, 16, 10, 16, 18, 18, 14, 14, 14, 14, 16, 16, 16, 28],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
+  };
+
   return (
     <Navigation>
       <div className="space-y-6 animate-m3-page-enter">
@@ -371,6 +446,26 @@ export default function OwnerPhysicalTestsPage() {
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleExportPhysicalTests('xlsx')}
+              className="apple-btn-secondary px-3.5 py-2 text-xs font-semibold rounded-2xl flex items-center gap-1.5 cursor-pointer hover:text-white"
+              title="Unduh data kebugaran ke Excel (.xlsx)"
+            >
+              <span>📊</span>
+              <span>Excel</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleExportPhysicalTests('csv')}
+              className="apple-btn-secondary px-3.5 py-2 text-xs font-semibold rounded-2xl flex items-center gap-1.5 cursor-pointer hover:text-white"
+              title="Unduh data kebugaran ke CSV (UTF-8 BOM)"
+            >
+              <span>📄</span>
+              <span>CSV</span>
             </button>
 
             <button

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import * as XLSX from 'xlsx';
+import { exportToExcel, exportToCSV } from '@/lib/exportUtils';
 
 type ImportType = 'students' | 'attendance' | 'fees';
 
@@ -82,30 +83,44 @@ export default function ImportPage() {
   };
 
   // ── Template download ───────────────────────────────────────────────────────
-  const downloadTemplate = () => {
+  const downloadTemplate = (format: 'xlsx' | 'csv' = 'xlsx') => {
     let headers: string[] = [];
     let example: string[] = [];
     let name = '';
+    let sheetName = '';
 
     if (importType === 'students') {
       headers = ['Nama Lengkap', 'NIK', 'Tempat Lahir', 'Tanggal Lahir (YYYY-MM-DD)', 'Jenis Kelamin', 'Alamat', 'Nomor Telepon', 'Sabuk Saat Ini', 'Berat Badan', 'Tinggi Badan', 'Tanggal Bergabung (YYYY-MM-DD)', 'Nama Orang Tua', 'Pekerjaan Orang Tua'];
       example = ['Ahmad Fauzi', '1871131810140002', 'BANDAR LAMPUNG', '2014-05-10', 'Laki-laki', 'Jl. Merdeka No. 5', '08123456789', 'Putih', '30', '135', '2025-01-15', 'Budi Fauzi', 'WIRASWASTA'];
-      name = 'template-import-siswa-dojo.xlsx';
+      name = 'template-import-siswa-dojo';
+      sheetName = 'Siswa';
     } else if (importType === 'attendance') {
       headers = ['Tanggal', 'Nama Siswa', 'Status Kehadiran'];
-      example = ['2026-05-09', 'ALVARO FERNANDES', 'Izin'];
-      name = 'template-import-absensi-siswa.xlsx';
+      example = ['2026-05-09', 'ALVARO FERNANDES', 'Hadir'];
+      name = 'template-import-absensi-siswa';
+      sheetName = 'Absensi';
     } else {
       headers = ['Nama Siswa', 'Bulan (Angka 1-12)', 'Tahun', 'Jumlah Iuran', 'Status Pembayaran', 'Tanggal Bayar', 'Metode Pembayaran', 'Catatan'];
       example = ['ALVARO FERNANDES', '5', '2026', '150000', 'lunas', '2026-05-10', 'transfer', 'Iuran bulan Mei'];
-      name = 'template-import-iuran-siswa.xlsx';
+      name = 'template-import-iuran-siswa';
+      sheetName = 'Iuran';
     }
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([headers, example]);
-    ws['!cols'] = headers.map(() => ({ wch: 24 }));
-    XLSX.utils.book_append_sheet(wb, ws, 'Template');
-    XLSX.writeFile(wb, name);
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName: name,
+        sheetName,
+        headers,
+        rows: [example],
+        colWidths: headers.map(() => 24),
+      });
+    } else {
+      exportToCSV({
+        fileName: name,
+        headers,
+        rows: [example],
+      });
+    }
   };
 
   // ── Parse file ──────────────────────────────────────────────────────────────
@@ -370,12 +385,26 @@ export default function ImportPage() {
               Upload file Excel (.xlsx) atau CSV untuk mengimpor Data Siswa, Absensi, atau Iuran.
             </p>
           </div>
-          <button
-            onClick={downloadTemplate}
-            className="apple-btn-secondary px-5 py-2.5 text-sm font-semibold flex items-center gap-2 cursor-pointer w-fit"
-          >
-            📋 Unduh Template Excel
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <button
+              type="button"
+              onClick={() => downloadTemplate('xlsx')}
+              className="apple-btn-secondary px-4 py-2.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer rounded-2xl hover:text-white"
+              title="Unduh template format Microsoft Excel (.xlsx)"
+            >
+              <span>📊</span>
+              <span>Template Excel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => downloadTemplate('csv')}
+              className="apple-btn-secondary px-4 py-2.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer rounded-2xl hover:text-white"
+              title="Unduh template format CSV (UTF-8 BOM)"
+            >
+              <span>📄</span>
+              <span>Template CSV</span>
+            </button>
+          </div>
         </div>
 
         {/* Tipe Import Selector */}

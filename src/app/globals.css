@@ -867,3 +867,100 @@ input:checked + .m3-switch-track .m3-switch-thumb {
     scroll-behavior: auto !important;
   }
 }
+
+/* =========================================================
+   PRINT / PDF EXPORT STYLES
+   Ensures clean, professional document export on window.print()
+   ========================================================= */
+@media print {
+  @page {
+    margin: 1.2cm;
+    size: auto;
+  }
+
+  /* Reset document background & color to clean paper white */
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-size: 11pt !important;
+  }
+
+  /* Hide interactive chrome: navigation, sidebars, buttons, form controls */
+  nav,
+  aside,
+  header,
+  button,
+  .apple-btn,
+  .apple-btn-secondary,
+  input,
+  select,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Force browsers to print exact colors and eliminate screen shadows */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Clean up neumorphic surface cards for paper */
+  [style*="var(--neu-surface)"],
+  [style*="var(--neu-surface-low)"],
+  [style*="var(--neu-surface-high)"],
+  [style*="var(--neu-surface-highest)"] {
+    background: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+  }
+
+  /* Readable high-contrast typography */
+  [style*="var(--md-sys-color-on-surface)"],
+  [style*="var(--md-sys-color-on-surface-variant)"] {
+    color: #1f2937 !important;
+  }
+
+  /* Tabular reports styling */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #e5e7eb !important;
+    color: #111827 !important;
+    padding: 6px 10px !important;
+  }
+
+  th {
+    background-color: #f3f4f6 !important;
+    font-weight: 700 !important;
+  }
+
+  /* Prevent awkward page breaks */
+  tr,
+  .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Dialog / Inspection modal print mode */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+  }
+
+  .fixed.inset-0 > div {
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    max-height: none !important;
+  }
+}

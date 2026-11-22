@@ -5,6 +5,7 @@ import Navigation from '@/components/Navigation';
 import { supabase, rawClient } from '@/lib/supabaseClient';
 import { Student, ClassSession, StudentAttendance } from '@/lib/mockData';
 import { OFFICIAL_BELTS } from '@/lib/constants/belts';
+import { exportToExcel, exportToCSV } from '@/lib/exportUtils';
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -186,21 +187,45 @@ export default function OwnerAttendanceMonitor() {
   ).sort((a, b) => b - a);
   if (!availableYears.includes(yearFilter)) availableYears.unshift(yearFilter);
 
-  // CSV Export
-  const exportCSV = () => {
-    const header = 'Nama Siswa,Sabuk,Total Sesi,Hadir,Izin,Sakit,Alpha,% Kehadiran,Status';
-    const rows = filtered.map(s => [
-      `"${s.student.full_name}"`,
-      `"${s.student.current_belt || '-'}"`,
-      s.total, s.hadir, s.izin, s.sakit, s.alpha,
+  // Excel & CSV Export Handlers
+  const handleExportAttendance = (format: 'xlsx' | 'csv' = 'xlsx') => {
+    const headers = [
+      'Nama Siswa',
+      'Sabuk',
+      'Total Sesi',
+      'Hadir',
+      'Izin',
+      'Sakit',
+      'Alpha',
+      'Kehadiran (%)',
+      'Status Kedisiplinan',
+    ];
+
+    const rows = filtered.map((s) => [
+      s.student.full_name,
+      s.student.current_belt || '-',
+      s.total,
+      s.hadir,
+      s.izin,
+      s.sakit,
+      s.alpha,
       `${s.pct}%`,
       s.isAtRisk ? 'Kritis' : s.pct >= 80 ? 'Baik' : 'Perlu Perhatian',
-    ].join(','));
-    const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = `Absensi_${MONTHS[monthFilter - 1]}_${yearFilter}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+    ]);
+
+    const fileName = `Absensi_${MONTHS[monthFilter - 1]}_${yearFilter}`;
+
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: `Absensi ${MONTHS[monthFilter - 1]}`,
+        headers,
+        rows,
+        colWidths: [24, 16, 12, 10, 10, 10, 10, 16, 18],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
   };
 
   return (
@@ -230,7 +255,7 @@ export default function OwnerAttendanceMonitor() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 self-start">
+          <div className="flex items-center gap-2 self-start flex-wrap">
             <button
               onClick={() => loadData(false)}
               disabled={refreshing}
@@ -242,13 +267,22 @@ export default function OwnerAttendanceMonitor() {
               </svg>
             </button>
             <button
-              onClick={exportCSV}
-              className="apple-btn-secondary px-4 py-2 text-xs font-semibold flex items-center gap-2 rounded-2xl cursor-pointer transition-all duration-200"
+              type="button"
+              onClick={() => handleExportAttendance('xlsx')}
+              className="apple-btn-secondary px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 rounded-2xl cursor-pointer transition-all duration-200 hover:text-white"
+              title="Unduh rekap kehadiran bulanan ke Excel (.xlsx)"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Ekspor CSV
+              <span>📊</span>
+              <span>Excel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExportAttendance('csv')}
+              className="apple-btn-secondary px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 rounded-2xl cursor-pointer transition-all duration-200 hover:text-white"
+              title="Unduh rekap kehadiran bulanan ke CSV (UTF-8 BOM)"
+            >
+              <span>📄</span>
+              <span>CSV</span>
             </button>
           </div>
         </div>
@@ -785,15 +819,26 @@ export default function OwnerAttendanceMonitor() {
                   {filtered.length} siswa aktif · {totalSessions} sesi tercatat
                 </p>
               </div>
-              <button
-                onClick={exportCSV}
-                className="apple-btn-secondary px-4 py-2 text-xs font-semibold flex items-center gap-2 rounded-2xl cursor-pointer transition-all duration-200 self-start"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Unduh CSV
-              </button>
+              <div className="flex items-center gap-1.5 self-start">
+                <button
+                  type="button"
+                  onClick={() => handleExportAttendance('xlsx')}
+                  className="apple-btn-secondary px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 rounded-xl cursor-pointer transition-all duration-200 hover:text-white"
+                  title="Unduh Rekap Kehadiran ke Excel (.xlsx)"
+                >
+                  <span>📊</span>
+                  <span>Unduh Excel</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExportAttendance('csv')}
+                  className="apple-btn-secondary px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 rounded-xl cursor-pointer transition-all duration-200 hover:text-white"
+                  title="Unduh Rekap Kehadiran ke CSV (UTF-8 BOM)"
+                >
+                  <span>📄</span>
+                  <span>Unduh CSV</span>
+                </button>
+              </div>
             </div>
 
             {filtered.length === 0 ? (

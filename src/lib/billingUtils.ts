@@ -502,23 +502,23 @@ export function generateUnpaidBillingCsv(
   _month?: number,
   _year?: number
 ): string {
-  const header = 'Nama Siswa,Sabuk,Nama Orang Tua / Wali,No. Telepon / WA,Status Periode Ini,Nominal Periode Ini,Total Akumulasi Tunggakan,Jumlah Bulan Nunggak,Rincian Periode Tunggakan\n';
+  const header = 'Nama Siswa,Sabuk,Nama Orang Tua / Wali,No. Telepon / WA,Status Periode Ini,Nominal Periode Ini,Total Akumulasi Tunggakan,Jumlah Bulan Nunggak,Rincian Periode Tunggakan\r\n';
   
   const rows = items.map((item) => {
     return [
-      `"${item.student.full_name}"`,
-      `"${item.belt}"`,
-      `"${item.parentName || '-'}"`,
-      `"${item.phone || '-'}"`,
-      `"${item.currentMonthStatus}"`,
-      item.currentMonthAmount,
-      item.totalArrearsAmount,
-      item.unpaidMonthsCount,
-      `"${item.unpaidDetails}"`
+      `"${(item.student?.full_name || '').replace(/"/g, '""')}"`,
+      `"${(item.belt || '').replace(/"/g, '""')}"`,
+      `"${(item.parentName || '-').replace(/"/g, '""')}"`,
+      `"${(item.phone || '-').replace(/"/g, '""')}"`,
+      `"${(item.currentMonthStatus || '').replace(/"/g, '""')}"`,
+      item.currentMonthAmount || 0,
+      item.totalArrearsAmount || 0,
+      item.unpaidMonthsCount || 0,
+      `"${(item.unpaidDetails || '-').replace(/"/g, '""')}"`
     ].join(',');
-  }).join('\n');
+  }).join('\r\n');
 
-  return header + rows;
+  return '\uFEFF' + header + rows;
 }
 
 /**
@@ -540,35 +540,30 @@ export function generateIntegratedBillingCsv(
     unpaidMonths: string;
     totalUnpaid: number;
   }>,
-  startMonth: number,
-  startYear: number,
-  endMonth: number,
-  endYear: number
+  _startMonth: number,
+  _startYear: number,
+  _endMonth: number,
+  _endYear: number
 ): string {
-  const periodLabel = startMonth === endMonth && startYear === endYear
-    ? `${MONTH_NAMES[startMonth - 1]} ${startYear}`
-    : `${MONTH_NAMES[startMonth - 1]} ${startYear} - ${MONTH_NAMES[endMonth - 1]} ${endYear}`;
-
-  const metaHeader = `# REKAP TERPADU TAGIHAN & ABSENSI DOJO KKI DPL (${periodLabel})\n`;
-  const columns = 'Nama Siswa,Sabuk,Orang Tua / Wali,No. WA / Telp,Total Sesi,Hadir,Izin,Sakit,Alpha,Kehadiran (%),Status Tagihan,Bulan Tertunggak,Total Tagihan (Rp)\n';
+  const columns = 'Nama Siswa,Sabuk,Orang Tua / Wali,No. WA / Telp,Total Sesi,Hadir,Izin,Sakit,Alpha,Kehadiran (%),Status Tagihan,Bulan Tertunggak,Total Tagihan (Rp)\r\n';
 
   const rows = items.map((item) => {
     return [
-      `"${item.studentName.replace(/"/g, '""')}"`,
+      `"${(item.studentName || '').replace(/"/g, '""')}"`,
       `"${(item.belt || 'Putih').replace(/"/g, '""')}"`,
       `"${(item.parentName || '-').replace(/"/g, '""')}"`,
       `"${(item.phone || '-').replace(/"/g, '""')}"`,
-      item.totalSessions,
-      item.hadir,
-      item.izin,
-      item.sakit,
-      item.alpha,
-      `${item.attendancePct}%`,
-      `"${item.status}"`,
+      item.totalSessions || 0,
+      item.hadir || 0,
+      item.izin || 0,
+      item.sakit || 0,
+      item.alpha || 0,
+      `${item.attendancePct || 0}%`,
+      `"${(item.status || '').replace(/"/g, '""')}"`,
       `"${(item.unpaidMonths || '-').replace(/"/g, '""')}"`,
-      item.totalUnpaid,
+      item.totalUnpaid || 0,
     ].join(',');
-  }).join('\n');
+  }).join('\r\n');
 
-  return metaHeader + columns + rows;
+  return '\uFEFF' + columns + rows;
 }

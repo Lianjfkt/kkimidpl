@@ -77,3 +77,4 @@ Ketika Owner mengklik nama atlet pada leaderboard atau tabel audit:
   - Mengarahkan menu **"Tes Fisik"** ke `/owner/physical-tests`.
 - Middleware `src/proxy.ts`:
   - Memastikan rute `/owner/physical-tests` dilindungi oleh session `owner`.
+

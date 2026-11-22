@@ -8,6 +8,7 @@ import Navigation from '@/components/Navigation';
 import { useSearchParams } from 'next/navigation';
 import { OFFICIAL_BELTS } from '@/lib/constants/belts';
 import { normalizePhoneToAuthEmail, getAuthHeaders } from '@/lib/authUtils';
+import { exportToExcel, exportToCSV } from '@/lib/exportUtils';
 
 function M3Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   if (!open) return null;
@@ -420,6 +421,53 @@ function RegistrationsContent() {
     }
   };
 
+  const handleExportRegistrations = (format: 'xlsx' | 'csv' = 'xlsx') => {
+    const listToExport = filtered.length > 0 ? filtered : registrations;
+    if (listToExport.length === 0) {
+      alert('Tidak ada data pendaftaran yang dapat diekspor.');
+      return;
+    }
+
+    const headers = [
+      'Nama Calon Siswa',
+      'Tanggal Lahir',
+      'Jenis Kelamin',
+      'Alamat',
+      'No. Telepon / WA',
+      'Nama Orang Tua / Wali',
+      'Pekerjaan Orang Tua',
+      'Status Pendaftaran',
+      'Tanggal Mendaftar',
+      'Catatan',
+    ];
+
+    const rows = listToExport.map((reg) => [
+      reg.full_name,
+      reg.dob,
+      reg.gender || '-',
+      reg.address || '-',
+      (reg as any).phone || reg.parent_phone || '-',
+      reg.parent_name || '-',
+      reg.parent_job || '-',
+      statusLabel(reg.status),
+      reg.submitted_at || (reg as any).created_at || '-',
+      (reg as any).notes || '-',
+    ]);
+
+    const fileName = `Pendaftaran_Siswa_Dojo_${new Date().toISOString().split('T')[0]}`;
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: 'Pendaftaran Siswa',
+        headers,
+        rows,
+        colWidths: [24, 14, 14, 28, 16, 20, 18, 18, 16, 26],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -441,12 +489,32 @@ function RegistrationsContent() {
               Review dan kelola pendaftaran calon siswa KKI DPL Dojo.
             </p>
           </div>
-          <button
-            onClick={openCreateModal}
-            className="apple-btn text-xs py-2.5 px-4.5 flex items-center gap-1.5 self-start sm:self-auto cursor-pointer font-semibold"
-          >
-            <span>➕</span> Tambah Pendaftaran
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <button
+              type="button"
+              onClick={() => handleExportRegistrations('xlsx')}
+              className="apple-btn-secondary text-xs py-2.5 px-3.5 flex items-center gap-1.5 cursor-pointer font-semibold rounded-2xl hover:text-white"
+              title="Ekspor pendaftaran ke Excel (.xlsx)"
+            >
+              <span>📊</span>
+              <span>Excel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExportRegistrations('csv')}
+              className="apple-btn-secondary text-xs py-2.5 px-3.5 flex items-center gap-1.5 cursor-pointer font-semibold rounded-2xl hover:text-white"
+              title="Ekspor pendaftaran ke CSV (UTF-8 BOM)"
+            >
+              <span>📄</span>
+              <span>CSV</span>
+            </button>
+            <button
+              onClick={openCreateModal}
+              className="apple-btn text-xs py-2.5 px-4.5 flex items-center gap-1.5 cursor-pointer font-semibold"
+            >
+              <span>➕</span> Tambah Pendaftaran
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}

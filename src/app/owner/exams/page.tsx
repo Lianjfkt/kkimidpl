@@ -5,6 +5,7 @@ import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Student, BeltExam, ExamParticipant } from '@/lib/mockData';
 import { OFFICIAL_BELTS, getBeltEmoji, getBeltStyle, getNextBelt } from '@/lib/constants/belts';
+import { exportToExcel, exportToCSV } from '@/lib/exportUtils';
 
 function M3Dialog({ open, onClose, title, maxWidth = 'max-w-lg', children }: { open: boolean; onClose: () => void; title: string; maxWidth?: string; children: React.ReactNode }) {
   if (!open) return null;
@@ -610,6 +611,59 @@ export default function OwnerExams() {
     return { total, lulus, gagal, pending, lulusPercent };
   }, [activeParticipants]);
 
+  const handleExportExamParticipants = (format: 'xlsx' | 'csv' = 'xlsx') => {
+    const listToExport = filteredActiveParticipants.length > 0 ? filteredActiveParticipants : activeParticipants;
+    if (listToExport.length === 0) {
+      alert('Tidak ada peserta ujian yang dapat diekspor.');
+      return;
+    }
+
+    const headers = [
+      'Nama Peserta',
+      'Sabuk Asal',
+      'Target Sabuk',
+      'Hasil Ujian',
+      'Nilai / Skor',
+      'No. Telepon / WA',
+      'Nama Orang Tua',
+      'Biaya Ujian (Rp)',
+      'Catatan',
+    ];
+
+    const rows = listToExport.map((p) => {
+      const student = students.find((s) => s.id === p.student_id);
+      const res = p.result || (p.status === 'lulus' ? 'lulus' : p.status === 'tidak_lulus' ? 'tidak_lulus' : 'pending');
+      const resultLabel = res === 'lulus' ? 'LULUS' : res === 'tidak_lulus' ? 'TIDAK LULUS' : 'MENUNGGU HASIL';
+
+      return [
+        student?.full_name || 'Tidak Diketahui',
+        p.current_belt || student?.current_belt || 'Putih',
+        p.target_belt || '-',
+        resultLabel,
+        (p as any).score ?? p.grade ?? p.score_notes ?? '-',
+        student?.phone || '-',
+        student?.parent_name || '-',
+        currentExam?.fee || currentExam?.registration_fee || 0,
+        p.notes || '-',
+      ];
+    });
+
+    const dateStr = currentExam?.exam_date || new Date().toISOString().split('T')[0];
+    const fileName = `Peserta_Ujian_Sabuk_${dateStr}`;
+
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: 'Peserta Ujian',
+        headers,
+        rows,
+        colWidths: [24, 16, 16, 18, 14, 16, 20, 18, 26],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
+  };
+
   return (
     <Navigation>
       {/* Belt Level Up Celebration Overlay */}
@@ -856,6 +910,27 @@ export default function OwnerExams() {
                 <option value="lulus">✅ Lulus ({stats.lulus})</option>
                 <option value="tidak_lulus">❌ Tidak Lulus ({stats.gagal})</option>
               </select>
+
+              <button
+                type="button"
+                onClick={() => handleExportExamParticipants('xlsx')}
+                disabled={activeParticipants.length === 0}
+                className="apple-btn-secondary px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:text-white disabled:opacity-50"
+                title="Ekspor daftar peserta ujian ke Excel (.xlsx)"
+              >
+                <span>📊</span>
+                <span>Excel</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExportExamParticipants('csv')}
+                disabled={activeParticipants.length === 0}
+                className="apple-btn-secondary px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:text-white disabled:opacity-50"
+                title="Ekspor daftar peserta ujian ke CSV (UTF-8 BOM)"
+              >
+                <span>📄</span>
+                <span>CSV</span>
+              </button>
 
               {stats.pending > 0 && (
                 <button

@@ -5,6 +5,7 @@ import Navigation from '@/components/Navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Student, Tournament, TournamentParticipant } from '@/lib/mockData';
 import { getBeltEmoji } from '@/lib/constants/belts';
+import { exportToExcel, exportToCSV } from '@/lib/exportUtils';
 
 function M3Dialog({ open, onClose, title, maxWidth = 'max-w-lg', children }: { open: boolean; onClose: () => void; title: string; maxWidth?: string; children: React.ReactNode }) {
   if (!open) return null;
@@ -458,6 +459,75 @@ export default function OwnerTournaments() {
     return { background: 'var(--md-sys-color-secondary-container)', color: 'var(--md-sys-color-on-secondary-container)' };
   };
 
+  const handleExportTournamentAthletes = (format: 'xlsx' | 'csv' = 'xlsx') => {
+    const listToExport = filteredActiveParticipants.length > 0 ? filteredActiveParticipants : activeParticipants;
+    if (listToExport.length === 0) {
+      alert('Tidak ada data atlet yang dapat diekspor.');
+      return;
+    }
+
+    const headers = [
+      'Nama Atlet',
+      'Sabuk',
+      'Kategori Tanding',
+      'Kelas Berat / Spesialisasi',
+      'Perolehan Medali',
+      'Turnamen',
+      'Tanggal Turnamen',
+      'Lokasi',
+      'Tingkat Kejuaraan',
+      'No. Telepon / WA',
+      'Nama Orang Tua / Wali',
+      'Catatan',
+    ];
+
+    const rows = listToExport.map((p) => {
+      const student = students.find((s) => s.id === p.student_id);
+      const m = medalState[p.id] || (p.medal as any) || 'none';
+      const medalLabel =
+        m === 'emas'
+          ? 'Emas (Juara 1)'
+          : m === 'perak'
+          ? 'Perak (Juara 2)'
+          : m === 'perunggu'
+          ? 'Perunggu (Juara 3)'
+          : 'Tanpa Medali / Partisipasi';
+
+      return [
+        student?.full_name || 'Tidak Diketahui',
+        student?.current_belt || 'Putih',
+        p.category === 'kata' ? 'Kata (Jurus)' : 'Kumite (Tanding)',
+        p.weight_class || student?.specialization || '-',
+        medalLabel,
+        currentTourney?.name || 'Turnamen Karate',
+        currentTourney?.tournament_date || currentTourney?.start_date || '-',
+        currentTourney?.location || '-',
+        currentTourney?.level ? currentTourney.level.toUpperCase() : '-',
+        student?.phone || '-',
+        student?.parent_name || '-',
+        p.notes || '-',
+      ];
+    });
+
+    const safeTourneyName = (currentTourney?.name || 'Turnamen')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '_')
+      .slice(0, 30);
+    const fileName = `Atlet_${safeTourneyName}_${new Date().toISOString().split('T')[0]}`;
+
+    if (format === 'xlsx') {
+      exportToExcel({
+        fileName,
+        sheetName: 'Atlet Turnamen',
+        headers,
+        rows,
+        colWidths: [24, 14, 18, 24, 22, 28, 16, 20, 16, 16, 20, 24],
+      });
+    } else {
+      exportToCSV({ fileName, headers, rows });
+    }
+  };
+
   return (
     <Navigation>
       <div className="space-y-6">
@@ -706,6 +776,27 @@ export default function OwnerTournaments() {
                 <option value="perunggu">🥉 Perunggu ({tourneyStats.perunggu})</option>
                 <option value="none">Tanpa Medali ({tourneyStats.tanpaMedali})</option>
               </select>
+
+              <button
+                type="button"
+                onClick={() => handleExportTournamentAthletes('xlsx')}
+                disabled={activeParticipants.length === 0}
+                className="apple-btn-secondary px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:text-white disabled:opacity-50"
+                title="Ekspor daftar atlet & medali ke Excel (.xlsx)"
+              >
+                <span>📊</span>
+                <span>Excel</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExportTournamentAthletes('csv')}
+                disabled={activeParticipants.length === 0}
+                className="apple-btn-secondary px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer hover:text-white disabled:opacity-50"
+                title="Ekspor daftar atlet & medali ke CSV (UTF-8 BOM)"
+              >
+                <span>📄</span>
+                <span>CSV</span>
+              </button>
             </div>
           </div>
 
