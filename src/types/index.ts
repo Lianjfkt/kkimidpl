@@ -164,6 +164,7 @@ export interface Registration {
   id: string;
   full_name: string;
   dob: string;
+  gender?: string;
   parent_name: string;
   parent_phone: string;
   parent_job?: string;

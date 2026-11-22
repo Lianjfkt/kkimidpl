@@ -323,7 +323,7 @@ function RegistrationsContent() {
       id: isSupabaseConfigured ? crypto.randomUUID() : `student-${Date.now()}`,
       full_name: approveTarget.full_name,
       dob: approveTarget.dob,
-      gender: '-',
+      gender: approveTarget.gender || 'Laki-laki',
       address: approveTarget.address || '',
       phone: approveTarget.parent_phone,
       parent_name: approveTarget.parent_name,

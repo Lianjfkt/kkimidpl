@@ -349,6 +349,7 @@ create table if not exists public.registrations (
 
 -- Kolom tambahan untuk database yang sudah terbuat sebelumnya
 alter table public.registrations add column if not exists parent_job text;
+alter table public.registrations add column if not exists gender text default 'Laki-laki';
 
 alter table public.registrations enable row level security;
 drop policy if exists "Allow anyone to insert registrations" on public.registrations;

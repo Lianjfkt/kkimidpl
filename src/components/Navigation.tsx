@@ -130,7 +130,7 @@ export default function Navigation({ children }: NavigationProps) {
         <div className="flex-1 flex flex-col justify-between py-5 overflow-y-auto px-4">
           <nav className="space-y-2">
             {allLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.href || (link.href === '/pelatih/physical-tests' && pathname.includes('physical-tests'));
               return (
                 <Link
                   key={link.href}
@@ -155,14 +155,12 @@ export default function Navigation({ children }: NavigationProps) {
                     if (!isActive) {
                       e.currentTarget.style.backgroundColor = 'var(--neu-surface-high)';
                       e.currentTarget.style.boxShadow = 'var(--neu-shadow-flat-sm)';
-                      e.currentTarget.style.transform = 'translateY(-1.5px)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) {
                       e.currentTarget.style.backgroundColor = 'transparent';
                       e.currentTarget.style.boxShadow = 'none';
-                      e.currentTarget.style.transform = 'translateY(0)';
                     }
                   }}
                 >
@@ -503,13 +501,15 @@ export default function Navigation({ children }: NavigationProps) {
               </div>
               <div className="grid grid-cols-2 gap-3 max-h-[46vh] overflow-y-auto py-2">
                 {secondaryLinks.map((link) => {
-                  const isActive = pathname === link.href;
+                  const isActive = pathname === link.href || (link.href === '/pelatih/physical-tests' && pathname.includes('physical-tests'));
                   return (
                     <Link
                       key={link.href}
                       href={link.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center px-4 py-3 rounded-2xl text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center px-4 py-3 rounded-2xl text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer select-none touch-manipulation ${
                         isActive
                           ? 'text-white'
                           : 'text-[var(--md-sys-color-on-surface)]'
@@ -528,7 +528,7 @@ export default function Navigation({ children }: NavigationProps) {
                             }
                       }
                     >
-                      <svg className="mr-2.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className="mr-2.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d={link.icon} />
                       </svg>
                       <span className="truncate">{link.label}</span>
@@ -537,8 +537,10 @@ export default function Navigation({ children }: NavigationProps) {
                 })}
                 <Link
                   href="/settings"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center px-4 py-3 rounded-2xl text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`flex items-center px-4 py-3 rounded-2xl text-xs font-semibold transition-all duration-200 active:scale-95 cursor-pointer select-none touch-manipulation ${
                     pathname === '/settings'
                       ? 'text-white'
                       : 'text-[var(--md-sys-color-on-surface)]'

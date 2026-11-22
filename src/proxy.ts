@@ -35,11 +35,11 @@ export function proxy(request: NextRequest) {
       url.pathname = `/${role}`;
       return NextResponse.redirect(url);
     }
-    if (isPelatihPath && role !== 'pelatih') {
+    if (isPelatihPath && role !== 'pelatih' && role !== 'owner') {
       url.pathname = `/${role}`;
       return NextResponse.redirect(url);
     }
-    if (isOrtuPath && role !== 'ortu') {
+    if (isOrtuPath && role !== 'ortu' && role !== 'owner') {
       url.pathname = `/${role}`;
       return NextResponse.redirect(url);
     }
